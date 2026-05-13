@@ -61,7 +61,7 @@ ly.AssociatedWindow(aw => aw
 ```
 - Agrupación de controles: ImmediateAction, DataEntry, ExclusionarySelector, Navigation, BrowserData, PassiveInteraction, GroupContainers.
 
-Principio de Garantía de Completitud
+### Principio de Garantía de Completitud
 - Cuando se escribe así `.Window(...)` es `Window<IndependentWindow>(...)` lo que pasa es que es implícito.
 - Cuando se escribe así `.Content(...)` es realmente es `.Content<IVerticalStackLayout>(...)` lo que pasa es que es implícito.
 - Para `Window.{estilos, imágenes, servicios o sea todo lo que se necesite del Resources}.{Propiedades propias según el tipo de ventana (IIndependentWindow, IAssociatedWindow, ISubordinateWindow)}.Content(Contenido)`, Los recursos pueden ser omitidos, pues estos se heredan o no se usan, para las propiedades, estas se heredan o tienen inicialización interna.
