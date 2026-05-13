@@ -1,3 +1,27 @@
+## Proyecto
+
+- Por el momento usaremos un solo proyecto para la biblioteca de clases.
+- Para mejor rendimiento y futuros ajustes de rendimiento, la biblioteca se publica con `Native AOT`.
+- Como consume a las bibliotecas nativas de `Win32` usara modo inseguro.
+- Un proyecto CLI de C# para uso interno, con el objetivo de ver cada funcionalidad desarrollada o en desarrollo, este lo llamaremos `Sample`.
+- `Common` es para código usado o compartido o repetitivo entre los módulos, este siempre debe ser interno (internal).
+- `Share` es para código usado o compartido o repetitivo que se use internamente, pero también externamente (public).
+- `WindowsApplication.cs` el punto de entrada del Fluent Api.
+
+**Estructura del proyecto**
+```
+EasyWindowsApplication > [.gitignore, LICENSE, README.md, src/] 
+src/ > [EasyWindowsApplication.slnx, EasyWindowsApplication/, Sample]
+EasyWindowsApplication/ > [WindowsApplication.cs, Common/, Share/, ImmediateActionModule/, ]
+```
+
+- Cada funcionalidad va en un módulo y dentro de este se divide en dos directorios `Frontend` y `Backend` donde todo el código de frontend puede ser público o interno, pero el de backend, siempre va a ser interno.
+- En cada directorio `Backend` y en `Common` contendrán estos ficheros `Entities.cs`, `Procedures.cs`, `Win32.cs`.
+- `Entities.cs` contendrá todas las estructuras de datos que usaran en `Win32.cs` para comunicarse ya sea pasarlas como argumentos o para obtenerlas como resultados.
+- `Win32.cs` todas las llamadas a Win32 necesarias para el módulo. 
+- `Procedures.cs` contendrá todas las funciones que ajustadas para que el Frontend las use o sea es como el Core de la biblioteca.
+- Si una función o estructura del `Backend` se repite en otro modulo, se debe pasar a `Common`.
+
 ## Layout
 
 ```csharp
