@@ -1,4 +1,5 @@
-vamos a organizar algunas cosas, empecemos por Layout, esto es lo que yo quiero:
+## Layout
+
 ```csharp
 .Window<IIndependentWindow>()
 .Window<IAssociatedWindow>()
@@ -42,9 +43,10 @@ Layout(ly => ly
 ```csharp
 .Content(c => c
     .Sapcing(8)
-    .<ISubordinateWindow>(sw => sw
+    .ImmediateAction<IPushButton>(pb => pb
         .Name("BtnGuardar")
         .Content(c => c.Text("Guardar Datos"))
     )
 )     
 ```
+- Agrupación de controles: ImmediateAction, DataEntry, ExclusionarySelector, Navigation, BrowserData, PassiveInteraction, GroupContainers.
