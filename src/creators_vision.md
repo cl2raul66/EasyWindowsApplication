@@ -2,6 +2,7 @@
 
 - Por el momento usaremos un solo proyecto para la biblioteca de clases.
 - Para mejor rendimiento y futuros ajustes de rendimiento, la biblioteca se publica con `Native AOT`.
+- En el pasado, en `Win32.cs` usarías `[DllImport("user32.dll")]`. **En Native AOT esto es un antipatrón** porque requiere generación de código en tiempo de ejecución (JIT). Debes usar el atributo `[LibraryImport]`. Esto obliga a que tus métodos en `Win32.cs` sean `partial`.
 - Como consume a las bibliotecas nativas de `Win32` usara modo inseguro.
 - Un proyecto CLI de C# para uso interno, con el objetivo de ver cada funcionalidad desarrollada o en desarrollo, este lo llamaremos `Sample`.
 - `Common` es para código usado o compartido o repetitivo entre los módulos, este siempre debe ser interno (internal).
@@ -10,17 +11,197 @@
 
 **Estructura del proyecto**
 ```
-EasyWindowsApplication > [.gitignore, LICENSE, README.md, src/] 
-src/ > [EasyWindowsApplication.slnx, EasyWindowsApplication/, Sample]
-EasyWindowsApplication/ > [WindowsApplication.cs, Common/, Share/, ImmediateActionModule/, ]
+EasyWindowsApplication/
+│
+├── .gitignore
+├── LICENSE
+├── README.md
+└── src/
+    ├── EasyWindowsApplication.slnx
+    │
+    ├── EasyWindowsApplication.Generators/
+    │
+    ├──  EasyWindowsApplication/
+    │       ├── WindowsApplication.cs
+    │       │
+    │       ├── Share/ 
+    │       │   └── IBaseWindow.cs
+    │       │
+    │       ├── Common/ 
+    │       │   ├── Constants.cs 
+    │       │   ├── Enums.cs
+    │       │   ├── Entities.cs  
+    │       │   ├── Win32.cs  
+    │       │   └── Procedures.cs
+    │       │
+    │       ├── DataEntry/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── ITextBox.cs
+    │       │   │   ├── IRichEditBox.cs
+    │       │   │   ├── IAutoSuggestBox.cs
+    │       │   │   ├── IPasswordBox.cs
+    │       │   │   ├── IMaskedTextBox.cs
+    │       │   │   └── IDataEntry.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── ExclusionarySelector/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── ICheckBox.cs
+    │       │   │   ├── IComboBox.cs
+    │       │   │   ├── IToggleSwitch.cs
+    │       │   │   ├── IToggleButton.cs
+    │       │   │   ├── IToggleSplitButton.cs
+    │       │   │   ├── ICalendarDatePicker.cs
+    │       │   │   ├── ICalendarView.cs
+    │       │   │   ├── IDatePicker.cs
+    │       │   │   ├── ITimePicker.cs
+    │       │   │   └── IExclusionarySelector.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── Navigation/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── IScrollView.cs
+    │       │   │   ├── IPipsPager.cs
+    │       │   │   ├── ISlider.cs
+    │       │   │   ├── ITabView.cs
+    │       │   │   ├── IBreadcrumbBar.cs
+    │       │   │   ├── ISelectorBar.cs
+    │       │   │   ├── ISemanticZoom.cs
+    │       │   │   └── INavigation.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── BrowserData/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── IItemsView.cs
+    │       │   │   ├── ITreeView.cs
+    │       │   │   ├── INavigationView.cs
+    │       │   │   └── IBrowserData.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── PassiveInteraction/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── ITextBlock.cs
+    │       │   │   ├── IRichTextBlock.cs
+    │       │   │   ├── IImage.cs
+    │       │   │   ├── IAnimatedVisualPlayer.cs
+    │       │   │   ├── IInfoBadge.cs
+    │       │   │   ├── IInfoBar.cs
+    │       │   │   ├── IProgressBar.cs
+    │       │   │   ├── IProgressRing.cs
+    │       │   │   └── IPassiveInteraction.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── GroupContainers/ 
+    │       │   ├── Frontend/
+    │       │   │   ├── ICommandBar.cs
+    │       │   │   ├── IMenuBar.cs
+    │       │   │   └── IGroupContainers.cs
+    │       │   │
+    │       │   └── Backend/
+    │       │       ├── Constants.cs 
+    │       │       ├── Enums.cs    
+    │       │       ├── Entities.cs
+    │       │       ├── Win32.cs 
+    │       │       └── Procedures.cs
+    │       │   
+    │       ├── ImmediateActionModule/ 
+    │           ├── Frontend/
+    │           │   ├── IPushButton.cs
+    │           │   ├── ISplitButton.cs
+    │           │   ├── IHyperlinkButton.cs
+    │           │   └── IImmediateAction.cs
+    │           │
+    │           └── Backend/
+    │               ├── Constants.cs 
+    │               ├── Enums.cs 
+    │               ├── Entities.cs
+    │               ├── Win32.cs 
+    │               └── Procedures.cs
+    │
+    └── Sample/
 ```
 
 - Cada funcionalidad va en un módulo y dentro de este se divide en dos directorios `Frontend` y `Backend` donde todo el código de frontend puede ser público o interno, pero el de backend, siempre va a ser interno.
-- En cada directorio `Backend` y en `Common` contendrán estos ficheros `Entities.cs`, `Procedures.cs`, `Win32.cs`.
+- En cada directorio `Backend` y en `Common` contendrán estos ficheros `Constants.cs`, `Enums.cs`, `Entities.cs`, `Procedures.cs`, `Win32.cs`.
+- `Constants.cs` si las metes en `Entities.cs`, se mezclará la definición de datos (structs) con los números mágicos.
+**Ejemplo de Constants.cs**
+```csharp
+internal static class WS {
+    public const uint CHILD = 0x40000000;
+    public const uint VISIBLE = 0x10000000;
+}
+internal static class BS {
+    public const uint PUSHBUTTON = 0x00000000;
+}
+
+// El código fluye de forma natural, tal como se diseñó en C/C++:
+Win32.CreateWindowEx(
+    0, "BUTTON", "Guardar",
+    WS.CHILD | WS.VISIBLE | BS.PUSHBUTTON, // Cero casteos, máxima legibilidad
+    0, 0, 100, 30, hWndParent, IntPtr.Zero, hInstance, IntPtr.Zero);
+```
+- `Enums.cs` Debes usarlos **solo cuando el valor representa un conjunto cerrado y mutuamente excluyente**, y no una bandera de bits (flag) o un mensaje genérico.
+
+**Ejemplos perfectos para `enums` en Win32:**
+
+1. **Comandos de Mostrar Ventana (`ShowWindow`):**
+   ```csharp
+   internal enum ShowWindowCommand : int {
+       SW_HIDE = 0,
+       SW_SHOWNORMAL = 1,
+       SW_SHOWMINIMIZED = 2,
+       SW_MAXIMIZE = 3
+   }
+   // La firma de Win32 lo exige estricto:
+   [LibraryImport("user32.dll")]
+   internal static partial bool ShowWindow(IntPtr hWnd, ShowWindowCommand nCmdShow);
+   ```
+
+2. **Resultados de un MessageBox:**
+   ```csharp
+   internal enum MessageBoxResult : int {
+       IDOK = 1,
+       IDCANCEL = 2,
+       IDYES = 6,
+       IDNO = 7
+   }
+   ```
 - `Entities.cs` contendrá todas las estructuras de datos que usaran en `Win32.cs` para comunicarse ya sea pasarlas como argumentos o para obtenerlas como resultados.
 - `Win32.cs` todas las llamadas a Win32 necesarias para el módulo. 
 - `Procedures.cs` contendrá todas las funciones que ajustadas para que el Frontend las use o sea es como el Core de la biblioteca.
 - Si una función o estructura del `Backend` se repite en otro modulo, se debe pasar a `Common`.
+- En `Frontend`, puede existir `Enums.cs` y `Dtos.cs` como parte de la interfaz pública, estos tambien estaran en `Share.cs` si se repiten en otros modulos.
+- En `Common`, puede existir `Helpers.cs` con funciones de ayuda para el desarrollo, como por ejemplo, funciones de extensión para facilitar la lectura o escritura de código.
 
 ## Layout
 
