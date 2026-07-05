@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Generated .ico files from template builds
+src/ProjectTemplates/**/*.ico

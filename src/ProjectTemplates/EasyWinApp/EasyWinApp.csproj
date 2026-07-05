@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <ApplicationIcon>EasyWinApp.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
+  </ItemGroup>
+
+  <Target Name="GenerateAppIcon" BeforeTargets="BeforeBuild"
+          Inputs="..\..\rsc\Images\logo_projecttemplates_easywinapp.png"
+          Outputs="EasyWinApp.ico">
+    <Exec Command="powershell -NoProfile -Command &quot;Add-Type -AssemblyName System.Drawing; `$bmp = [System.Drawing.Bitmap]::new('..\..\rsc\Images\logo_projecttemplates_easywinapp.png'); `$hIcon = `$bmp.GetHicon(); `$icon = [System.Drawing.Icon]::FromHandle(`$hIcon); `$fs = [System.IO.FileStream]::new('EasyWinApp.ico', [System.IO.FileMode]::Create); `$icon.Save(`$fs); `$fs.Close(); `$bmp.Dispose(); `$icon.Dispose()&quot;" />
+  </Target>
+
+</Project>

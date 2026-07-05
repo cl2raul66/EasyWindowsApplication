@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "EasyWindowsApplication",
+  "classifications": ["Common", "Console", "Windows", "EWA"],
+  "name": "Easy Windows Application",
+  "description": "Una aplicaci\u00F3n de Windows construida con el framework EWA (EasyWindowsApplication)",
+  "identity": "EasyWindowsApplication.Templates.EasyWinApp",
+  "shortName": "easywinapp",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "icon": "logo_projecttemplates_easywinapp.png",
+  "sourceName": "EasyWinApp",
+  "preferNameDirectory": true,
+  "symbols": {
+    "TargetFramework": {
+      "type": "parameter",
+      "description": "Target framework",
+      "replaces": "net10.0-windows10.0.19041.0",
+      "defaultValue": "net10.0-windows10.0.19041.0"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [ ".template.config/**" ]
+        }
+      ]
+    }
+  ]
+}

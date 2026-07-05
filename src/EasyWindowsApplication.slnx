@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="EasyWindowsApplication/EasyWindowsApplication.csproj" />
+  <Project Path="ProjectTemplates/EasyWinApp/EasyWinApp.csproj" />
+  <Project Path="Sample/Sample.csproj" Id="2e053fd7-56e3-4b5d-82d5-c63b46d7ce7d" />
+</Solution>

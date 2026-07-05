@@ -1,0 +1,1 @@
+namespace EasyWindowsApplication.CoreModule.Backend;
