@@ -65,6 +65,60 @@ public sealed class DateTimePicker : ControlBase<DateTimePicker>
             }
         }
     }
+
+    public void SetRange(DateTime min, DateTime max)
+    {
+        var stMin = ToSystemTime(min);
+        var stMax = ToSystemTime(max);
+
+        nint ptr = Marshal.AllocHGlobal(Marshal.SizeOf<SYSTEMTIME>() * 2);
+        try
+        {
+            Marshal.StructureToPtr(stMin, ptr, false);
+            Marshal.StructureToPtr(stMax, ptr + Marshal.SizeOf<SYSTEMTIME>(), false);
+            ControlProcedures.SendMessage(Hwnd, DTM.SETRANGE, 0x0003 /* GDTR_MIN | GDTR_MAX */, ptr);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
+    }
+
+    public (DateTime min, DateTime max) GetRange()
+    {
+        nint ptr = Marshal.AllocHGlobal(Marshal.SizeOf<SYSTEMTIME>() * 2);
+        try
+        {
+            ControlProcedures.SendMessage(Hwnd, DTM.GETRANGE, 0, ptr);
+            var stMin = Marshal.PtrToStructure<SYSTEMTIME>(ptr);
+            var stMax = Marshal.PtrToStructure<SYSTEMTIME>(ptr + Marshal.SizeOf<SYSTEMTIME>());
+            return (
+                new DateTime(stMin.wYear, stMin.wMonth, stMin.wDay),
+                new DateTime(stMax.wYear, stMax.wMonth, stMax.wDay)
+            );
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
+    }
+
+    public void CloseMonthCalendar()
+    {
+        ControlProcedures.SendMessage(Hwnd, DTM.CLOSEMONTHCAL, 0, 0);
+    }
+
+    private static SYSTEMTIME ToSystemTime(DateTime dt) => new()
+    {
+        wYear = (ushort)dt.Year,
+        wMonth = (ushort)dt.Month,
+        wDayOfWeek = (ushort)dt.DayOfWeek,
+        wDay = (ushort)dt.Day,
+        wHour = (ushort)dt.Hour,
+        wMinute = (ushort)dt.Minute,
+        wSecond = (ushort)dt.Second,
+        wMilliseconds = (ushort)dt.Millisecond
+    };
 }
 
 [StructLayout(LayoutKind.Sequential)]

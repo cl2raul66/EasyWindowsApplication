@@ -9,7 +9,7 @@ public sealed class Toolbar : ControlBase<Toolbar>
 {
     public void SetButtonSize(int width, int height)
     {
-        ControlProcedures.SendMessage(Hwnd, 0x041F /* TB_SETBUTTONSIZE */, (nint)width, (nint)height);
+        ControlProcedures.SendMessage(Hwnd, TB.SETBUTTONSIZE, (nint)width, (nint)height);
     }
 
     public int AddButton(int idCommand, string text, int imageIndex = -1)
@@ -31,7 +31,7 @@ public sealed class Toolbar : ControlBase<Toolbar>
             try
             {
                 Marshal.StructureToPtr(button, btnPtr, false);
-                return (int)ControlProcedures.SendMessage(Hwnd, 0x0400 + 20 /* TB_ADDBUTTONSW */, 0, btnPtr);
+                return (int)ControlProcedures.SendMessage(Hwnd, TB.ADDBUTTONS, 0, btnPtr);
             }
             finally
             {
@@ -58,7 +58,7 @@ public sealed class Toolbar : ControlBase<Toolbar>
         try
         {
             Marshal.StructureToPtr(button, btnPtr, false);
-            ControlProcedures.SendMessage(Hwnd, 0x0400 + 20 /* TB_ADDBUTTONSW */, 0, btnPtr);
+            ControlProcedures.SendMessage(Hwnd, TB.ADDBUTTONS, 0, btnPtr);
         }
         finally
         {
@@ -68,22 +68,22 @@ public sealed class Toolbar : ControlBase<Toolbar>
 
     public void DeleteButton(int index)
     {
-        ControlProcedures.SendMessage(Hwnd, 0x0400 + 22 /* TB_DELETEBUTTON */, (nint)index, 0);
+        ControlProcedures.SendMessage(Hwnd, TB.DELETEBUTTON, (nint)index, 0);
     }
 
     public int ButtonCount
     {
-        get => (int)ControlProcedures.SendMessage(Hwnd, 0x0400 + 24 /* TB_BUTTONCOUNT */, 0, 0);
+        get => (int)ControlProcedures.SendMessage(Hwnd, TB.BUTTONCOUNT, 0, 0);
     }
 
     public void EnableButton(int idCommand, bool enable)
     {
-        ControlProcedures.SendMessage(Hwnd, 0x0400 + 3 /* TB_ENABLEBUTTON */, (nint)idCommand, enable ? 1 : 0);
+        ControlProcedures.SendMessage(Hwnd, TB.ENABLEBUTTON, (nint)idCommand, enable ? 1 : 0);
     }
 
     public void CheckButton(int idCommand, bool check)
     {
-        ControlProcedures.SendMessage(Hwnd, 0x0400 + 2 /* TB_CHECKBUTTON */, (nint)idCommand, check ? 1 : 0);
+        ControlProcedures.SendMessage(Hwnd, TB.CHECKBUTTON, (nint)idCommand, check ? 1 : 0);
     }
 
     public void SetButtonText(int idCommand, string text)
@@ -113,6 +113,45 @@ public sealed class Toolbar : ControlBase<Toolbar>
         finally
         {
             Marshal.FreeHGlobal(textPtr);
+        }
+    }
+
+    public bool IsButtonEnabled(int idCommand)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TB.ISBUTTONDISABLED, (nint)idCommand, 0) == 0;
+    }
+
+    public bool IsButtonChecked(int idCommand)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TB.ISBUTTONCHECKED, (nint)idCommand, 0) != 0;
+    }
+
+    public bool IsButtonPressed(int idCommand)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TB.ISBUTTONPRESSED, (nint)idCommand, 0) != 0;
+    }
+
+    public bool IsButtonHidden(int idCommand)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TB.ISBUTTONHIDDEN, (nint)idCommand, 0) != 0;
+    }
+
+    public void PressButton(int idCommand, bool press)
+    {
+        ControlProcedures.SendMessage(Hwnd, TB.PRESSBUTTON, (nint)idCommand, press ? 1 : 0);
+    }
+
+    public void AutoSize()
+    {
+        ControlProcedures.SendMessage(Hwnd, TB.AUTOSIZE, 0, 0);
+    }
+
+    public void DeleteAllButtons()
+    {
+        int count = ButtonCount;
+        for (int i = count - 1; i >= 0; i--)
+        {
+            DeleteButton(i);
         }
     }
 }

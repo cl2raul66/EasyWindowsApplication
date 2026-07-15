@@ -92,6 +92,144 @@ internal static class SS
     internal const uint SETCURSEL    = 0x00000200;
 }
 
+// ── BM (Button Messages) ──
+internal static class BM
+{
+    internal const uint CLICK       = 0x00F2;
+    internal const uint GETCHECK    = 0x00F0;
+    internal const uint SETCHECK    = 0x00F1;
+    internal const uint GETSTATE    = 0x00F2;
+    internal const uint SETSTATE    = 0x00F3;
+    internal const uint SETSTYLE    = 0x00F4;
+    internal const uint GETIMAGE    = 0x00F6;
+    internal const uint SETIMAGE    = 0x00F7;
+}
+
+// ── EM (Edit Messages) ──
+internal static class EM
+{
+    internal const uint GETSEL          = 0x00B0;
+    internal const uint SETSEL          = 0x00B1;
+    internal const uint GETRECT         = 0x00B2;
+    internal const uint SETRECT         = 0x00B3;
+    internal const uint SETMODIFY       = 0x00B9;
+    internal const uint GETMODIFY       = 0x00B8;
+    internal const uint GETSCROLLPOS    = 0x00DD;
+    internal const uint SETSCROLLPOS    = 0x00DE;
+    internal const uint SCROLLCARET     = 0x00B7;
+    internal const uint GETLINECOUNT    = 0x00BA;
+    internal const uint SETLINECOUNT    = 0x00C8;
+    internal const uint GETLINE         = 0x00C4;
+    internal const uint LINELENGTH      = 0x00C1;
+    internal const uint LINEFROMCHAR    = 0x00C9;
+    internal const uint REPLACESEL      = 0x00C2;
+    internal const uint GETPASSWORDCHAR = 0x00D7;
+    internal const uint SETPASSWORDCHAR = 0x00CC;
+    internal const uint SETREADONLY     = 0x00CF;
+    internal const uint GETMARGINS      = 0x00D4;
+    internal const uint SETMARGINS      = 0x00D3;
+    internal const uint GETHANDLE       = 0x00BD;
+    internal const uint SETHANDLE       = 0x00BC;
+    internal const uint UNDO            = 0x00C7;
+    internal const uint CANUNDO         = 0x00C6;
+    internal const uint EMPTYUNDOBUFFER = 0x00CD;
+    internal const uint GETIMESTATUS    = 0x0126;
+    internal const uint SETIMESTATUS    = 0x0127;
+    internal const uint GETFIRSTVISIBLELINE = 0x00CE;
+    internal const uint SETLIMITTEXT    = 0x00C5;
+    internal const uint GETLIMITTEXT    = 0x00D0;
+}
+
+// ── STM (Static Messages) ──
+internal static class STM
+{
+    internal const uint SETICON  = 0x0170;
+    internal const uint GETICON  = 0x0171;
+    internal const uint SETIMAGE = 0x0172;
+    internal const uint GETIMAGE = 0x0173;
+}
+
+// ── LB (ListBox Messages) ──
+internal static class LB
+{
+    internal const uint ADDSTRING        = 0x0180;
+    internal const uint INSERTSTRING     = 0x0181;
+    internal const uint DELETESTRING     = 0x0182;
+    internal const uint DIR              = 0x018D;
+    internal const uint GETCOUNT         = 0x018B;
+    internal const uint RESETCONTENT     = 0x0184;
+    internal const uint SETSEL           = 0x0185;
+    internal const uint GETSEL           = 0x0187;
+    internal const uint SETCURSEL        = 0x0186;
+    internal const uint GETCURSEL        = 0x0188;
+    internal const uint GETTEXT          = 0x0189;
+    internal const uint GETTEXTLEN       = 0x018A;
+    internal const uint ADDFILE          = 0x0196;
+    internal const uint SETTOPINDEX      = 0x0197;
+    internal const uint GETTOPINDEX      = 0x018E;
+    internal const uint FINDSTRING       = 0x018F;
+    internal const uint GETSELCOUNT      = 0x0190;
+    internal const uint GETSELITEMS      = 0x0191;
+    internal const uint SETTABSTOPS      = 0x0192;
+    internal const uint GETHORIZONTALEXTENT = 0x0193;
+    internal const uint SETHORIZONTALEXTENT = 0x0194;
+    internal const uint SETCOLUMNWIDTH   = 0x0195;
+    internal const uint ADDSTRINGA       = 0x0180;
+    internal const uint ADDSTRINGW       = 0x0180;
+    internal const uint INSERTSTRINGA    = 0x0181;
+    internal const uint INSERTSTRINGW    = 0x0181;
+    internal const uint GETTEXTA         = 0x0189;
+    internal const uint GETTEXTW         = 0x0189;
+    internal const uint FINDSTRINGEXACT  = 0x01A2;
+    internal const uint SETLOCALE        = 0x01A5;
+    internal const uint GETLOCALE        = 0x01A6;
+    internal const uint INITSTORAGE      = 0x0198;
+    internal const uint ITEMFROMPOINT    = 0x01A9;
+    internal const uint GETLISTBOXINFO   = 0x01B2;
+}
+
+// ── CB (ComboBox Messages) ──
+internal static class CB
+{
+    internal const uint ADDSTRING         = 0x0143;
+    internal const uint DELETESTRING      = 0x0144;
+    internal const uint DIR              = 0x0145;
+    internal const uint GETCOUNT         = 0x0146;
+    internal const uint GETCURSEL        = 0x0147;
+    internal const uint GETLBTEXT        = 0x0148;
+    internal const uint GETLBTEXTLEN     = 0x0149;
+    internal const uint INSERTSTRING     = 0x014A;
+    internal const uint RESETCONTENT     = 0x014B;
+    internal const uint FINDSTRING       = 0x014C;
+    internal const uint SELECTSTRING     = 0x014D;
+    internal const uint SETCURSEL        = 0x014E;
+    internal const uint SHOWDROPDOWN     = 0x014F;
+    internal const uint GETITEMDATA      = 0x0150;
+    internal const uint SETITEMDATA      = 0x0151;
+    internal const uint GETDROPPEDCONTROLRECT = 0x0152;
+    internal const uint SETITEMHEIGHT    = 0x0153;
+    internal const uint GETITEMHEIGHT    = 0x0154;
+    internal const uint SETEXTENDEDUI    = 0x0155;
+    internal const uint GETEXTENDEDUI    = 0x0156;
+    internal const uint GETDROPPEDSTATE  = 0x0157;
+    internal const uint FINDSTRINGEXACT  = 0x0158;
+    internal const uint SETLOCALE        = 0x0159;
+    internal const uint GETLOCALE        = 0x015A;
+    internal const uint GETTOPINDEX      = 0x015B;
+    internal const uint SETTOPINDEX      = 0x015C;
+    internal const uint GETHORIZONTALEXTENT = 0x015D;
+    internal const uint SETHORIZONTALEXTENT = 0x015E;
+    internal const uint GETDROPPEDWIDTH  = 0x015F;
+    internal const uint SETDROPPEDWIDTH  = 0x0160;
+    internal const uint INITSTORAGE      = 0x0161;
+    internal const uint GETMINVISIBLE    = 0x0162;
+    internal const uint SETMINVISIBLE    = 0x0163;
+    internal const uint GETCOMBOBOXINFO  = 0x0164;
+    internal const uint LIMITTEXT        = 0x0141;
+    internal const uint GETEDITSEL       = 0x0140;
+    internal const uint SETEDITSEL       = 0x0142;
+}
+
 // ── LBS (ListBox Styles) ──
 internal static class LBS
 {
@@ -155,10 +293,19 @@ internal static class PBM
     internal const uint SETRANGE    = 0x0401;
     internal const uint SETPOS      = 0x0402;
     internal const uint DELTA       = 0x0403;
+    internal const uint SETSTEP     = 0x0404;
+    internal const uint STEPIT      = 0x0405;
     internal const uint SETRANGE32  = 0x0406;
+    internal const uint GETRANGE    = 0x0407;
     internal const uint GETPOS      = 0x0408;
     internal const uint SETBARCOLOR = 0x0409;
     internal const uint SETBKCOLOR  = 0x040A;
+    internal const uint SETMARQUEE  = 0x040B;
+    internal const uint GETSTEP     = 0x040C;
+    internal const uint GETBKCOLOR  = 0x040D;
+    internal const uint GETBARCOLOR = 0x040E;
+    internal const uint SETSTATE    = 0x0410;
+    internal const uint GETSTATE    = 0x0411;
 }
 
 // ── DTS (DateTimePicker Styles) ──
@@ -182,10 +329,16 @@ internal static class DTM
     internal const uint GETSYSTEMTIME = 0x1003;
     internal const uint SETRANGE      = 0x1004;
     internal const uint GETRANGE      = 0x1005;
-    internal const uint SETFORMAT     = 0x1005;
+    internal const uint SETFORMAT     = 0x1006;
     internal const uint GETMCCOLOR    = 0x1007;
     internal const uint SETMCCOLOR    = 0x1008;
-    internal const uint SETMCFONT     = 0x1009;
+    internal const uint GETMCFONT     = 0x1009;
+    internal const uint SETMCFONT     = 0x100A;
+    internal const uint SETMCSTYLE    = 0x100B;
+    internal const uint GETMCSTYLE    = 0x100C;
+    internal const uint CLOSEMONTHCAL = 0x100D;
+    internal const uint GETDATETIMEPICKERINFO = 0x100E;
+    internal const uint GETMONTHCAL   = 0x100F;
 }
 
 // ── MCS (MonthCalendar Styles) ──
@@ -216,8 +369,25 @@ internal static class MCM
     internal const uint SETMAXTODAYRECT = FIRST + 8;
     internal const uint GETRANGE        = FIRST + 9;
     internal const uint SETRANGE        = FIRST + 10;
-    internal const uint GETMONTHCOLOR   = FIRST + 9;
-    internal const uint SETMONTHCOLOR   = FIRST + 10;
+    internal const uint GETMONTHCOLOR   = FIRST + 11;
+    internal const uint SETMONTHCOLOR   = FIRST + 12;
+    internal const uint GETCOLOR        = FIRST + 13;
+    internal const uint SETCOLOR        = FIRST + 14;
+    internal const uint GETRECT         = FIRST + 15;
+    internal const uint SETRECT         = FIRST + 16;
+    internal const uint GETMINREQRECT   = FIRST + 17;
+    internal const uint SETTODAY        = FIRST + 19;
+    internal const uint GETTODAY        = FIRST + 20;
+    internal const uint HITTEST         = FIRST + 21;
+    internal const uint SETFIRSTDAYOFWEEK = FIRST + 22;
+    internal const uint GETFIRSTDAYOFWEEK = FIRST + 23;
+    internal const uint GETRANGEMIN     = FIRST + 24;
+    internal const uint GETRANGEMAX     = FIRST + 25;
+    internal const uint GETMONTHDELTA   = FIRST + 26;
+    internal const uint SETMONTHDELTA   = FIRST + 27;
+    internal const uint GETNEXTMONTHDELTA = FIRST + 28;
+    internal const uint GETUNICODEFORMAT = FIRST + 29;
+    internal const uint SETUNICODEFORMAT = FIRST + 30;
 }
 
 // ── HKM (HotKey Messages) ──
@@ -226,6 +396,87 @@ internal static class HKM
     internal const uint SETHOTKEY  = 0x0401;
     internal const uint GETHOTKEY  = 0x0402;
     internal const uint RULES      = 0x0403;
+}
+
+// ── TB (Toolbar Messages) ──
+internal static class TB
+{
+    internal const uint FIRST           = 0x0400;
+    internal const uint ENABLEBUTTON    = FIRST + 1;
+    internal const uint CHECKBUTTON     = FIRST + 2;
+    internal const uint PRESSBUTTON     = FIRST + 3;
+    internal const uint HIGHLIGHTITEM   = FIRST + 13;
+    internal const uint ISBUTTONCHECKED = FIRST + 10;
+    internal const uint ISBUTTONDISABLED = FIRST + 9;
+    internal const uint ISBUTTONDOWN    = FIRST + 11;
+    internal const uint ISBUTTONHIDDEN  = FIRST + 12;
+    internal const uint ISBUTTONPRESSED = FIRST + 8;
+    internal const uint ADDBITMAP       = FIRST + 19;
+    internal const uint ADDBUTTONS      = FIRST + 20;
+    internal const uint ADDSTRING       = FIRST + 28;
+    internal const uint AUTOSIZE        = FIRST + 25;
+    internal const uint BUTTONCOUNT     = FIRST + 24;
+    internal const uint BUTTONSTRUCTSIZE = FIRST + 30;
+    internal const uint CHANGEBITMAP    = FIRST + 43;
+    internal const uint COMMANDTOINDEX  = FIRST + 25;
+    internal const uint CUSTOMIZE       = FIRST + 27;
+    internal const uint DELETEBUTTON    = FIRST + 22;
+    internal const uint GETANCHORHIGHLIGHT = FIRST + 52;
+    internal const uint GETBITMAP       = FIRST + 44;
+    internal const uint GETBITMAPFLAGS  = FIRST + 41;
+    internal const uint GETBUTTON       = FIRST + 23;
+    internal const uint GETBUTTONTEXTA  = FIRST + 45;
+    internal const uint GETBUTTONTEXTW  = FIRST + 75;
+    internal const uint GETDISABLEDIMAGELIST = FIRST + 55;
+    internal const uint GETEXTENDEDSTYLE = FIRST + 85;
+    internal const uint GETHOTIMAGELIST = FIRST + 57;
+    internal const uint GETHOTITEM      = FIRST + 61;
+    internal const uint GETIMAGELIST    = FIRST + 49;
+    internal const uint GETITEMRECT     = FIRST + 29;
+    internal const uint GETMAXSIZE      = FIRST + 63;
+    internal const uint GETPRESSEDIMAGELIST = FIRST + 66;
+    internal const uint GETROWS         = FIRST + 40;
+    internal const uint GETSTATE        = FIRST + 33;
+    internal const uint GETSTYLE        = FIRST + 41;
+    internal const uint GETTOOLTIPS     = FIRST + 51;
+    internal const uint GETUNICODEFORMAT = FIRST + 86;
+    internal const uint MARKBUTTON      = FIRST + 6;
+    internal const uint MOVEBUTTON      = FIRST + 82;
+    internal const uint REPLACEBITMAP   = FIRST + 46;
+    internal const uint SAVERESTOREA    = FIRST + 48;
+    internal const uint SAVERESTOREW    = FIRST + 78;
+    internal const uint SETANCHORHIGHLIGHT = FIRST + 53;
+    internal const uint SETBITMAPSIZE   = FIRST + 32;
+    internal const uint SETBUTTONWIDTH  = FIRST + 59;
+    internal const uint SETBUTTONSIZE   = FIRST + 31;
+    internal const uint SETDISABLEDIMAGELIST = FIRST + 54;
+    internal const uint SETEXTENDEDSTYLE = FIRST + 84;
+    internal const uint SETHOTIMAGELIST = FIRST + 56;
+    internal const uint SETHOTITEM      = FIRST + 60;
+    internal const uint SETIMAGELIST    = FIRST + 48;
+    internal const uint SETINDENT       = FIRST + 47;
+    internal const uint SETMAXTEXTROWS  = FIRST + 60;
+    internal const uint SETMARGINS      = FIRST + 58;
+    internal const uint SETPARENT       = FIRST + 55;
+    internal const uint SETROWS         = FIRST + 39;
+    internal const uint SETSTATE        = FIRST + 34;
+    internal const uint SETSTYLE        = FIRST + 42;
+    internal const uint SETTOOLTIPS     = FIRST + 50;
+    internal const uint SETUNICODEFORMAT = FIRST + 85;
+}
+
+// ── SBM (ScrollBar Messages) ──
+internal static class SBM
+{
+    internal const uint SETPOS           = 0x00E9;
+    internal const uint GETPOS           = 0x00EA;
+    internal const uint SETRANGE         = 0x00E7;
+    internal const uint GETRANGE         = 0x00E8;
+    internal const uint ENABLE_ARROWS    = 0x00E4;
+    internal const uint SETSCROLLINFO    = 0x00E9;
+    internal const uint GETSCROLLINFO    = 0x00EA;
+    internal const uint GETSCROLLBARINFO = 0x00EB;
+    internal const uint SETRANGEREDRAW   = 0x00E6;
 }
 
 // ── TBS (TrackBar Styles) ──
@@ -270,6 +521,8 @@ internal static class TBM
     internal const uint SETSEL        = FIRST + 11;
     internal const uint GETSELSTART   = FIRST + 9;
     internal const uint GETSEL        = FIRST + 12;
+    internal const uint SETBUDDY      = FIRST + 33;
+    internal const uint GETBUDDY      = FIRST + 34;
 }
 
 // ── UDS (UpDown Styles) ──
@@ -323,6 +576,9 @@ internal static class SB
     internal const uint SETICON      = 0x0414;
     internal const uint SETTIPTEXTA  = 0x0410;
     internal const uint SETTIPTEXTW  = 0x0411;
+    internal const uint GETPARTS     = 0x0406;
+    internal const uint GETTIPTEXTA  = 0x0412;
+    internal const uint GETTIPTEXTW  = 0x0413;
 }
 
 // ── SBARS (StatusBar Styles) ──
@@ -472,14 +728,18 @@ internal static class TVM
     internal const uint GETEDITCONTROL = FIRST + 16;
     internal const uint GETVISIBLECOUNT = FIRST + 17;
     internal const uint HITTEST        = FIRST + 18;
+    internal const uint CREATEDRAGIMAGE = FIRST + 19;
+    internal const uint SORTCHILDREN   = FIRST + 20;
+    internal const uint ENSUREVISIBLE  = FIRST + 22;
+    internal const uint GETCOUNT       = FIRST + 18;
+    internal const uint SETBKCOLOR     = FIRST + 29;
+    internal const uint SETTEXTCOLOR   = FIRST + 30;
+    internal const uint GETBKCOLOR     = FIRST + 31;
+    internal const uint GETTEXTCOLOR   = FIRST + 32;
     internal const uint GETISEARCHSTRINGA = FIRST + 23;
     internal const uint GETISEARCHSTRINGW = FIRST + 64;
     internal const uint SETITEMHEIGHT   = FIRST + 27;
     internal const uint GETITEMHEIGHT   = FIRST + 28;
-    internal const uint SETBKCOLOR      = FIRST + 29;
-    internal const uint SETTEXTCOLOR    = FIRST + 30;
-    internal const uint GETBKCOLOR      = FIRST + 31;
-    internal const uint GETTEXTCOLOR    = FIRST + 32;
     internal const uint SETSCROLLTIME   = FIRST + 33;
     internal const uint GETSCROLLTIME   = FIRST + 34;
     internal const uint SETINSERTMARK   = FIRST + 66;
@@ -545,6 +805,7 @@ internal static class TCM
     internal const uint SETMINTABWIDTH = FIRST + 49;
     internal const uint DeselectAll    = FIRST + 50;
     internal const uint HIGHLIGHTFIRSTITEM = FIRST + 21;
+    internal const uint GETITEMCOUNT = FIRST + 4;
 }
 
 // ── IPM (IPAddress Messages) ──

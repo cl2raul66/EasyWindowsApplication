@@ -17,13 +17,21 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         var viewCalls = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => IsViewCandidate(node),
             transform: static (ctx, _) => ExtractViewInfo(ctx))
-            .Where(static info => info != null)
+            .Where(static info => info is not null)
             .Select(static (info, _) => info!.Value);
 
         var collected = viewCalls.Collect();
 
-        context.RegisterSourceOutput(collected, static (spc, controls) =>
+        var behaviorCalls = context.SyntaxProvider.CreateSyntaxProvider(
+            predicate: static (node, _) => IsBehaviorCandidate(node),
+            transform: static (ctx, _) => ExtractEnclosingType(ctx))
+            .Where(static info => info is not null);
+
+        var enclosingType = behaviorCalls.Collect();
+
+        context.RegisterSourceOutput(collected.Combine(enclosingType), static (spc, pair) =>
         {
+            var (controls, enclosing) = pair;
             if (controls.IsDefaultOrEmpty) return;
 
             var unique = new Dictionary<string, string>();
@@ -38,21 +46,64 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             sb.AppendLine("#pragma warning disable CS0612, CS0618, CS1591");
             sb.AppendLine();
 
+            var ib = "global::EasyWindowsApplication.CoreModule.Frontend.IBehaviorBuilder";
+
+            // ── C# 14 extension properties on IBehaviorBuilder ──
             sb.AppendLine("namespace EasyWindowsApplication");
             sb.AppendLine("{");
             sb.AppendLine("    public static class EasyBehaviorExtensions");
             sb.AppendLine("    {");
 
+            sb.AppendLine($"        extension({ib} bh)");
+            sb.AppendLine("        {");
+
             foreach (var kv in unique)
             {
-                var methodName = SanitizeName(kv.Key);
-                sb.AppendLine($"        public static {kv.Value} {methodName}(this global::EasyWindowsApplication.CoreModule.Frontend.IBehaviorBuilder builder)");
-                sb.AppendLine("            => builder.Get<" + kv.Value + ">(\"" + kv.Key + "\");");
+                var propName = SanitizeName(kv.Key);
+                sb.AppendLine($"            public {kv.Value} {propName}");
+                sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
+                sb.AppendLine($"                    .Get<{kv.Value}>(\"{kv.Key}\");");
                 sb.AppendLine();
             }
 
+            sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
+
+            // ── Partial class with static properties (bare access) ──
+            if (!enclosing.IsDefaultOrEmpty && enclosing[0] is not null)
+            {
+                var enclosingInfo = enclosing[0];
+                var ns = enclosingInfo.Namespace;
+                var className = enclosingInfo.ClassName;
+
+                if (!string.IsNullOrEmpty(ns))
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"namespace {ns}");
+                    sb.AppendLine("{");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"    partial class {className}");
+                sb.AppendLine("    {");
+
+                foreach (var kv in unique)
+                {
+                    var propName = SanitizeName(kv.Key);
+                    sb.AppendLine($"        internal static {kv.Value} {propName}");
+                    sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
+                    sb.AppendLine($"                .Get<{kv.Value}>(\"{kv.Key}\");");
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine("    }");
+
+                if (!string.IsNullOrEmpty(ns))
+                {
+                    sb.AppendLine("}");
+                }
+            }
 
             spc.AddSource("EasyBehaviorExtensions.g.cs", sb.ToString());
         });
@@ -62,32 +113,24 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
     {
         if (node is not InvocationExpressionSyntax inv)
             return false;
-
         if (inv.ArgumentList.Arguments.Count != 1)
             return false;
-
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax)
             return false;
-
         if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
             return false;
-
-        // Only match View<T>(...) — not Window(...)
         if (memberAccess.Name is GenericNameSyntax genericName
             && genericName.Identifier.Text == "View"
             && genericName.TypeArgumentList.Arguments.Count == 1)
             return true;
-
         return false;
     }
 
     private static ControlInfo? ExtractViewInfo(GeneratorSyntaxContext context)
     {
         var inv = (InvocationExpressionSyntax)context.Node;
-
         if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
             return null;
-
         if (memberAccess.Name is not GenericNameSyntax genericName
             || genericName.Identifier.Text != "View"
             || genericName.TypeArgumentList.Arguments.Count != 1)
@@ -102,10 +145,53 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         if (inv.ArgumentList.Arguments[0].Expression is LambdaExpressionSyntax lambda)
         {
             var nameLiteral = FindStringArgument(lambda.Body, "Name");
-            if (nameLiteral != null)
+            if (nameLiteral is not null)
                 return new ControlInfo(nameLiteral, typeFullName);
         }
+        return null;
+    }
 
+    private static bool IsBehaviorCandidate(SyntaxNode node)
+    {
+        if (node is not InvocationExpressionSyntax inv)
+            return false;
+        if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
+            return false;
+        if (memberAccess.Name.Identifier.Text != "Behavior")
+            return false;
+        if (inv.ArgumentList.Arguments.Count != 1)
+            return false;
+        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax)
+            return false;
+        return true;
+    }
+
+    private static EnclosingTypeInfo ExtractEnclosingType(GeneratorSyntaxContext context)
+    {
+        var current = context.Node.Parent;
+        while (current is not null)
+        {
+            if (current is TypeDeclarationSyntax typeDecl)
+            {
+                var symbol = context.SemanticModel.GetDeclaredSymbol(typeDecl);
+                if (symbol is not null)
+                    return new EnclosingTypeInfo(
+                        symbol.ContainingNamespace?.ToDisplayString() ?? "",
+                        symbol.Name);
+            }
+
+            if (current is CompilationUnitSyntax compilationUnit)
+            {
+                var hasTypeDecl = compilationUnit.Members
+                    .Any(m => m is ClassDeclarationSyntax or
+                              StructDeclarationSyntax or
+                              RecordDeclarationSyntax);
+                if (!hasTypeDecl)
+                    return new EnclosingTypeInfo("", "Program");
+            }
+
+            current = current.Parent;
+        }
         return null;
     }
 
@@ -144,16 +230,16 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
     {
         public readonly string Name;
         public readonly string TypeSymbol;
-
-        public ControlInfo(string name, string typeSymbol)
-        {
-            Name = name;
-            TypeSymbol = typeSymbol;
-        }
-
+        public ControlInfo(string name, string typeSymbol) { Name = name; TypeSymbol = typeSymbol; }
         public override bool Equals(object obj) =>
             obj is ControlInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol;
-
         public override int GetHashCode() => (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0);
+    }
+
+    private sealed class EnclosingTypeInfo
+    {
+        public readonly string Namespace;
+        public readonly string ClassName;
+        public EnclosingTypeInfo(string ns, string className) { Namespace = ns; ClassName = className; }
     }
 }

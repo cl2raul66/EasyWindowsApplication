@@ -87,6 +87,48 @@ public sealed class TabControl : ControlBase<TabControl>
     {
         ControlProcedures.SendMessage(Hwnd, TCM.HIGHLIGHTFIRSTITEM, 0, 0);
     }
+
+    public void DeleteTab(int index)
+    {
+        ControlProcedures.SendMessage(Hwnd, TCM.DELETEALLITEMS, (nint)index, 0);
+    }
+
+    public int GetItemCount()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, TCM.GETITEMCOUNT, 0, 0);
+    }
+
+    public (int left, int top, int right, int bottom) GetItemRect(int index)
+    {
+        nint rectPtr = Marshal.AllocHGlobal(16); // RECT is 16 bytes
+        try
+        {
+            Marshal.WriteInt32(rectPtr, 0, 0);
+            Marshal.WriteInt32(rectPtr, 4, 0);
+            Marshal.WriteInt32(rectPtr, 8, 0);
+            Marshal.WriteInt32(rectPtr, 12, 0);
+            ControlProcedures.SendMessage(Hwnd, TCM.GETITEMRECT, (nint)index, rectPtr);
+            int left = Marshal.ReadInt32(rectPtr, 0);
+            int top = Marshal.ReadInt32(rectPtr, 4);
+            int right = Marshal.ReadInt32(rectPtr, 8);
+            int bottom = Marshal.ReadInt32(rectPtr, 12);
+            return (left, top, right, bottom);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(rectPtr);
+        }
+    }
+
+    public void SetMinTabWidth(int width)
+    {
+        ControlProcedures.SendMessage(Hwnd, TCM.SETMINTABWIDTH, 0, (nint)width);
+    }
+
+    public void DeselectAll(bool excludeFocus = true)
+    {
+        ControlProcedures.SendMessage(Hwnd, TCM.DeselectAll, excludeFocus ? 1 : 0, 0);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

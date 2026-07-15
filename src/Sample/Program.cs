@@ -18,23 +18,24 @@ WindowsApplication
             .Content(c => c
                 .Children(ch => ch
                     .View<Button>(btn => btn
-                        .Position(160, 92)
+                        .Position(160, 85)
                         .Dimensions(100, 32)
                         .Name("BtnIncrement")
-                        .Text("Click me")
+                        .Text("Click me")                        
                     )
+                    .View<Label>(lb => lb.Name("LbMensaje").Text("Hola mundo").Dimensions(200, 16).Position(0, 225))
                 )
             )
         )
     )
-    .Behavior(bh => bh
-        .OnClick("BtnIncrement", () =>
+    .Behavior(bh =>
+    {
+        bh.BtnIncrement.OnClick(() =>
         {
             counter++;
-            var btn = bh.Get<Button>("BtnIncrement");
-            btn.Text = $"Click: {counter}";
-        })
-    )
+            bh.BtnIncrement.Text = $"Click: {counter}";
+        });
+    })
     .Initialize();
 
 static string? LoadEmbeddedSettings()

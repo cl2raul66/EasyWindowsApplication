@@ -66,6 +66,61 @@ public sealed class Header : ControlBase<Header>
             Marshal.FreeHGlobal(itemPtr);
         }
     }
+
+    public string GetItemText(int index)
+    {
+        nint buffer = Marshal.AllocHGlobal(256 * 2);
+        try
+        {
+            var item = new HDITEMW
+            {
+                mask = 0x0001, // HDI_TEXT
+                pszText = buffer,
+                cchTextMax = 256,
+            };
+
+            nint itemPtr = Marshal.AllocHGlobal(Marshal.SizeOf<HDITEMW>());
+            try
+            {
+                Marshal.StructureToPtr(item, itemPtr, false);
+                ControlProcedures.SendMessage(Hwnd, HDM.GETITEMW, (nint)index, itemPtr);
+                return Marshal.PtrToStringUni(buffer) ?? string.Empty;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(itemPtr);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    public int GetItemWidth(int index)
+    {
+        var item = new HDITEMW
+        {
+            mask = 0x0002, // HDI_WIDTH
+        };
+
+        nint itemPtr = Marshal.AllocHGlobal(Marshal.SizeOf<HDITEMW>());
+        try
+        {
+            Marshal.StructureToPtr(item, itemPtr, false);
+            ControlProcedures.SendMessage(Hwnd, HDM.GETITEMW, (nint)index, itemPtr);
+            return Marshal.PtrToStructure<HDITEMW>(itemPtr).cxy;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(itemPtr);
+        }
+    }
+
+    public int OrderToIndex(int order)
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, 0x120F /* HDM_ORDERTOINDEX */, (nint)order, 0);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

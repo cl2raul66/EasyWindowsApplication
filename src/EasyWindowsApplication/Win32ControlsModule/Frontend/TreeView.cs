@@ -126,6 +126,98 @@ public sealed class TreeView : ControlBase<TreeView>
         exStyle |= 0x0004; // TVS_EX_FULLROWSELECT
         ControlProcedures.SendMessage(Hwnd, 0x112C /* TVM_SETEXTENDEDSTYLE */, 0, (nint)exStyle);
     }
+
+    public void SetTextColor(int color)
+    {
+        ControlProcedures.SendMessage(Hwnd, TVM.SETTEXTCOLOR, 0, (nint)color);
+    }
+
+    public int GetTextColor()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, TVM.GETTEXTCOLOR, 0, 0);
+    }
+
+    public void SetBkColor(int color)
+    {
+        ControlProcedures.SendMessage(Hwnd, TVM.SETBKCOLOR, 0, (nint)color);
+    }
+
+    public int GetBkColor()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, TVM.GETBKCOLOR, 0, 0);
+    }
+
+    public int ItemHeight
+    {
+        get => (int)ControlProcedures.SendMessage(Hwnd, TVM.GETITEMHEIGHT, 0, 0);
+        set => ControlProcedures.SendMessage(Hwnd, TVM.SETITEMHEIGHT, (nint)value, 0);
+    }
+
+    public int Indent
+    {
+        get => (int)ControlProcedures.SendMessage(Hwnd, TVM.GETINDENT, 0, 0);
+        set => ControlProcedures.SendMessage(Hwnd, TVM.SETINDENT, (nint)value, 0);
+    }
+
+    public int VisibleCount
+    {
+        get => (int)ControlProcedures.SendMessage(Hwnd, TVM.GETVISIBLECOUNT, 0, 0);
+    }
+
+    public int ItemCount
+    {
+        get => (int)ControlProcedures.SendMessage(Hwnd, TVM.GETCOUNT, 0, 0);
+    }
+
+    public void EnsureVisible(nint hItem)
+    {
+        ControlProcedures.SendMessage(Hwnd, TVM.ENSUREVISIBLE, 0, hItem);
+    }
+
+    public nint GetParent(nint hItem)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TVM.GETNEXTITEM, (nint)TVGN.PARENT, hItem);
+    }
+
+    public nint GetPrevSibling(nint hItem)
+    {
+        return ControlProcedures.SendMessage(Hwnd, TVM.GETNEXTITEM, (nint)TVGN.PREVIOUS, hItem);
+    }
+
+    public void SetItemText(nint hItem, string text)
+    {
+        nint textPtr = Marshal.StringToHGlobalUni(text);
+        try
+        {
+            var item = new TVITEMW
+            {
+                mask = 0x0001, // TVIF_TEXT
+                hItem = hItem,
+                pszText = textPtr,
+                cchTextMax = text.Length,
+            };
+
+            nint itemPtr = Marshal.AllocHGlobal(Marshal.SizeOf<TVITEMW>());
+            try
+            {
+                Marshal.StructureToPtr(item, itemPtr, false);
+                ControlProcedures.SendMessage(Hwnd, TVM.SETITEMW, 0, itemPtr);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(itemPtr);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(textPtr);
+        }
+    }
+
+    public void Sort(nint hParent, bool recurse = false)
+    {
+        ControlProcedures.SendMessage(Hwnd, TVM.SORTCHILDREN, recurse ? 1 : 0, hParent);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

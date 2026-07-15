@@ -22,6 +22,7 @@ internal sealed class ApplicationContext :
     {
         var router = new MasterRouter(_registry);
         Procedures.SetRouter(router);
+        ControlAccess.Initialize(_registry);
 
         var layoutImpl = (LayoutBuilderImpl)LayoutBuilder;
         layoutImpl.Router = router;
@@ -48,7 +49,7 @@ internal sealed class ApplicationContext :
     {
         var behaviorImpl = (BehaviorBuilderImpl)BehaviorBuilder;
 
-        if (behaviorImpl.Win32Configurator != null)
+        if (behaviorImpl.Win32Configurator is not null)
         {
             var win32State = new Win32StateImpl(_registry);
             behaviorImpl.Win32Configurator(win32State);

@@ -93,7 +93,7 @@ internal static class Procedures
 
     private static nint WndProcCallback(nint hwnd, uint msg, nint wParam, nint lParam)
     {
-        if (_router != null)
+        if (_router is not null)
             return _router.WndProc(hwnd, msg, wParam, lParam);
 
         return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);

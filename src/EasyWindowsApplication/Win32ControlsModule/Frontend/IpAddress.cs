@@ -39,6 +39,11 @@ public sealed class IpAddress : ControlBase<IpAddress>
         ControlProcedures.SendMessage(Hwnd, IPM.SETFOCUS, (nint)field, 0);
     }
 
+    public int GetFocusedField()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, 0x046A /* IPM_GETFOCUS */, 0, 0);
+    }
+
     public bool IsBlank
     {
         get => ControlProcedures.SendMessage(Hwnd, IPM.ISBLANK, 0, 0) != 0;

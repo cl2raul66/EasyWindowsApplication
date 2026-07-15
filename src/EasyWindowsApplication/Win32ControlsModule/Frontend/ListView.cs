@@ -118,4 +118,86 @@ public sealed class ListView : ControlBase<ListView>
         exStyle |= (nint)(LVS_EX.FULLROWSELECT | LVS_EX.DOUBLEBUFFER);
         ControlProcedures.SendMessage(Hwnd, LVM.SETEXTENDEDLISTVIEWSTYLE, 0, exStyle);
     }
+
+    public int GetSelectedCount()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, LVM.GETSELECTEDCOUNT, 0, 0);
+    }
+
+    public void SetColumnWidth(int colIndex, int width)
+    {
+        ControlProcedures.SendMessage(Hwnd, LVM.SETCOLUMNWIDTH, (nint)colIndex, (nint)width);
+    }
+
+    public void DeleteItem(int index)
+    {
+        ControlProcedures.SendMessage(Hwnd, LVM.DELETEITEM, (nint)index, 0);
+    }
+
+    public string GetItemText(int index, int subItem = 0)
+    {
+        nint buffer = Marshal.AllocHGlobal(512 * 2);
+        try
+        {
+            var item = new LVITEMW
+            {
+                mask = LVIF.TEXT,
+                iItem = index,
+                iSubItem = subItem,
+                pszText = buffer,
+                cchTextMax = 512,
+            };
+
+            nint itemPtr = Marshal.AllocHGlobal(Marshal.SizeOf<LVITEMW>());
+            try
+            {
+                Marshal.StructureToPtr(item, itemPtr, false);
+                ControlProcedures.SendMessage(Hwnd, LVM.GETITEMW, 0, itemPtr);
+                return Marshal.PtrToStringUni(buffer) ?? string.Empty;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(itemPtr);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    public void SetItemImage(int index, int imageIndex)
+    {
+        var item = new LVITEMW
+        {
+            mask = LVIF.IMAGE,
+            iItem = index,
+            iImage = imageIndex,
+        };
+
+        nint itemPtr = Marshal.AllocHGlobal(Marshal.SizeOf<LVITEMW>());
+        try
+        {
+            Marshal.StructureToPtr(item, itemPtr, false);
+            ControlProcedures.SendMessage(Hwnd, LVM.SETITEMW, 0, itemPtr);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(itemPtr);
+        }
+    }
+
+    public void EnsureVisible(int index)
+    {
+        ControlProcedures.SendMessage(Hwnd, 0x1013 /* LVM_ENSUREVISIBLE */, (nint)index, 0);
+    }
+
+    public void DeleteAllColumns()
+    {
+        int count = (int)ControlProcedures.SendMessage(Hwnd, 0x101D /* LVM_GETHEADER */, 0, 0);
+        for (int i = count - 1; i >= 0; i--)
+        {
+            ControlProcedures.SendMessage(Hwnd, 0x101C /* LVM_DELETECOLUMN */, (nint)i, 0);
+        }
+    }
 }

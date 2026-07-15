@@ -99,6 +99,21 @@ public sealed class ToolTip : ControlBase<ToolTip>
     {
         ControlProcedures.SendMessage(Hwnd, TTM.POP, 0, 0);
     }
+
+    public void SetDelayTime(int delay)
+    {
+        ControlProcedures.SendMessage(Hwnd, 0x0403 /* TTM_SETDELAYTIME */, 0, (nint)delay);
+    }
+
+    public int GetToolCount()
+    {
+        return (int)ControlProcedures.SendMessage(Hwnd, TTM.GETTOOLCOUNT, 0, 0);
+    }
+
+    public void Update()
+    {
+        ControlProcedures.SendMessage(Hwnd, 0x0415 /* TTM_UPDATE */, 0, 0);
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

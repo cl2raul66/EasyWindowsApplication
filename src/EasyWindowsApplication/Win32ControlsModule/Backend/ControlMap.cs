@@ -8,7 +8,7 @@ internal readonly record struct Win32ControlInfo(string ClassName, uint DefaultS
 
 internal static class Win32ControlMap
 {
-    public static Win32ControlInfo Get<T>() where T : ControlBase<T>, new()
+    internal static Win32ControlInfo Get<T>() where T : ControlBase<T>, new()
     {
         return typeof(T).Name switch
         {
