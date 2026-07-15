@@ -1,5 +1,6 @@
 <Solution>
+  <Project Path="EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj" />
   <Project Path="EasyWindowsApplication/EasyWindowsApplication.csproj" />
   <Project Path="ProjectTemplates/EasyWinApp/EasyWinApp.csproj" />
-  <Project Path="Sample/Sample.csproj" Id="2e053fd7-56e3-4b5d-82d5-c63b46d7ce7d" />
+  <Project Path="Sample/Sample.csproj" Id="4dac254b-bfa0-40e9-a86a-4d3acbb5b569" />
 </Solution>

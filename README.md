@@ -2,74 +2,126 @@
 
 **Un mini-framework declarativo, moderno y ultrarrápido para crear aplicaciones nativas de Windows en C#.**
 
-`EasyWindowsApplication` trae el rendimiento puro y crudo del API nativa de Win32 a la era moderna de .NET. Mediante una **Fluent API** elegante y el poder de los **C# Source Generators** (Generación de código en tiempo de compilación), te permite construir interfaces gráficas de escritorio sin *boilerplate*, sin *magic strings* y con una separación de responsabilidades impecable.
+`EasyWindowsApplication` trae el rendimiento puro de Win32 a .NET con una **Fluent API** elegante y **Source Generators** que eliminan *magic strings* y *boilerplate*.
 
-Si crees que Win32 es demasiado complejo y que los frameworks modernos son demasiado pesados, estás en el lugar correcto.
+## ✨ Características
 
-## ✨ Características Principales
-
-*   ⚡ **Rendimiento Nativo (Win32 Core):** Sin WebViews, sin motores de renderizado pesados. Por debajo, el framework se comunica directamente con `User32` y `GDI/DirectX`, garantizando un consumo de memoria mínimo y un rendimiento nativo.
-*   🎨 **Fluent API Declarativa:** Define tus recursos, tu interfaz y tu lógica en un flujo continuo, legible y altamente cohesivo.
-*   🧠 **Magia en Tiempo de Compilación (Source Generators):** Olvídate de buscar controles por su ID de texto. Al compilar (`dotnet build`), el framework lee tu diseño y genera alias fuertemente tipados para tus eventos. Si te equivocas, falla en el compilador, no en ejecución.
-*   🏗️ **Jerarquía Espacial Moderna:** Redefinimos los arcaicos conceptos de Win32 (`WS_OVERLAPPED`, `WS_POPUP`, `WS_CHILD`) en un modelo mental moderno para el frontend:
-    *   `IndependentWindow`: El contenedor principal (App Shell).
-    *   `AssociatedWindow`: Capas superpuestas, modales y tooltips (Overlays).
-    *   `SubordinateWindow`: Controles y elementos visuales confinados al flujo (Components).
-*   📦 **Contenedor de Recursos Unificado:** Gestiona tus *Assets* (fuentes, imágenes) y tus *Servicios* (Inyección de Dependencias) en un solo lugar.
+*   ⚡ **Rendimiento nativo** — Sin WebViews, sin JIT innecesario. `[LibraryImport]` + Native AOT.
+*   🎨 **Fluent API declarativa** — Resources → Layout → Behavior → Initialize.
+*   🧠 **Source Generators** — Acceso tipado a controles por su nombre. Error en compilación, no en runtime.
+*   🔧 **Válvula de escape Win32** — `UseWinApi()` para acceso directo al HWND y WndProc cuando lo necesites.
 
 ## 💻 Un vistazo al código
 
-Crear una aplicación nativa nunca fue tan limpio. Todo se divide en 4 bloques lógicos: `Resources`, `Layout`, `Behavior` e `Initialize`.
-
 ```csharp
-using EasyWindows;
+using EasyWindowsApplication;
+using EasyWindowsApplication.Win32ControlsModule.Frontend;
+
+int counter = 0;
 
 WindowsApplication
-    // 1. RECURSOS: Todo lo que la app necesita del exterior (Assets + DI)
-    .Resources(rd => rd
-        .Fonts(f => f.Add("Roboto", "Assets/Roboto.ttf"))
-        .Images(i => i.Add("AppLogo", "Assets/logo.png"))
-        .Services(s => s.AddSingleton<IMyDatabase, SqlDatabase>())
-    )
-    // 2. LAYOUT: El árbol visual de la aplicación
     .Layout(ly => ly
-        .AddIndependentWindow("MainWindow", win => win
-            .WithTitle("Mi App Ultrarrápida")
-            .WithDimensions(800, 600)
-            .AddSubordinateWindow("BtnGuardar", btn => btn
-                .AsButton()
-                .WithText("Guardar Datos")
+        .Window(iw => iw
+            .Name("MainWindow")
+            .Title("Mi App")
+            .Dimensions(800, 600)
+            .Position(WindowPosition.Center)
+            .Content(c => c
+                .Children(ch => ch
+                    .View<Button>(btn => btn
+                        .Position(10, 10)
+                        .Dimensions(100, 32)
+                        .Name("BtnGuardar")
+                        .Text("Contador: 0")
+                    )
+                )
             )
         )
     )
-    // 3. BEHAVIOR: Lógica y enrutamiento de eventos fuertemente tipado
-    // (¡Los alias como 'MainWindow' y 'BtnGuardar' son generados por Roslyn en tiempo real!)
-    .Behavior(bh => bh
-        .MainWindow.BtnGuardar.OnMouseClick(e => 
+    .Behavior(bh =>
+    {
+        var btn = bh.BtnGuardar();   // ← tipado por Source Generator
+        btn.OnClick(() =>
         {
-            // Tu lógica aquí. Compatible con Eventos clásicos, MVVM o MVU.
-            Console.WriteLine("¡Botón clickeado con rendimiento Win32!");
-        })
-    )
-    // 4. INICIALIZACIÓN: Arranca el bucle de mensajes nativo
+            counter++;
+            btn.Text = $"Contador: {counter}";
+        });
+    })
     .Initialize();
 ```
 
-## 🛠️ ¿Cómo funciona por debajo?
+## 🚀 Instalación y uso
 
-A diferencia de los frameworks tradicionales que usan reflexión masiva en tiempo de ejecución, `EasyWindowsApplication` actúa como un **DSL (Domain Specific Language)**. 
+### Desde la consola (dotnet CLI)
 
-Cuando escribes tu `Layout` y ejecutas `dotnet build`, nuestros Source Generators analizan tu árbol visual y escriben el código de interoperabilidad Win32 (P/Invoke), el registro de clases (`RegisterClassEx`) y el bucle de mensajes (`GetMessage`) por ti. El resultado es un binario tan rápido como si lo hubieras escrito en C++, pero con la belleza y seguridad de C# moderno.
+1. **Clona el repositorio** y compila la plantilla:
+   ```bash
+   git clone <repo-url>
+   cd EasyWindowsApplication
+   dotnet build src\EasyWindowsApplication.slnx
+   ```
 
-## 🚀 Próximos Pasos
-*   [Guía de Inicio Rápido (Quickstart)](#)
-*   [Entendiendo la Arquitectura: Independent, Associated y Subordinate](#)
-*   [Cómo usar el contenedor de Servicios (Dependency Injection)](#)
+2. **Instala la plantilla localmente:**
+   ```bash
+   dotnet new install src\ProjectTemplates\EasyWinApp
+   ```
 
----
-*Diseñado para el futuro del desarrollo de escritorio en Windows.*
+3. **Crea un nuevo proyecto desde la plantilla:**
+   ```bash
+   dotnet new easywinapp -n MiApp
+   cd MiApp
+   dotnet build
+   dotnet run
+   ```
 
----
+### Desde Visual Studio 2026
 
-### ¿Qué te parece?
-Esta descripción ataca directamente los "puntos de dolor" de los desarrolladores (rendimiento, código espagueti, magic strings) y posiciona tu proyecto no solo como una biblioteca más, sino como una **herramienta de ingeniería avanzada** gracias a los Source Generators.
+1. **Compila la solución** para que la plantilla esté disponible:
+   ```bash
+   dotnet build src\EasyWindowsApplication.slnx
+   ```
+
+2. **Instala la plantilla** (una vez):
+   ```bash
+   dotnet new install src\ProjectTemplates\EasyWinApp
+   ```
+
+3. **En Visual Studio 2026:** Archivo → Nuevo → Proyecto → Busca "EasyWinApp" → Siguiente → Crear.
+
+### Para desarrollar el framework localmente
+
+```bash
+# Compilar el framework
+dotnet build src\EasyWindowsApplication\EasyWindowsApplication.csproj
+
+# Compilar y ejecutar el ejemplo
+dotnet run --project src\Sample\Sample.csproj
+```
+
+## 📁 Estructura del proyecto
+
+```
+EasyWindowsApplication/
+├── src/
+│   ├── EasyWindowsApplication/        # Framework principal
+│   ├── EasyWindowsApplication.Generators/  # Source Generator
+│   ├── ProjectTemplates/EasyWinApp/   # Template para dotnet new
+│   └── Sample/                        # Proyecto de ejemplo
+└── README.md
+```
+
+## 🛠️ ¿Cómo funciona?
+
+El framework usa `[LibraryImport]` para P/Invoke directo a Win32, compatible con **Native AOT**. Los **Source Generators** analizan el Layout en tiempo de compilación y generan código fuertemente tipado para el Behavior. El `MasterRouter` centraliza el bucle de mensajes de Win32 y despacha eventos tipados (`Click`, `TextChanged`, etc.) automáticamente.
+
+Para control total sobre el HWND y WndProc, activa `UseWinApi()` en Resources:
+```csharp
+WindowsApplication
+    .Resources(r => r.UseWinApi())
+    .Layout(...)
+    .Behavior(b => b.WithWin32State(ctrl => {
+        var btn = ctrl.Get<Button>("BtnGuardar");
+        btn.OnMessage(WM.COMMAND, (w, l) => { ... });
+    }))
+    .Initialize();
+```

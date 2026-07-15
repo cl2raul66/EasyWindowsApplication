@@ -25,7 +25,10 @@
     {
       "modifiers": [
         {
-          "exclude": [ ".template.config/**" ]
+          "exclude": [
+            ".template.config/**",
+            "logo_projecttemplates_easywinapp.png"
+          ]
         }
       ]
     }
