@@ -20,4 +20,8 @@
     <Folder Include="Share\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Svg.Skia" Version="5.1.1" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>

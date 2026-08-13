@@ -1,30 +1,47 @@
 using EasyWindowsApplication;
-using EasyWindowsApplication.StateManagement.MVU;
+using EasyWindowsApplication.Win32ControlsModule.Frontend;
+using System.Reflection;
 
-var counterState = new State<int>(0);
+// Cargar configuración por defecto desde recursos embebidos
+var settingsJson = LoadEmbeddedSettings();
+System.Diagnostics.Debug.WriteLine($"Settings loaded: {settingsJson ?? "none"}");
+
+int counter = 0;
 
 WindowsApplication
-    .Resources(rd => rd
-        .Fonts(f => f.Add("Roboto", "Assets/Roboto.ttf"))
-        .Images(i => i.Add("AppLogo", "Assets/logo.png"))
-    )
     .Layout(ly => ly
-        .Window(w => w
+        .Window(iw => iw
             .Name("MainWindow")
             .Title("Easy Win App")
             .Dimensions(420, 280)
+            .Position(WindowPosition.Center)
             .Content(c => c
                 .Children(ch => ch
-                    .ImmediateAction<IPushButton>(btn => btn
+                    .View<Button>(btn => btn
+                        .Position(160, 92)
+                        .Dimensions(100, 32)
                         .Name("BtnIncrement")
-                        .Content(c => c.Children(ch => ch.Text("Click me")))
+                        .Text("Click me")
                     )
                 )
             )
         )
     )
-    .Behavior(b => b
-        .Bind(counterState, stateValue => b.BtnIncrement.TextPropety(stateValue.ToString()))
-        .On(b.BtnIncrement.Clicked, () =>  { counterState.Value++; })
+    .Behavior(bh => bh
+        .OnClick("BtnIncrement", () =>
+        {
+            counter++;
+            var btn = bh.Get<Button>("BtnIncrement");
+            btn.Text = $"Click: {counter}";
+        })
     )
     .Initialize();
+
+static string? LoadEmbeddedSettings()
+{
+    var assembly = Assembly.GetExecutingAssembly();
+    using var stream = assembly.GetManifestResourceStream("EasyWinApp.Resources.Raw.appsettings.json");
+    if (stream is null) return null;
+    using var reader = new StreamReader(stream);
+    return reader.ReadToEnd();
+}

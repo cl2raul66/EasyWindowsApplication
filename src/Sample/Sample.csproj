@@ -1,17 +1,68 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<PublishAot>true</PublishAot>
-		<InvariantGlobalization>true</InvariantGlobalization>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <ApplicationIcon>Sample.ico</ApplicationIcon>
+    </PropertyGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Raw\appsettings.json" />
+  </ItemGroup>
+
+  <Target Name="GenerateAppIcon" BeforeTargets="BeforeBuild"
+          Inputs="Resources\AppIcon\appicon.svg"
+          Outputs="$(IntermediateOutputPath)$(ApplicationIcon)">
+    <PropertyGroup>
+      <_IcoGenDir>$(IntermediateOutputPath)IcoGen\</_IcoGenDir>
+      <_IcoGenProj>$(_IcoGenDir)IcoGen.csproj</_IcoGenProj>
+      <_IcoGenCs>$(_IcoGenDir)Program.cs</_IcoGenCs>
+      <_EasyWAProj>$(MSBuildProjectDirectory)\..\EasyWindowsApplication\EasyWindowsApplication.csproj</_EasyWAProj>
+      <_SvgAbs>$(MSBuildProjectDirectory)\Resources\AppIcon\appicon.svg</_SvgAbs>
+      <_IcoAbs>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(ApplicationIcon)</_IcoAbs>
+    </PropertyGroup>
+
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName($(_IcoAbs)))" />
+    <MakeDir Directories="$(_IcoGenDir)" />
+
+    <WriteLinesToFile File="$(_IcoGenCs)" Lines="using EasyWindowsApplication.BuildSupport%3B" Overwrite="true" />
+    <WriteLinesToFile File="$(_IcoGenCs)" Lines='IconGenerator.GenerateIco(@"$(_SvgAbs)", @"$(_IcoAbs)", new[] { 16, 32, 48, 256 })%3B' />
+
+    <ItemGroup>
+      <_IcoProjLine Include="&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;" />
+      <_IcoProjLine Include="  &lt;PropertyGroup&gt;" />
+      <_IcoProjLine Include="    &lt;OutputType&gt;Exe&lt;/OutputType&gt;" />
+      <_IcoProjLine Include="    &lt;TargetFramework&gt;net10.0-windows10.0.19041.0&lt;/TargetFramework&gt;" />
+      <_IcoProjLine Include="    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;" />
+      <_IcoProjLine Include="    &lt;Nullable&gt;enable&lt;/Nullable&gt;" />
+      <_IcoProjLine Include="  &lt;/PropertyGroup&gt;" />
+      <_IcoProjLine Include="  &lt;ItemGroup&gt;" />
+      <_IcoProjLine Include="    &lt;PackageReference Include=&quot;Svg.Skia&quot; Version=&quot;5.1.1&quot; /&gt;" />
+      <_IcoProjLine Include="    &lt;ProjectReference Include=&quot;$(_EasyWAProj)&quot; /&gt;" />
+      <_IcoProjLine Include="  &lt;/ItemGroup&gt;" />
+      <_IcoProjLine Include="&lt;/Project&gt;" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_IcoGenProj)" Lines="@(_IcoProjLine)" Overwrite="true" />
+
+    <Exec Command="dotnet run --project &quot;$(_IcoGenProj)&quot;" />
+
+    <Copy SourceFiles="$(_IcoAbs)" DestinationFiles="$(MSBuildProjectDirectory)\$(ApplicationIcon)" SkipUnchangedFiles="true" />
+
+    <RemoveDir Directories="$(_IcoGenDir)" />
+  </Target>
 
 </Project>
