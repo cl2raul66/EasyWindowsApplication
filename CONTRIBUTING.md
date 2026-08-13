@@ -202,11 +202,23 @@ Este repositorio publica paquetes NuGet automáticamente mediante GitHub Actions
 3. **Al *mergear*** a `develop`, el workflow `dev-release.yml` publica automáticamente el preview a NuGet y crea un *GitHub Release* con tag `v0.1.0-preview`.
 4. **Para promover a estable**, abre un PR de `develop` → `main` con el **mismo** *body* (marcadores con `-preview`). Al *mergear*, `prod-release.yml` publica la versión estable y elimina el `-preview` del tag.
 
-### Secretos requeridos
+### Publicación automática: Trusted Publishing (OIDC)
+
+La autenticación contra nuget.org usa **Trusted Publishing** (OIDC), no API keys de larga duración. GitHub Actions intercambia un token OIDC de corta duración por una API key temporal válida 1 hora mediante `NuGet/login@v1`.
+
+Setup manual (una sola vez):
+
+1. En **nuget.org** → tu usuario → **Trusted Publishing** → **+ Create**, crear dos políticas:
+   - **Dev Policy** → Owner: tu cuenta NuGet / Repository Owner `cl2raul66` / Repository `EasyWindowsApplication` / Workflow File `dev-release.yml` / Environment `dev`.
+   - **Prod Policy** → igual pero Workflow File `prod-release.yml` / Environment `prod`.
+2. En **GitHub** → `Settings → Environments`: crear los environments `dev` y `prod`.
+3. En **GitHub** → `Settings → Secrets and variables → Actions` → crear el secret:
 
 | Secret | Propósito |
 |---|---|
-| `NUGET_API_KEY` | Push a nuget.org. Crear bajo `Settings → Secrets and variables → Actions → New repository secret`. |
+| `NUGET_USER` | Tu nombre de usuario de nuget.org (el *profile name*, no el email). Lo usa `NuGet/login@v1`. |
+
+> **Limpieza (solo tras verificar un publish OK con OIDC):** eliminar el secret `NUGET_API_KEY` (si existiera) de GitHub y revocar las API keys en nuget.org (`tu usuario → API Keys`). Es irreversible: no lo hagas antes de confirmar que el publish OIDC funciona.
 
 ### Notas para mantenedores
 
