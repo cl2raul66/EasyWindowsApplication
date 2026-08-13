@@ -1,18 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>12</LangVersion>
-    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <IsRoslynComponent>true</IsRoslynComponent>
-    <DevelopmentDependency>true</DevelopmentDependency>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<NoWarn>$(NoWarn);RS2008</NoWarn>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<DevelopmentDependency>true</DevelopmentDependency>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
-  </ItemGroup>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Title>EasyWindowsApplication.Generators</Title>
+		<Copyright>MIT License</Copyright>
+		<PackageProjectUrl>https://github.com/cl2raul66/EasyWindowsApplication/src/EasyWindowsApplication.Generators</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/cl2raul66/EasyWindowsApplication</RepositoryUrl>
+		<PackageTags>csharp-library; win32; windows-application; easy-windows-application; Generators;</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<Version>0.0.0</Version>
+		<Authors>cl2raul66</Authors>
+		<Company>RandAMediaLabGroup</Company>
+		<PackageId>RandAMediaLabGroup.EasyWindowsApplication.Generators</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>logo_template.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md">                  <!-- (B) -->
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\rsc\Images\logo_template.png">                  <!-- (B) -->
+		    <Pack>True</Pack>
+		    <PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="*" PrivateAssets="all" />
+	</ItemGroup>
 
 </Project>

@@ -1,9 +1,9 @@
-﻿using EasyWindowsApplication.WindowingModule.Frontend;
+﻿using EasyWindowsApplication.LayoutModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 
 public interface IApplicationLayoutPhase
 {
-    IApplicationBehaviorPhase Layout();
-    IApplicationBehaviorPhase Layout(Action<ILayoutBuilder> configure);
+    IApplicationPostLayoutPhase Layout();
+    IApplicationPostLayoutPhase Layout(Action<ILayoutBuilder> configure);
 }

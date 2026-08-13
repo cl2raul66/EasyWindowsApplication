@@ -2,32 +2,23 @@
 
 public interface IResourcesDictionary
 {
-    IResourcesDictionary UseWinApi();
+    IResourcesDictionary Setting(Action<ISettingsBuilder> configure);
+    IResourcesDictionary Services(Action<IServicesBuilder> configure);
 }
 
 public interface ISettingsBuilder
 {
     ISettingsBuilder UseWinApi();
+    ISettingsBuilder AppConfigFile(Action<IAppConfigFileBuilder> configure);
 }
 
-internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
+public interface IAppConfigFileBuilder
 {
-    internal bool IsWinApiEnabled { get; private set; }
-
-    public IResourcesDictionary UseWinApi()
-    {
-        IsWinApiEnabled = true;
-        return this;
-    }
+    IAppConfigFileBuilder Path(string path);
+    IAppConfigFileBuilder WithAutoSave();
 }
 
-internal sealed class SettingsBuilderImpl : ISettingsBuilder
+public interface IServicesBuilder
 {
-    internal bool IsWinApiEnabled { get; private set; }
-
-    public ISettingsBuilder UseWinApi()
-    {
-        IsWinApiEnabled = true;
-        return this;
-    }
+    IServicesBuilder Singleton<TService, TImplementation>();
 }

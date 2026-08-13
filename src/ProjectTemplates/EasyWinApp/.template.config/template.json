@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "EasyWindowsApplication",
+  "classifications": ["Common", "Console", "Windows", "EWA"],
+  "name": "Easy Windows Application",
+  "description": "Aplicaci\u00F3n de Windows con el framework EWA organizada en secciones (Resources/Layout/Behavior)",
+  "identity": "EasyWindowsApplication.Templates.EasyWinApp",
+  "shortName": "easywinapp",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "icon": "logo_projecttemplates_easywinapp.png",
+  "sourceName": "EasyWinApp",
+  "preferNameDirectory": true,
+  "symbols": {
+    "TargetFramework": {
+      "type": "parameter",
+      "description": "Target framework",
+      "replaces": "net10.0-windows10.0.19041.0",
+      "defaultValue": "net10.0-windows10.0.19041.0"
+    },
+    "Simple": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Mantiene el Layout en secciones (Resources/Layout/Behavior). Si se desactiva (--Simple false), descompone el Layout en Views/Controls. Experimental hasta el rework sem\u00E1ntico del generador."
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(Simple)",
+          "exclude": [
+            "Views/**",
+            "Controls/**"
+          ]
+        },
+        {
+          "exclude": [
+            ".template.config/**",
+            "logo_projecttemplates_easywinapp.png"
+          ]
+        }
+      ]
+    }
+  ]
+}

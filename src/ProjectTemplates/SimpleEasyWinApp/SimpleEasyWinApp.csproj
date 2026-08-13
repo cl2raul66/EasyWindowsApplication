@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <ApplicationIcon>EasyWinApp.ico</ApplicationIcon>
+    <ApplicationIcon>SimpleEasyWinApp.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

@@ -105,6 +105,20 @@ internal static class BM
     internal const uint SETIMAGE    = 0x00F7;
 }
 
+// ── BCM (Button Control Messages) ──
+internal static class BCM
+{
+    internal const uint FIRST            = 0x1600;
+    internal const uint GETIDEALSIZE     = FIRST + 1;
+    internal const uint SETMARGIN        = FIRST + 4;
+    internal const uint GETMARGIN        = FIRST + 5;
+    internal const uint SETTEXTMARGIN    = FIRST + 4;
+    internal const uint GETTEXTMARGIN    = FIRST + 5;
+    internal const uint SETSHIELD        = FIRST + 12;
+    internal const uint GETTEXTMETRICS   = FIRST + 19;
+    internal const uint SETDROPDOWNSTATE = FIRST + 22;
+}
+
 // ── EM (Edit Messages) ──
 internal static class EM
 {

@@ -2,21 +2,19 @@ using System.Runtime.InteropServices;
 
 namespace EasyWindowsApplication.CoreModule.Backend;
 
-[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-internal struct WNDCLASSEXW
+[StructLayout(LayoutKind.Sequential)]
+internal struct SIZE
 {
-    public uint cbSize;
-    public uint style;
-    public nint lpfnWndProc;
-    public int cbClsExtra;
-    public int cbWndExtra;
-    public nint hInstance;
-    public nint hIcon;
-    public nint hCursor;
-    public nint hbrBackground;
-    public nint lpszMenuName;
-    public nint lpszClassName;
-    public nint hIconSm;
+    public int cx;
+    public int cy;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct ABC
+{
+    public int abcA;
+    public uint abcB;
+    public int abcC;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -35,15 +33,6 @@ internal struct POINT
 {
     public int X;
     public int Y;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct RECT
-{
-    public int Left;
-    public int Top;
-    public int Right;
-    public int Bottom;
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -97,18 +86,27 @@ internal struct LVCOLUMNW
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct CREATESTRUCTW
+internal struct SCROLLINFO
 {
-    public nint lpCreateParams;
-    public nint hInstance;
-    public nint hMenu;
-    public nint hwndParent;
-    public int cy;
-    public int cx;
-    public int y;
-    public int x;
-    public int style;
-    public nint lpszName;
-    public nint lpszClass;
-    public uint dwExStyle;
+    public uint cbSize;
+    public uint fMask;
+    public int nMin;
+    public int nMax;
+    public uint nPage;
+    public int nPos;
+    public int nTrackPos;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct DRAWITEMSTRUCT
+{
+    public uint CtlType;
+    public uint CtlID;
+    public uint itemID;
+    public uint itemAction;
+    public uint itemState;
+    public nint hwndItem;
+    public nint hDC;
+    public RECT rcItem;
+    public nint itemData;
 }

@@ -1,0 +1,3 @@
+namespace EasyWindowsApplication.Share;
+
+

@@ -12,15 +12,23 @@ namespace EasyWindowsApplication.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 {
+    private static readonly DiagnosticDescriptor DuplicateNameRule = new(
+        id: "EAWIN001",
+        title: "Duplicate Name",
+        messageFormat: "Name '{0}' is already used. Each Name must be unique within the application.",
+        category: "EasyWindowsApplication",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var viewCalls = context.SyntaxProvider.CreateSyntaxProvider(
-            predicate: static (node, _) => IsViewCandidate(node),
-            transform: static (ctx, _) => ExtractViewInfo(ctx))
+        var namedItems = context.SyntaxProvider.CreateSyntaxProvider(
+            predicate: static (node, _) => IsNameCandidate(node),
+            transform: static (ctx, _) => ExtractNamedInfo(ctx))
             .Where(static info => info is not null)
             .Select(static (info, _) => info!.Value);
 
-        var collected = viewCalls.Collect();
+        var collected = namedItems.Collect();
 
         var behaviorCalls = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => IsBehaviorCandidate(node),
@@ -31,14 +39,22 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(collected.Combine(enclosingType), static (spc, pair) =>
         {
-            var (controls, enclosing) = pair;
-            if (controls.IsDefaultOrEmpty) return;
+            var (items, enclosing) = pair;
+            if (items.IsDefaultOrEmpty) return;
 
-            var unique = new Dictionary<string, string>();
-            foreach (var c in controls)
+            var seen = new HashSet<string>();
+            var unique = new List<NamedInfo>();
+            foreach (var item in items)
             {
-                if (!unique.ContainsKey(c.Name))
-                    unique[c.Name] = c.TypeSymbol;
+                if (!seen.Add(item.Name))
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        DuplicateNameRule,
+                        item.Location,
+                        item.Name));
+                    continue;
+                }
+                unique.Add(item);
             }
 
             var sb = new StringBuilder();
@@ -48,7 +64,6 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
             var ib = "global::EasyWindowsApplication.CoreModule.Frontend.IBehaviorBuilder";
 
-            // ── C# 14 extension properties on IBehaviorBuilder ──
             sb.AppendLine("namespace EasyWindowsApplication");
             sb.AppendLine("{");
             sb.AppendLine("    public static class EasyBehaviorExtensions");
@@ -57,12 +72,21 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             sb.AppendLine($"        extension({ib} bh)");
             sb.AppendLine("        {");
 
-            foreach (var kv in unique)
+            foreach (var item in unique)
             {
-                var propName = SanitizeName(kv.Key);
-                sb.AppendLine($"            public {kv.Value} {propName}");
-                sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
-                sb.AppendLine($"                    .Get<{kv.Value}>(\"{kv.Key}\");");
+                var propName = SanitizeName(item.Name);
+                if (item.IsWindowType)
+                {
+                    sb.AppendLine($"            public {item.TypeSymbol} {propName}");
+                    sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
+                    sb.AppendLine($"                    .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
+                }
+                else
+                {
+                    sb.AppendLine($"            public {item.TypeSymbol} {propName}");
+                    sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
+                    sb.AppendLine($"                    .Get<{item.TypeSymbol}>(\"{item.Name}\");");
+                }
                 sb.AppendLine();
             }
 
@@ -70,7 +94,6 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
-            // ── Partial class with static properties (bare access) ──
             if (!enclosing.IsDefaultOrEmpty && enclosing[0] is not null)
             {
                 var enclosingInfo = enclosing[0];
@@ -88,12 +111,21 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
                 sb.AppendLine($"    partial class {className}");
                 sb.AppendLine("    {");
 
-                foreach (var kv in unique)
+                foreach (var item in unique)
                 {
-                    var propName = SanitizeName(kv.Key);
-                    sb.AppendLine($"        internal static {kv.Value} {propName}");
-                    sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
-                    sb.AppendLine($"                .Get<{kv.Value}>(\"{kv.Key}\");");
+                    var propName = SanitizeName(item.Name);
+                    if (item.IsWindowType)
+                    {
+                        sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
+                        sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
+                        sb.AppendLine($"                .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
+                        sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
+                        sb.AppendLine($"                .Get<{item.TypeSymbol}>(\"{item.Name}\");");
+                    }
                     sb.AppendLine();
                 }
 
@@ -109,45 +141,73 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         });
     }
 
-    private static bool IsViewCandidate(SyntaxNode node)
+    private static bool IsNameCandidate(SyntaxNode node)
     {
         if (node is not InvocationExpressionSyntax inv)
             return false;
+        if (inv.Expression is not MemberAccessExpressionSyntax ma)
+            return false;
+        if (ma.Name.Identifier.Text != "Name")
+            return false;
         if (inv.ArgumentList.Arguments.Count != 1)
             return false;
-        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax)
+        if (inv.ArgumentList.Arguments[0].Expression is not LiteralExpressionSyntax lit)
             return false;
-        if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
+        if (!lit.IsKind(SyntaxKind.StringLiteralExpression))
             return false;
-        if (memberAccess.Name is GenericNameSyntax genericName
-            && genericName.Identifier.Text == "View"
-            && genericName.TypeArgumentList.Arguments.Count == 1)
-            return true;
-        return false;
+        return true;
     }
 
-    private static ControlInfo? ExtractViewInfo(GeneratorSyntaxContext context)
+    private static NamedInfo? ExtractNamedInfo(GeneratorSyntaxContext context)
     {
         var inv = (InvocationExpressionSyntax)context.Node;
-        if (inv.Expression is not MemberAccessExpressionSyntax memberAccess)
-            return null;
-        if (memberAccess.Name is not GenericNameSyntax genericName
-            || genericName.Identifier.Text != "View"
-            || genericName.TypeArgumentList.Arguments.Count != 1)
+        if (inv.ArgumentList.Arguments[0].Expression is not LiteralExpressionSyntax lit)
             return null;
 
-        var typeArg = genericName.TypeArgumentList.Arguments[0];
-        var typeSymbol = context.SemanticModel.GetTypeInfo(typeArg).Type;
-        if (typeSymbol == null) return null;
+        var name = lit.Token.ValueText;
+        if (string.IsNullOrEmpty(name))
+            return null;
 
-        var typeFullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var location = inv.GetLocation();
 
-        if (inv.ArgumentList.Arguments[0].Expression is LambdaExpressionSyntax lambda)
+        var current = inv.Parent;
+        while (current is not null && current is not LambdaExpressionSyntax)
+            current = current.Parent;
+
+        if (current is not LambdaExpressionSyntax lambda)
+            return null;
+
+        if (lambda.Parent is not ArgumentSyntax argSyntax
+            || argSyntax.Parent is not ArgumentListSyntax argList
+            || argList.Parent is not InvocationExpressionSyntax parentInv
+            || parentInv.Expression is not MemberAccessExpressionSyntax parentMa)
+            return null;
+
+        if (parentMa.Name is GenericNameSyntax generic
+            && generic.Identifier.Text == "View"
+            && generic.TypeArgumentList.Arguments.Count == 1)
         {
-            var nameLiteral = FindStringArgument(lambda.Body, "Name");
-            if (nameLiteral is not null)
-                return new ControlInfo(nameLiteral, typeFullName);
+            var typeArg = generic.TypeArgumentList.Arguments[0];
+            var typeSymbol = context.SemanticModel.GetTypeInfo(typeArg).Type;
+            if (typeSymbol == null) return null;
+
+            return new NamedInfo(
+                name,
+                typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                isWindowType: false,
+                location);
         }
+
+        if (parentMa.Name.Identifier.Text == "Window")
+        {
+            return new NamedInfo(name, "global::EasyWindowsApplication.WindowingModule.Frontend.IWindow", isWindowType: true, location);
+        }
+
+        if (parentMa.Name.Identifier.Text == "AlternativeWindow")
+        {
+            return new NamedInfo(name, "global::EasyWindowsApplication.WindowingModule.Frontend.IAlternativeWindow", isWindowType: true, location);
+        }
+
         return null;
     }
 
@@ -175,9 +235,12 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             {
                 var symbol = context.SemanticModel.GetDeclaredSymbol(typeDecl);
                 if (symbol is not null)
-                    return new EnclosingTypeInfo(
-                        symbol.ContainingNamespace?.ToDisplayString() ?? "",
-                        symbol.Name);
+                {
+                    var ns = symbol.ContainingNamespace is { IsGlobalNamespace: false } cns
+                        ? cns.ToDisplayString()
+                        : "";
+                    return new EnclosingTypeInfo(ns, symbol.Name);
+                }
             }
 
             if (current is CompilationUnitSyntax compilationUnit)
@@ -191,22 +254,6 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             }
 
             current = current.Parent;
-        }
-        return null;
-    }
-
-    private static string FindStringArgument(SyntaxNode body, string methodName)
-    {
-        foreach (var inv in body.DescendantNodes().OfType<InvocationExpressionSyntax>())
-        {
-            if (inv.Expression is MemberAccessExpressionSyntax ma
-                && ma.Name.Identifier.Text == methodName
-                && inv.ArgumentList.Arguments.Count == 1
-                && inv.ArgumentList.Arguments[0].Expression is LiteralExpressionSyntax literal
-                && literal.IsKind(SyntaxKind.StringLiteralExpression))
-            {
-                return literal.Token.ValueText;
-            }
         }
         return null;
     }
@@ -226,14 +273,26 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private struct ControlInfo
+    private readonly struct NamedInfo
     {
         public readonly string Name;
         public readonly string TypeSymbol;
-        public ControlInfo(string name, string typeSymbol) { Name = name; TypeSymbol = typeSymbol; }
+        public readonly bool IsWindowType;
+        public readonly Location Location;
+
+        public NamedInfo(string name, string typeSymbol, bool isWindowType, Location location)
+        {
+            Name = name;
+            TypeSymbol = typeSymbol;
+            IsWindowType = isWindowType;
+            Location = location;
+        }
+
         public override bool Equals(object obj) =>
-            obj is ControlInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol;
-        public override int GetHashCode() => (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0);
+            obj is NamedInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol && IsWindowType == other.IsWindowType;
+
+        public override int GetHashCode() =>
+            (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0) ^ IsWindowType.GetHashCode();
     }
 
     private sealed class EnclosingTypeInfo
