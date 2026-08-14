@@ -1,10 +1,11 @@
 using EasyWindowsApplication.CoreModule.Backend;
+using EasyWindowsApplication.Share.Infrastructure;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 
-internal sealed class BehaviorBuilderImpl : IBehaviorBuilder
+internal sealed class BehaviorBuilderImpl : IBehaviorBuilder, ControlAccess.IBehaviorServicesController
 {
     internal Action<IWin32State>? Win32Configurator { get; private set; }
     internal HandleRegistry? Registry { get; set; }
@@ -37,6 +38,12 @@ internal sealed class BehaviorBuilderImpl : IBehaviorBuilder
             throw new InvalidOperationException($"Control '{name}' not found.");
         return (T)control;
     }
+
+    T ControlAccess.IBehaviorServicesController.Get<T>(string name)
+        => (T)Registry!.GetByName(name)!;
+
+    T ControlAccess.IBehaviorServicesController.GetWindow<T>(string name)
+        => (T)Registry!.GetWindow(name)!;
 
     internal void ApplyPending(HandleRegistry registry)
     {

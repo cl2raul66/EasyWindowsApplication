@@ -6,6 +6,7 @@
 - `EasyWindowsApplication.Generators` es un proyecto de apoyo a la biblioteca `EasyWindowsApplication`. Mi idea es usar el poder de Source Generator para crear propiedades con el atributo `Name` declarados, donde el generador de código analiza en que contexto aparece  en tiempo de compilación y genera una estructura fuertemente tipada (un strongly-typed alias).
 - `Common` es para código compartido y/o repetitivo entre los módulos, este siempre debe ser interno (internal).
 - `Share` es para código compartido y/o repetitivo entre los módulos (internamente), pero también externamente (public), para ser usados por los desarrolladores que emplean la biblioteca.
+- `Share/Infrastructure` es para código compartido entre módulos que es `public` por razones técnicas (código generado, targets de build o herencia interna), pero NO parte de la API de usuario → debe llevar `[EditorBrowsable(EditorBrowsableState.Never)]`.
 - `WindowsApplication.cs` el punto de entrada del Fluent Api, debe ser simple, limpio, exponer lo que se necesita para la escribir el flujo evitando que se vuelva un fichero de codigo monolitico, esa es su unica funcion.
 - La aplicación se construye mediante una Fluent API declarativa dividida estrictamente en secciones secuenciales. Esto garantiza la separación de responsabilidades:
   ```csharp
@@ -640,7 +641,7 @@ Un único fichero `Program.cs` (top-level statements) equivalente al ejemplo de 
 
 | Paquete | Rol |
 |---|---|
-| `EasyWindowsApplication` (NuGet) | Framework + BuildSupport (`IconGenerator`, `.targets` de icono incluido) |
+| `EasyWindowsApplication` (NuGet) | Framework + `Share/Infrastructure` (`IconGenerator`, `.targets` de icono incluido) |
 | `SkiaSharp` (transitivo) | Solo build-time (generación de .ico desde SVG), `PrivateAssets=all` |
 | `EasyWindowsApplication.Templates` (NuGet) | Contiene los templates `dotnet new easywinapp` y `simpleeasywinapp` |
 

@@ -33,4 +33,7 @@ internal sealed class HandleRegistry
 
     internal T? GetWindow<T>(string name) where T : class, IBaseWindow
         => _windowByName.TryGetValue(name, out var w) ? w as T : null;
+
+    internal IBaseWindow? GetWindow(string name)
+        => _windowByName.TryGetValue(name, out var w) ? w : null;
 }

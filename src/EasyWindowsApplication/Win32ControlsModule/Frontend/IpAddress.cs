@@ -1,3 +1,4 @@
+using EasyWindowsApplication.Share.Infrastructure;
 using EasyWindowsApplication.Win32ControlsModule.Backend;
 using EasyWindowsApplication.WindowingModule.Frontend;
 

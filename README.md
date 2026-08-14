@@ -145,9 +145,9 @@ EasyWindowsApplication/src/
 │   ├── CoreModule/                      # Fases del Fluent API, Resources, Behavior
 │   ├── LayoutModule/                    # ILayoutBuilder, Grid, Stack layouts
 │   ├── Share/                           # Tipos públicos (Color, Thickness, IContentBuilder)
+│   │   └── Infrastructure/              # Tipos públicos técnicos ([EditorBrowsable(Never)])
 │   ├── Win32ControlsModule/             # IButton, ILabel, IEdit, ICheckBox, ...
 │   ├── WindowingModule/                 # IWindow, WindowPositionOnScreen
-│   ├── BuildSupport/                    # IconGenerator (pipeline SVG→ICO en build-time)
 │   └── WindowsApplication.cs            # Punto de entrada del Fluent API
 ├── EasyWindowsApplication.Generators/   # Source Generator (EasyBehaviorGenerator)
 └── ProjectTemplates/
