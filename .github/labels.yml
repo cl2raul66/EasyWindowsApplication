@@ -1,0 +1,68 @@
+# --- TYPES (Conventional Commits) ---
+- name: "feat"
+  color: "0e8a16"
+  description: "Nueva funcionalidad (Minor bump)."
+
+- name: "fix"
+  color: "d93f0b"
+  description: "Corrección de error (Patch bump)."
+
+- name: "docs"
+  color: "5319e7"
+  description: "Solo cambios en documentación."
+
+- name: "chore"
+  color: "fbca04"
+  description: "Mantenimiento, dependencias, herramientas."
+
+- name: "perf"
+  color: "d4c5f9"
+  description: "Mejoras de rendimiento."
+
+- name: "refactor"
+  color: "fef2c0"
+  description: "Cambios de código que no arreglan bugs ni añaden feats."
+
+- name: "test"
+  color: "fbca04"
+  description: "Añadir o corregir tests."
+
+- name: "ci"
+  color: "008672"
+  description: "Cambios en archivos de configuración de CI/CD."
+
+- name: "build"
+  color: "a2eeef"
+  description: "Cambios en sistema de build o dependencias externas."
+
+# --- BREAKING CHANGES ---
+- name: "breaking-change"
+  color: "b60205"
+  description: "Cambio incompatible en la API (Major bump)."
+
+
+# --- PRIORITY ---
+- name: "priority: critical"
+  color: "ff0000"
+  description: "Bloqueante / Hotfix necesario."
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "Necesario para el próximo release."
+
+- name: "priority: low"
+  color: "0075ca"
+  description: "Deseable, pero puede esperar."
+
+# --- STATUS ---
+- name: "status: blocked"
+  color: "000000"
+  description: "Bloqueado."
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Ideal para nuevos colaboradores."
+
+- name: "help wanted"
+  color: "008672"
+  description: "Se busca ayuda."

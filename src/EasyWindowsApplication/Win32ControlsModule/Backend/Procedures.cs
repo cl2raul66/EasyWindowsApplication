@@ -1,12 +1,21 @@
 using System.Runtime.InteropServices;
+using EasyWindowsApplication.CoreModule.Backend;
 
 namespace EasyWindowsApplication.Win32ControlsModule.Backend;
 
 internal static class ControlProcedures
 {
     private static nint _hInstance;
+    private static nint _defaultFont;
 
     internal static void SetInstance(nint hInstance) => _hInstance = hInstance;
+
+    internal static nint GetDefaultFont()
+    {
+        if (_defaultFont == 0)
+            _defaultFont = Win32.GetStockObject(17); // DEFAULT_GUI_FONT
+        return _defaultFont;
+    }
 
     internal static nint CreateControl(
         string windowClass,
@@ -29,6 +38,9 @@ internal static class ControlProcedures
         Marshal.FreeHGlobal(classPtr);
         Marshal.FreeHGlobal(textPtr);
 
+        if (hwnd != 0)
+            Win32Controls.SendMessageW(hwnd, WM.SETFONT, GetDefaultFont(), 1);
+
         return hwnd;
     }
 
@@ -40,7 +52,7 @@ internal static class ControlProcedures
         nint buffer = Marshal.AllocHGlobal((length + 1) * 2);
         try
         {
-            Win32Controls.GetWindowTextW(hwnd, buffer, length + 1);
+            _ = Win32Controls.GetWindowTextW(hwnd, buffer, length + 1);
             return Marshal.PtrToStringUni(buffer, length) ?? string.Empty;
         }
         finally

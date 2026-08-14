@@ -4,34 +4,6 @@ namespace EasyWindowsApplication.CoreModule.Backend;
 
 internal static partial class Win32
 {
-    // ── Window Class ──
-    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial ushort RegisterClassExW(ref WNDCLASSEXW lpWndClass);
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool UnregisterClassW(nint lpClassName, nint hInstance);
-
-    // ── Window Creation ──
-    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial nint CreateWindowExW(
-        uint dwExStyle, nint lpClassName, nint lpWindowName, uint dwStyle,
-        int x, int y, int nWidth, int nHeight,
-        nint hWndParent, nint hMenu, nint hInstance, nint lpParam);
-
-    // ── Window State ──
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool ShowWindow(nint hWnd, int nCmdShow);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool UpdateWindow(nint hWnd);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool DestroyWindow(nint hWnd);
-
     // ── Message Loop ──
     [LibraryImport("user32.dll", SetLastError = true)]
     internal static partial int GetMessageW(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
@@ -57,9 +29,6 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     internal static partial void PostQuitMessage(int nExitCode);
 
-    [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial nint LoadImageW(nint hInst, nint name, uint type, int cx, int cy, uint fuLoad);
-
     // ── Text ──
     [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     internal static partial int GetWindowTextW(nint hWnd, nint lpString, int nMaxCount);
@@ -83,10 +52,6 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     internal static partial nint SetWindowLongPtrW(nint hWnd, int nIndex, nint dwNewLong);
-
-    // ── Instance ──
-    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial nint GetModuleHandleW(nint lpModuleName);
 
     // ── Clipboard ──
     [LibraryImport("user32.dll")]
@@ -121,15 +86,91 @@ internal static partial class Win32
     [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial ushort GlobalAddAtomW(nint lpString);
 
-    // ── Rectangles ──
+    // ── Window State (used by controls in Share) ──
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool GetClientRect(nint hWnd, out RECT lpRect);
+    internal static partial bool ShowWindow(nint hWnd, int nCmdShow);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DestroyWindow(nint hWnd);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool MoveWindow(nint hWnd, int X, int Y, int nWidth, int nHeight, [MarshalAs(UnmanagedType.Bool)] bool bRepaint);
 
+    [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial nint GetModuleHandleW(nint lpModuleName);
+
+    // ── GDI ──
+    [LibraryImport("gdi32.dll")]
+    internal static partial nint CreateSolidBrush(int color);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DeleteObject(nint hObject);
+
+    [LibraryImport("gdi32.dll")]
+    internal static partial nint GetStockObject(int fnObject);
+
+    [LibraryImport("gdi32.dll")]
+    internal static partial int SetBkMode(nint hdc, int mode);
+
+    [LibraryImport("gdi32.dll")]
+    internal static partial nint SelectObject(nint hdc, nint hgdiobj);
+
+    [LibraryImport("gdi32.dll")]
+    internal static partial int GetSysColor(int nIndex);
+
     [LibraryImport("user32.dll")]
-    internal static partial int GetSystemMetrics(int nIndex);
+    internal static partial nint GetDC(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int ReleaseDC(nint hWnd, nint hDC);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetClientRect(nint hWnd, out RECT lpRect);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int FillRect(nint hDC, ref RECT lprc, nint hbr);
+
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int DrawTextW(nint hdc, string lpchText, int nCount, ref RECT lprc, uint uFormat);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint SetClassLongPtrW(nint hWnd, int nIndex, nint dwNewLong);
+
+    // ── GDI Text ──
+    [LibraryImport("gdi32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetTextExtentPoint32W(nint hdc, string lpString, int c, out SIZE lpSize);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetCharABCWidthsW(nint hdc, uint uFirstChar, uint uLastChar, out ABC lpabc);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetCharWidth32W(nint hdc, uint uFirstChar, uint uLastChar, out int lpWidth);
+
+    // ── UxTheme ──
+    [LibraryImport("uxtheme.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int SetWindowTheme(nint hWnd, string pszSubAppName, string pszSubIdList);
+
+    // ── Scroll ──
+    [LibraryImport("user32.dll")]
+    internal static partial int SetScrollInfo(nint hWnd, int nBar, ref SCROLLINFO lpsi, [MarshalAs(UnmanagedType.Bool)] bool fRedraw);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetScrollInfo(nint hWnd, int nBar, ref SCROLLINFO lpsi);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetWindowRect(nint hWnd, out RECT lpRect);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool ScreenToClient(nint hWnd, ref POINT lpPoint);
 }

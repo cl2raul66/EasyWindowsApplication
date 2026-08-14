@@ -1,0 +1,39 @@
+name: 🧰 Trabajo Interno
+description: Tareas que no afectan versionado (docs, refactor, tests, CI, etc.)
+title: "chore: "
+labels: ["chore"]
+body:
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: Tipo de Trabajo
+      description: Selecciona el tipo principal de tarea (determina el prefijo del commit).
+      options:
+        - "chore - Mantenimiento general / mixto"
+        - "docs - Documentación"
+        - "refactor - Refactorización de código"
+        - "test - Tests"
+        - "perf - Mejoras de rendimiento"
+        - "build - Sistema de build"
+        - "ci - Configuración CI/CD"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: ¿Qué hay que hacer?
+      placeholder: Actualizar dependencias de .NET MAUI a la última versión...
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Plan de Implementación
+      description: Lista de tareas técnicas. Usa el tipo del dropdown como prefijo en cada commit.
+      value: |
+        - [ ] 
+    validations:
+      required: false

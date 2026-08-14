@@ -24,9 +24,9 @@
   Un **Recurso** es *cualquier elemento, dato, configuración o lógica de negocio externa al flujo de control principal, requerido por la aplicación para definir su apariencia (Layout) o su lógica (Behavior)*. No se limita a la sección .rsrc del ejecutable, tambien es el **Contenedor IoC / Inyección de Dependencias** de la app, dividiéndose en tres grandes grupos:
 
   ```text
-  Resources(...)  |--> ASSETS (Qué es / Cómo se ve) --> Fuentes, Imágenes, Estilos, Cursores, Iconos, etc
-                  |--> SETTINGS (Valores de configuración) --> Defaults embedidos (Raw/appsettings.json) + persistencia en disco
-                  |--> SERVICIOS (Qué hace / Con qué) --> Web APIs, DBs, Repositorios, Lógica de Negocio, etc
+  Resources(...)  |--> ASSETS (Qué es / Cómo se ve)         --> Fuentes, Imágenes, Estilos, Cursores, Iconos, etc
+                  |--> SETTINGS (Valores de configuración)  --> Defaults embedidos (Raw/appsettings.json) + persistencia en disco
+                  |--> SERVICIOS (Qué hace / Con qué)       --> Web APIs, DBs, Repositorios, Lógica de Negocio, etc
   ```
 
   * La idea de rendimiento en esta seccion: Para que mantenga el rendimiento nativo y eficiente de Win32, el desarrollador debe entender la naturaleza de lo que registra en el diccionario de recursos (**ASSETS**, **SETTINGS** y **SERVICIOS**). La documentación y/o tipos de registro deberían forzar estas buenas prácticas.
@@ -421,9 +421,9 @@ Layout(ly => ly
 
   > NOTA: `IWindow` es la ventana principal. `IAlternativeWindow` es cualquier ventana secundaria (diálogos, paneles flotantes). `IView` es cualquier contenido visual dentro de una ventana, sin importar si ocupa toda la superficie o solo una fracción, incluyendo controles personalizados y vistas que se comportan como páginas.
 
-- `IStackLayout` clase base de los tipos de layout, contiene propiedades como `Sapcing` y `Children`.
+- `IStackLayout` clase base de los tipos de layout (diseno de la disposicion de los elementos), contiene propiedades como `Sapcing` y `Children`.
 - `IVerticalStackLayout`, `IHorizontalStackLayout` y `IDockStackLayout` heredan de `IStackLayout`.
-- Los `Layout` solo admiten un `IWindow` y múltiples `IAlternativeWindow`, estos deben ir después de `IWindow`. El flujo es que solo podrás escribir `Window` y después de este podrás poner todos los `AlternativeWindow` que quieras, para ayudar al desarrollador y al compilador podremos usar `IAlternativeWindow`, quedando así:
+- La seccion `Layout` solo admiten un `IWindow` y múltiples `IAlternativeWindow`, estos deben ir después de `IWindow`. El flujo es que solo podrás escribir `Window` y después de este podrás poner todos los `AlternativeWindow` que quieras, para ayudar al desarrollador y al compilador podremos usar `IAlternativeWindow`, quedando así:
   ```csharp
   ly.AlternativeWindow(aw => aw
           .Name("NotificationMsg")
@@ -563,85 +563,325 @@ WindowsApplication
 
 ### Plantillas (Visual Studio 2026)
 
-- **EasyWinApp**
+El repo distribuye dos plantillas de proyecto, instalables con `dotnet new install EasyWindowsApplication.Templates` (o desde VS 2026: Crear nuevo proyecto → Easy Windows Application / Simple Easy Windows Application):
 
-  Plantilla de proyecto para crear una aplicación Windows nativa con el framework EasyWindowsApplication. Se instala con `dotnet new install EasyWindowsApplication.Templates` y se usa con `dotnet new easywinapp -n MiApp`. También disponible desde Visual Studio 2026: Crear nuevo proyecto → EasyWinApp.
+| Plantilla | Nombre corto | Qué genera |
+|---|---|---|
+| **Simple Easy Windows Application** | `simpleeasywinapp` | Un único fichero `Program.cs` (top-level statements). |
+| **Easy Windows Application** | `easywinapp` | Secciones: `Program.cs` + `Resources.cs` + `Layout.cs` + `Behavior.cs`. Con `--Simple false` descompone el Layout en `Views/` y `Controls/` (experimental). |
 
-  **Scaffolding que genera el template:**
+#### `easywinapp` (por defecto, secciones)
 
-  ```text
-  MiApp/
-  ├── MiApp.csproj
-  ├── Program.cs
-  ├── appsettings.json                             ← settings de usuario en disco
-  │
-  ├── Resources/
-  │   ├── AppIcon/
-  │   │   └── appicon.svg                         ← placeholder (logo por defecto)
-  │   ├── Cursors/
-  │   │   ├── Arrow.cur
-  │   │   ├── Pointer.cur
-  │   │   └── Loading.ani
-  │   ├── Splash/
-  │   │   └── splashscreen.svg                    ← placeholder
-  │   ├── Images/
-  │   ├── Fonts/
-  │   └── Raw/
-  │       └── appsettings.json                    ← defaults embedidos
-  │
-  └── LazyAssets/
-  ```
+**Scaffolding que genera el template:**
 
-  **Contenido del `.csproj` generado:**
+```text
+MiApp/
+├── MiApp.csproj
+├── MiApp.ico                        ← icono regenerado en build desde Resources/AppIcon/appicon.svg
+├── Program.cs                       ← WindowsApplication.Resources(...).Layout(...).Behavior(...).Initialize();
+├── Resources.cs                     ← ResourcesConfig.ConfigureResources
+├── Layout.cs                        ← LayoutConfig.ConfigureLayout
+├── Behavior.cs                      ← BehaviorConfig.ConfigureBehavior
+└── Resources/
+    ├── AppIcon/appicon.svg          ← placeholder (logo por defecto)
+    ├── Images/logo.png
+    └── Raw/appsettings.json         ← defaults embedidos
+```
 
-  ```xml
-  <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-      <OutputType>Exe</OutputType>
-      <TargetFramework>net10.0</TargetFramework>
-      <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-      <PublishAot>true</PublishAot>
-      <ApplicationIcon>$(IntermediateOutputPath)appicon.ico</ApplicationIcon>
-      <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <ItemGroup>
-      <PackageReference Include="EasyWindowsApplication" Version="*" />
-    </ItemGroup>
-  </Project>
-  ```
+`Layout.cs` contiene directivas `#if (Simple)` / `#else`:
 
-  **Contenido de `Program.cs` generado:**
+- `--Simple true` (por defecto): Layout inline dentro de `LayoutConfig`.
+- `--Simple false` (experimental): `LayoutConfig` delega en `Views/MainWindowView.cs`, `Views/MsgErrorWindowView.cs` y `Controls/CustomCtrl.cs`. Las Views/Custom control se excluyen en `template.json` cuando `Simple` es true.
 
-  ```csharp
-  using EasyWindowsApplication;
+El repo compila la variante compuesta (la más completa): así CI ejercita el generador y las Views sin necesidad de exclusiones en el csproj. En la variante compuesta el generador NO emite alias de ventanas (`bh.MainWindow`) — ver limitación en "Ideas sobre la arquitectura".
 
-  WindowsApplication
-      .Resources(r => r
-          .Settings(s => s
-              .PersistencePath("./appsettings.json")
-              .AutoSave(true)))
-      .Layout(ly => ly
-          .Window(w => w
-              .Name("MainWindow")
-              .Title("Mi aplicación")
-              .Dimensions(1024, 720)
+**Contenido del `.csproj` generado:**
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <ApplicationIcon>MiApp.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
+    <ProjectReference Include="..\..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Raw\appsettings.json" />
+  </ItemGroup>
+</Project>
+```
+
+**Contenido de `Program.cs` generado:**
+
+```csharp
+using EasyWindowsApplication;
+using MiApp;
+
+WindowsApplication
+    .Resources(ResourcesConfig.ConfigureResources)
+    .Layout(LayoutConfig.ConfigureLayout)
+    .Behavior(BehaviorConfig.ConfigureBehavior)
+    .Initialize();
+```
+
+#### `simpleeasywinapp`
+
+Un único fichero `Program.cs` (top-level statements) equivalente al ejemplo de la sección "Ideas sobre la arquitectura" (Template 1).
+
+**Workloads/Seeds necesarios para el template:**
+
+| Paquete | Rol |
+|---|---|
+| `EasyWindowsApplication` (NuGet) | Framework + BuildSupport (`IconGenerator`, `.targets` de icono incluido) |
+| `SkiaSharp` (transitivo) | Solo build-time (generación de .ico desde SVG), `PrivateAssets=all` |
+| `EasyWindowsApplication.Templates` (NuGet) | Contiene los templates `dotnet new easywinapp` y `simpleeasywinapp` |
+
+> NOTA: hoy las plantillas referencian el framework por `ProjectReference` local al repo. En el futuro, al publicar el paquete NuGet, la referencia pasará a `<PackageReference Include="EasyWindowsApplication" Version="*" />`.
+
+
+## Ideas sobre la arquitectura de proyecto y diseño de framework en uso
+1. Plantilla "simpleeasywinapp" (un solo fichero, top-level statements)
+  - Program.cs
+    ```csharp
+    int counter = 0;
+
+    WindowsApplication
+        .Layout(ly => ly
+            .Window(iw => iw
+                .Name("MainWindow")
+                .Title("Easy Win App")
+                .Dimensions(420, 280)
+                .Position(WindowPositionOnScreen.Center)
+                .Content(c => c
+                    .Children(ch => ch
+                        .View<IButton>(btn => btn
+                            .Name("BtnIncrement")
+                            .Text("Click me")
+                        )
+                    )
+                )
+            )
+        )
+        .Behavior(bh => bh
+            .BtnIncrement.OnClick(() =>
+            {
+                counter++;
+                bh.BtnIncrement.Text = $"Click: {counter}";
+            })
+        )
+        .Initialize();
+    ```
+
+2. Plantilla "easywinapp" (secciones: Program + Resources + Layout + Behavior) — por defecto
+  - Program.cs
+    ```csharp
+    WindowsApplication
+        .Resources(ResourcesConfig.ConfigureResources)
+        .Layout(LayoutConfig.ConfigureLayout)
+        .Behavior(BehaviorConfig.ConfigureBehavior)
+        .Initialize();
+    ```
+
+  - Resources.cs
+    ```csharp
+    using EasyWindowsApplication.CoreModule.Frontend;
+
+    namespace <NombreApp>;
+
+    public static class ResourcesConfig
+    {
+        public static void ConfigureResources(IResourcesDictionary res) =>
+            res.Setting(sb => sb
+                .UseWinApi()
+            );
+    }
+    ```
+
+  - Layout.cs
+    ```csharp
+    using EasyWindowsApplication.LayoutModule.Frontend;
+    using EasyWindowsApplication.Win32ControlsModule.Frontend;
+    using EasyWindowsApplication.WindowingModule.Frontend;
+
+    namespace <NombreApp>;
+
+    public static class LayoutConfig
+    {
+        public static void ConfigureLayout(ILayoutBuilder ly) =>
+            ly.Window(iw => iw
+                .Name("MainWindow")
+                .Title("Easy Win App")
+                .Dimensions(420, 280)
+                .Position(WindowPositionOnScreen.Center)
+                .Content(c => c
+                    .Children(ch => ch
+                        .View<IButton>(btn => btn
+                            .Name("BtnIncrement")
+                            .Text("Click me")
+                        )
+                    )
+                )
+            );
+    }
+    ```
+
+  - Behavior.cs
+    ```csharp
+    using EasyWindowsApplication;
+    using EasyWindowsApplication.CoreModule.Frontend;
+
+    namespace <NombreApp>;
+
+    public static class BehaviorConfig
+    {
+        private static int _counter;
+
+        public static void ConfigureBehavior(IBehaviorBuilder bh) =>
+            bh.BtnIncrement.OnClick(() =>
+            {
+                _counter++;
+                bh.BtnIncrement.Text = $"Click: {_counter}";
+            });
+    }
+    ```
+
+3. Plantilla "easywinapp" con `--Simple false` (composición: Views/ y Controls/) — EXPERIMENTAL hasta el rework semántico del generador
+  - Program.cs
+    ```csharp
+    WindowsApplication
+        .Resources(ResourcesConfig.ConfigureResources)
+        .Layout(LayoutConfig.ConfigureLayout)
+        .Behavior(BehaviorConfig.ConfigureBehavior)
+        .Initialize();
+    ```
+
+  - Resources.cs
+    ```csharp
+    using EasyWindowsApplication.CoreModule.Frontend;
+
+    namespace <NombreApp>;
+
+    public static class ResourcesConfig
+    {
+        public static void ConfigureResources(IResourcesDictionary res) =>
+            res.Setting(sb => sb
+                .UseWinApi()
+            );
+    }
+    ```
+
+  - Layout.cs
+    ```csharp
+    using <NombreApp>.Views;
+
+    namespace <NombreApp>;
+
+    public static class LayoutConfig
+    {
+        public static void ConfigureLayout(ILayoutBuilder ly) =>
+            ly.Window(MainWindowView.MainWindowConfig)
+              .AlternativeWindow(MsgErrorWindowView.MsgErrorWindowConfig);
+    }
+    ```
+
+    > LIMITACIÓN ACTUAL (hasta rework de `ExtractNamedInfo` en `EasyBehaviorGenerator.cs`): los `Name` dentro de métodos extraídos (p. ej. `MainWindowView.MainWindowConfig`) NO generan alias de ventana. Por eso `Behavior.cs` de esta variante solo usa `bh.BtnIncrement` y no `bh.MainWindow`. En la variante simple (inline) el generador sí emite `bh.MainWindow`.
+
+  - MainWindowView.cs
+    ```csharp
+    using <NombreApp>.Controls;
+
+    namespace <NombreApp>.Views;
+
+    public static class MainWindowView
+    {
+        public static void MainWindowConfig(IWindowConfig iw) =>
+            iw.Name("MainWindow")
+              .Title("Easy Win App")
+              .Dimensions(420, 280)
+              .Position(WindowPositionOnScreen.Center)
               .Content(c => c
+                  .Padding(8)
+                  .Children(ch => ch
+                      .View<IButton>(btn => btn
+                          .Name("BtnIncrement")
+                          .Text("Click me")
+                      )
+                      .View<ILabel>(lb => lb
+                          .Text("Secciones + Views")
+                      )
+                      .View(CustomCtrl.CustomControlConfig)
+                  )
+              );
+    }
+    ```
+
+  - MsgErrorWindowView.cs
+    ```csharp
+    namespace <NombreApp>.Views;
+
+    public static class MsgErrorWindowView
+    {
+        public static void MsgErrorWindowConfig(IWindowConfig iw) =>
+            iw.Name("MsgErrorWindow")
+              .Title("Error")
+              .Dimensions(320, 180)
+              .Content(c => c
+                  .Padding(8)
+                  .Children(ch => ch
+                      .View<ILabel>(lb => lb
+                          .Text("Algo ha fallado.")
+                      )
+                  )
+              );
+    }
+    ```
+
+  - CustomControl.cs
+    ```csharp
+    namespace <NombreApp>.Controls;
+
+    public static class CustomCtrl
+    {
+        public static void CustomControlConfig(IViewBuilder cc) =>
+            cc.Name("CustomCtrl")
+              .Content(c => c
+                  .Padding(8)
                   .Spacing(8)
-                  .View(v => v
-                      .Name("HelloText")
-                      .Text("¡Hola, Windows nativo!")))))
-      .Behavior(b => b
-          .OnClick("HelloText", (sender, args) =>
-          {
-              // Aquí va la lógica
-          }))
-      .Initialize();
-  ```
+                  .Children(ch => ch
+                      .View<ILabel>(lb => lb
+                          .Text("Contenido del control")
+                      )
+                  )
+              );
+    }
+    ```
 
-  **Workloads/Seeds necesarios para el template:**
+  - Behavior.cs
+    ```csharp
+    using EasyWindowsApplication;
+    using EasyWindowsApplication.CoreModule.Frontend;
 
-  | Paquete | Rol |
-  |---|---|
-  | `EasyWindowsApplication` (NuGet) | Framework + BuildTasks (`.targets` incluido) |
-  | `SkiaSharp` (transitivo) | Solo build-time, `PrivateAssets=all` |
-  | `EasyWindowsApplication.Templates` (NuGet) | Contiene el template `dotnet new easywinapp` |
+    namespace <NombreApp>;
+
+    public static class BehaviorConfig
+    {
+        private static int _counter;
+
+        public static void ConfigureBehavior(IBehaviorBuilder bh) =>
+            bh.BtnIncrement.OnClick(() =>
+            {
+                _counter++;
+                bh.BtnIncrement.Text = $"Click: {_counter}";
+            });
+    }
+    ```
+
+> **Regla de estado:** estado local del handler → campo `static` en `BehaviorConfig`; estado compartido entre handlers/ventanas → `Resources` (settings/DI).

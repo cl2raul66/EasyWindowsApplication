@@ -1,8 +1,8 @@
-using EasyWindowsApplication.Share;
+using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 
 public interface IWin32State
 {
-    T Get<T>(string name) where T : ControlBase<T>;
+    T Get<T>(string name) where T : View<T>;
 }

@@ -1,5 +1,6 @@
 using EasyWindowsApplication.CoreModule.Backend;
-using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Win32ControlsModule.Frontend;
+using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 
@@ -29,10 +30,10 @@ internal sealed class BehaviorBuilderImpl : IBehaviorBuilder
         return this;
     }
 
-    public T Get<T>(string name) where T : ControlBase<T>
+    public T Get<T>(string name) where T : View<T>
     {
         var control = Registry?.GetByName(name);
-        if (control == null)
+        if (control is null)
             throw new InvalidOperationException($"Control '{name}' not found.");
         return (T)control;
     }

@@ -1,24 +1,22 @@
-﻿using EasyWindowsApplication.CoreModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
+﻿using EasyWindowsApplication.CoreModule.Backend;
+using EasyWindowsApplication.CoreModule.Frontend;
+using EasyWindowsApplication.LayoutModule.Frontend;
 
 namespace EasyWindowsApplication;
 
 public static class WindowsApplication
 {
-    public static IApplicationLayoutPhase Resources() => new ApplicationContext();
+    public static IApplicationLayoutPhase Resources() => new Application();
 
     public static IApplicationLayoutPhase Resources(Action<IResourcesDictionary> configure)
     {
-        var context = new ApplicationContext();
-        configure(context.ResourcesDict);
-        return context;
+        var app = new Application();
+        app.Resources(configure);
+        return app;
     }
 
-    public static IApplicationBehaviorPhase Layout() => new ApplicationContext();
+    public static IApplicationPostLayoutPhase Layout() => new Application();
 
-    public static IApplicationBehaviorPhase Layout(Action<ILayoutBuilder> configure)
-    {
-        var context = new ApplicationContext();
-        return context.Layout(configure);
-    }
+    public static IApplicationPostLayoutPhase Layout(Action<ILayoutBuilder> configure)
+        => new Application().Layout(configure);
 }

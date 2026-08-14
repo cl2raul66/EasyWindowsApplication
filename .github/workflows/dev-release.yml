@@ -1,0 +1,241 @@
+name: Development Release (Preview)
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+
+jobs:
+  publish-preview:
+    if: github.event.pull_request.merged == true
+    runs-on: windows-latest
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract versions and Prepare Release
+        id: extract_version
+        shell: pwsh
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          $prBody = $env:PR_BODY
+
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "Analizando cuerpo del PR"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          # 1. Extraer versiones
+          $coreVersion = $null
+          if ($prBody -match '(?i)ver\s*\(\s*core\s*\)\s*:\s*(\d+\.\d+\.\d+-preview)') {
+            $coreVersion = $matches[1]
+            Write-Host "ver(core): $coreVersion"
+          } else {
+            Write-Host "ver(core) no encontrado - se omitira paquete Core"
+          }
+
+          $genVersion = $null
+          if ($prBody -match '(?i)ver\s*\(\s*gen\s*\)\s*:\s*(\d+\.\d+\.\d+-preview)') {
+            $genVersion = $matches[1]
+            Write-Host "ver(gen): $genVersion"
+          } else {
+            Write-Host "ver(gen) no encontrado - se omitira paquete Generators"
+          }
+
+          # 2. Validar que al menos uno fue encontrado
+          if (-not $coreVersion -and -not $genVersion) {
+            Write-Host ""
+            Write-Host "No se encontro ninguna version valida. Workflow terminado."
+            echo "::warning::No se encontraron versiones en el PR body"
+            echo "SKIP_WORKFLOW=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          # 3. Determinar version del Release (prioridad: Core > Generators)
+          $releaseVersion = if ($coreVersion) { $coreVersion } else { $genVersion }
+
+          # 4. Construir cuerpo del Release en Markdown
+          $bodyMsg = "## Preview Release`n`nEsta es una version preview automatica desde development.`n`n### Paquetes publicados"
+
+          if ($coreVersion) {
+            $bodyMsg += "`n- **RandAMediaLabGroup.EasyWindowsApplication** ``$coreVersion``"
+          }
+          if ($genVersion) {
+            $bodyMsg += "`n- **RandAMediaLabGroup.EasyWindowsApplication.Generators** ``$genVersion``"
+          }
+
+          $bodyMsg += "`n`n### PR Original`n$($env:PR_URL)"
+
+          # 5. Exportar outputs
+          # Body multilinea: usar delimitador EOF para evitar errores de sintaxis YAML
+          $delimiter = "EOF-$(Get-Random)"
+          "RELEASE_BODY<<$delimiter" >> $env:GITHUB_OUTPUT
+          $bodyMsg >> $env:GITHUB_OUTPUT
+          "$delimiter" >> $env:GITHUB_OUTPUT
+
+          echo "RELEASE_VERSION=$releaseVersion" >> $env:GITHUB_OUTPUT
+
+          # Solo exportar versiones que existen para evitar <Version></Version> en .csproj
+          if ($coreVersion)  { echo "CORE_VERSION=$coreVersion"          >> $env:GITHUB_OUTPUT }
+          if ($genVersion)   { echo "GEN_VERSION=$genVersion"              >> $env:GITHUB_OUTPUT }
+
+          $hasCore = if ($coreVersion)  { 'true' } else { 'false' }
+          $hasGen  = if ($genVersion)   { 'true' } else { 'false' }
+          echo "HAS_CORE=$hasCore"  >> $env:GITHUB_OUTPUT
+          echo "HAS_GEN=$hasGen"    >> $env:GITHUB_OUTPUT
+
+          Write-Host ""
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "RELEASE_VERSION : $releaseVersion"
+          Write-Host "HAS_CORE         : $hasCore"
+          Write-Host "HAS_GEN          : $hasGen"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Update project versions
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "Actualizando versiones en proyectos"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          if ("${{ steps.extract_version.outputs.HAS_CORE }}" -eq "true") {
+            $version  = "${{ steps.extract_version.outputs.CORE_VERSION }}"
+            $projFile = "src/EasyWindowsApplication/EasyWindowsApplication.csproj"
+            (Get-Content $projFile) -replace '<Version>.*</Version>', "<Version>$version</Version>" | Set-Content $projFile
+            Write-Host "Core actualizado a: $version"
+          } else {
+            Write-Host "Core omitido (no hay version)"
+          }
+
+          if ("${{ steps.extract_version.outputs.HAS_GEN }}" -eq "true") {
+            $version  = "${{ steps.extract_version.outputs.GEN_VERSION }}"
+            $projFile = "src/EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj"
+            (Get-Content $projFile) -replace '<Version>.*</Version>', "<Version>$version</Version>" | Set-Content $projFile
+            Write-Host "Generators actualizado a: $version"
+          } else {
+            Write-Host "Generators omitido (no hay version)"
+          }
+
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Setup .NET 10
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build & Pack Core package
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true' && steps.extract_version.outputs.HAS_CORE == 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Restaurando Core..."
+          dotnet restore src/EasyWindowsApplication/EasyWindowsApplication.csproj /p:Configuration=Release
+          if ($LASTEXITCODE -ne 0) { Write-Error "Restore fallido"; exit 1 }
+
+          Write-Host "Compilando Core..."
+          dotnet build src/EasyWindowsApplication/EasyWindowsApplication.csproj --configuration Release --no-restore
+          if ($LASTEXITCODE -ne 0) { Write-Error "Build fallido"; exit 1 }
+
+          Write-Host "Empaquetando Core..."
+          dotnet pack src/EasyWindowsApplication/EasyWindowsApplication.csproj --configuration Release --no-build --output ./nupkgs
+          if ($LASTEXITCODE -ne 0) { Write-Error "Pack fallido"; exit 1 }
+
+      - name: Build & Pack Generators package
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true' && steps.extract_version.outputs.HAS_GEN == 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Restaurando Generators..."
+          dotnet restore src/EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj /p:Configuration=Release
+          if ($LASTEXITCODE -ne 0) { Write-Error "Restore fallido"; exit 1 }
+
+          Write-Host "Compilando Generators..."
+          dotnet build src/EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj --configuration Release --no-restore
+          if ($LASTEXITCODE -ne 0) { Write-Error "Build fallido"; exit 1 }
+
+          Write-Host "Empaquetando Generators..."
+          dotnet pack src/EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj --configuration Release --no-build --output ./nupkgs
+          if ($LASTEXITCODE -ne 0) { Write-Error "Pack fallido"; exit 1 }
+
+      - name: List generated packages
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Paquetes generados:"
+          if (Test-Path ./nupkgs) {
+            Get-ChildItem ./nupkgs/*.nupkg | ForEach-Object { Write-Host "  - $($_.Name)" }
+          } else {
+            Write-Host "  No se generaron paquetes"
+          }
+
+      - name: NuGet login (OIDC -> temp API key)
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publish to NuGet
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+        run: |
+          if (-not (Test-Path ./nupkgs)) {
+            Write-Host "No hay paquetes para publicar"
+            exit 0
+          }
+
+          $packages       = Get-ChildItem ./nupkgs/*.nupkg
+          $publishedCount = 0
+          $failedCount    = 0
+          $totalPackages  = $packages.Count
+
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "Publicando paquetes PREVIEW a NuGet"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          foreach ($package in $packages) {
+            Write-Host ""
+            Write-Host "Procesando: $($package.Name)"
+
+            dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+            if ($LASTEXITCODE -eq 0) {
+              $publishedCount++
+              Write-Host "OK: $($package.Name)"
+            } else {
+              $failedCount++
+              Write-Host "::error::Error al publicar $($package.Name). Exit Code: $LASTEXITCODE"
+            }
+          }
+
+          Write-Host ""
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "Resumen:"
+          Write-Host "   Publicados : $publishedCount / $totalPackages"
+          Write-Host "   Fallidos   : $failedCount / $totalPackages"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          if ($failedCount -gt 0) { exit 1 }
+
+      - name: Create GitHub Release
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.extract_version.outputs.RELEASE_VERSION }}
+          name: "Preview Release v${{ steps.extract_version.outputs.RELEASE_VERSION }}"
+          prerelease: true
+          body: |
+            ${{ steps.extract_version.outputs.RELEASE_BODY }}

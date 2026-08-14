@@ -1,11 +1,9 @@
-using System.Runtime.InteropServices;
-using EasyWindowsApplication.CoreModule.Backend;
-using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Backend;
+using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public sealed class IpAddress : ControlBase<IpAddress>
+public sealed class IpAddress : View<IpAddress>
 {
     public void SetAddress(byte b1, byte b2, byte b3, byte b4)
     {

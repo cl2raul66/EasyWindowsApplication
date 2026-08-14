@@ -16,6 +16,7 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const uint MAXIMIZEBOX = 0x00010000;
         internal const uint VSCROLL = 0x00200000;
         internal const uint HSCROLL = 0x00100000;
+        internal const uint CLIPCHILDREN = 0x02000000;
         internal const uint OVERLAPPEDWINDOW = OVERLAPPED | CAPTION | SYSMENU | THICKFRAME | MINIMIZEBOX | MAXIMIZEBOX;
     }
     
@@ -36,6 +37,21 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const uint OWNDC = 0x0020;
     }
     
+    internal static class CW
+    {
+        internal const int USEDEFAULT = unchecked((int)0x80000000);
+    }
+    
+    internal static class IMAGE
+    {
+        internal const uint ICON = 1;
+    }
+    
+    internal static class LR
+    {
+        internal const uint DEFAULTCOLOR = 0x0040;
+    }
+    
     internal static class WM
     {
         internal const uint NULL = 0x0000;
@@ -44,6 +60,7 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const uint MOVE = 0x0003;
         internal const uint SIZE = 0x0005;
         internal const uint ACTIVATE = 0x0006;
+        internal const uint ERASEBKGND = 0x0014;
         internal const uint SETFOCUS = 0x0007;
         internal const uint KILLFOCUS = 0x0008;
         internal const uint ENABLE = 0x000A;
@@ -64,8 +81,43 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const uint CTLCOLORMSGBOX = 0x0132;
         internal const uint CTLCOLORSCROLLBAR = 0x0137;
         internal const uint CTLCOLORSTATIC = 0x0138;
+        internal const uint SETFONT = 0x0030;
+        internal const uint GETFONT = 0x0031;
+        internal const uint DRAWITEM = 0x002B;
+        internal const uint HSCROLL = 0x0114;
+        internal const uint VSCROLL = 0x0115;
+        internal const uint MOUSEWHEEL = 0x020A;
     }
     
+    internal static class DT
+    {
+        internal const uint CALCRECT = 0x00000400;
+        internal const uint SINGLELINE = 0x00000020;
+        internal const uint NOPREFIX = 0x00000800;
+    }
+    
+    internal static class SCROLLBAR
+    {
+        internal const int HORZ = 0;
+        internal const int VERT = 1;
+        internal const int LINEUP = 0;
+        internal const int LINEDOWN = 1;
+        internal const int PAGEUP = 2;
+        internal const int PAGEDOWN = 3;
+        internal const int THUMBTRACK = 5;
+        internal const int TOP = 6;
+        internal const int BOTTOM = 7;
+        internal const int ENDSCROLL = 8;
+    }
+
+    internal static class SIF
+    {
+        internal const uint RANGE = 0x0001;
+        internal const uint PAGE = 0x0002;
+        internal const uint POS = 0x0004;
+        internal const uint ALL = RANGE | PAGE | POS;
+    }
+
     internal static class BN
     {
         internal const uint CLICKED = 0;
@@ -79,9 +131,9 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const uint MAXTEXT = 0x0105;
     }
     
-    internal static class CW
+    internal static class SW
     {
-        internal const int USEDEFAULT = unchecked((int)0x80000000);
+        internal const int SHOWNORMAL = 1;
     }
     
     internal static class GWL
@@ -89,14 +141,4 @@ namespace EasyWindowsApplication.CoreModule.Backend;
         internal const int STYLE = -16;
         internal const int EXSTYLE = -20;
         internal const int ID = -12;
-    }
-    
-    internal static class IMAGE
-    {
-        internal const uint ICON = 1;
-    }
-    
-    internal static class LR
-    {
-        internal const uint DEFAULTCOLOR = 0x0040;
     }

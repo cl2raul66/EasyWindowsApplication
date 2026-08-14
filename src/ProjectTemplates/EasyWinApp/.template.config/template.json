@@ -3,7 +3,7 @@
   "author": "EasyWindowsApplication",
   "classifications": ["Common", "Console", "Windows", "EWA"],
   "name": "Easy Windows Application",
-  "description": "Una aplicaci\u00F3n de Windows construida con el framework EWA (EasyWindowsApplication)",
+  "description": "Aplicaci\u00F3n de Windows con el framework EWA organizada en secciones (Resources/Layout/Behavior)",
   "identity": "EasyWindowsApplication.Templates.EasyWinApp",
   "shortName": "easywinapp",
   "tags": {
@@ -19,11 +19,24 @@
       "description": "Target framework",
       "replaces": "net10.0-windows10.0.19041.0",
       "defaultValue": "net10.0-windows10.0.19041.0"
+    },
+    "Simple": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Mantiene el Layout en secciones (Resources/Layout/Behavior). Si se desactiva (--Simple false), descompone el Layout en Views/Controls. Experimental hasta el rework sem\u00E1ntico del generador."
     }
   },
   "sources": [
     {
       "modifiers": [
+        {
+          "condition": "(Simple)",
+          "exclude": [
+            "Views/**",
+            "Controls/**"
+          ]
+        },
         {
           "exclude": [
             ".template.config/**",

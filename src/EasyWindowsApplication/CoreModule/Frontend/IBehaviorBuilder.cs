@@ -1,5 +1,5 @@
-﻿using System.ComponentModel;
-using EasyWindowsApplication.Share;
+using System.ComponentModel;
+using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 
@@ -12,5 +12,5 @@ public interface IBehaviorBuilder
     IBehaviorBuilder WithWin32State(Action<IWin32State> configure);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    T Get<T>(string name) where T : ControlBase<T>;
+    T Get<T>(string name) where T : View<T>;
 }
