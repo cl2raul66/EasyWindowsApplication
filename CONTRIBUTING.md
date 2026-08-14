@@ -162,12 +162,24 @@ Documenta aquí las decisiones de arquitectura relevantes. Usa ADRs (Architectur
 
 ## Cómo contribuir
 
-<!-- TODO: Completar con las reglas del repositorio -->
+Todo trabajo (funcionalidad, ajuste, bugfix) comienza con un **issue** creado con las plantillas del repositorio (`.github/ISSUE_TEMPLATE/`). El proceso es **manual** y sigue este flujo:
 
-1. Trabaja en la rama `develop`.
-2. Abre un Pull Request contra `develop` (o `main` según política).
-3. Incluye tests relevantes.
-4. Asegura que `dotnet build src\EasyWindowsApplication.slnx` pase.
+1. **Crea el issue** en la web usando la plantilla correspondiente (`feat:`, `bug:`, etc.).
+2. **Crea la rama desde `develop`** en la página del issue → barra lateral *Development* → **Create a branch**. La rama nace con el formato `{número}-{slug}` y base `develop`.
+3. **Bájala localmente**:
+   ```bash
+   git fetch origin
+   git checkout {número}-{slug}
+   ```
+4. **Trabaja y haz push** con commits en Conventional Commits (`feat:`, `fix:`, ...).
+5. **Abre un Pull Request contra `develop`** e incluye en el body los marcadores de versión (`ver(core)` / `ver(gen)`) según la sección [CI/CD](#cicd).
+6. **Mergea a `develop`** → `dev-release.yml` publica el preview automáticamente. Los usuarios prueban y dan feedback, que se canaliza en nuevos issues.
+
+Reglas:
+
+- Trabaja sobre `develop`, nunca directamente sobre `main`.
+- Incluye tests relevantes.
+- Asegura que `dotnet build src\EasyWindowsApplication.slnx` pase.
 
 ---
 
