@@ -63,8 +63,6 @@ internal sealed class Application :
                 RegisterMain(window);
         }
 
-        BehaviorBuilder.ApplyPending(_registry);
-
         if (BehaviorBuilder.Win32Configurator is not null)
             BehaviorBuilder.Win32Configurator(new Win32StateImpl(_registry));
 

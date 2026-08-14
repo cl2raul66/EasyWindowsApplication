@@ -22,11 +22,12 @@ WindowsApplication
             )
         )
     )
-    .Behavior(bh => bh
-        .BtnIncrement.OnClick(() =>
+    .Behavior(bh =>
+    {
+        bh.BtnIncrement.OnClick(() =>
         {
             counter++;
             bh.BtnIncrement.Text = $"Click: {counter}";
-        })
-    )
+        });        
+    })
     .Initialize();
