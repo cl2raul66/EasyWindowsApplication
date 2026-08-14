@@ -59,15 +59,16 @@ El framework está organizado en módulos bajo `src/EasyWindowsApplication/`:
 |---|---|---|
 | `CoreModule` | Backend + Frontend | Punto de entrada (`WindowsApplication`), fases del Fluent API, Resources, Behavior, MasterRouter, HandleRegistry |
 | `LayoutModule` | Backend + Frontend | `ILayoutBuilder`, layouts (Grid, Stack, Dock), `IContentBuilder`, `IChildrenBuilder`, `IViewBuilder` |
-| `Share` | Frontend (público) | Tipos públicos compartidos: `Color`, `Thickness`, `IContentBuilder`, `LayoutLength`, `LayoutOptions` |
+| `Share` | Frontend (público) | Tipos públicos de la API de usuario: `Color`, `Thickness`, `IContentBuilder`, `LayoutLength`, `LayoutOptions` |
+| `Share/Infrastructure` | Frontend (público técnico) | Tipos `public` **por razones técnicas** con `[EditorBrowsable(Never)]`: `ControlAccess`, `IconGenerator`, `ControlBase`, `View<T>` |
 | `Win32ControlsModule` | Backend + Frontend | Interfaces de controles (`IButton`, `ILabel`, `IEdit`, ...) y sus implementaciones Win32 |
 | `WindowingModule` | Backend + Frontend | Ventanas (`IWindow`, `IAlternativeWindow`), posicionamiento (`WindowPositionOnScreen`) |
-| `BuildSupport` | Frontend (público) | `IconGenerator` — pipeline SVG→ICO en build-time |
 
 ### Principios de organización
 
-- **`Common`** — código compartido entre módulos, siempre `internal`.
-- **`Share`** — código compartido entre módulos que también es **público** para consumidores del framework.
+- **`Common`** — código compartido entre módulos, pero de acceso **`internal`** (no visible para consumidores).
+- **`Share`** — código compartido entre módulos, pero de acceso **`public`** (expuesto a consumidores del framework).
+- **`Share/Infrastructure`** — código compartido entre módulos, `public` **por razones técnicas** (lo alcanzan el código generado, los targets de build o la herencia interna), pero **NO** parte de la API de usuario → obligatorio `[EditorBrowsable(EditorBrowsableState.Never)]`. Si un archivo ahí no lo tiene, es un bug.
 - **`CoreModule/Frontend`** — interfaces de las fases del Fluent API (`IApplicationLayoutPhase` → `IApplicationPostLayoutPhase` → `IApplicationPostBehaviorPhase`) que guían por IntelliSense el orden correcto.
 - **`Backend`** — implementaciones `internal` de esas interfaces.
 
@@ -156,7 +157,7 @@ Documenta aquí las decisiones de arquitectura relevantes. Usa ADRs (Architectur
 - **Fluent API con interfaces de fase** — El IntelliSense guía el orden `Resources → Layout → Behavior → Initialize` mediante interfaces (`IApplicationLayoutPhase`, `IApplicationPostLayoutPhase`, `IApplicationPostBehaviorPhase`).
 - **Controles como interfaces** (`IButton`, `ILabel`, ...) — permite que el Source Generator genere tipos débilesmente acoplados y facilita testing/mocking.
 - **MasterRouter** — centraliza el bucle de mensajes (`WndProc` → `DefWindowProcW`) y despacha eventos tipados (`WM.COMMAND` → `Click`).
-- **ControlAccess** — punto de acceso público para resolver controles por nombre desde el Behavior (usado por las propiedades generadas). <!-- TODO: verificar que SetController se cablee en Initialize() -->
+- **ControlAccess** — punto de acceso público para resolver controles por nombre desde el Behavior (usado por las propiedades generadas). Vive en `Share/Infrastructure` (técnico, `[EditorBrowsable(Never)]`). `SetController` se cablea en `Application.Behavior(...)`.
 
 ---
 

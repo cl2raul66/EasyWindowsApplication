@@ -1,14 +1,19 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
+using EasyWindowsApplication.CoreModule.Backend;
 using EasyWindowsApplication.LayoutModule.Backend;
 using EasyWindowsApplication.LayoutModule.Frontend;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using static EasyWindowsApplication.CoreModule.Backend.Win32;
 
-namespace EasyWindowsApplication.CoreModule.Backend;
+namespace EasyWindowsApplication.Share.Infrastructure;
 
+[EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, IDockable
 {
+    internal ControlBase() { }
+
     public nint Hwnd { get; internal set; }
     public string Name { get; set; } = "";
 

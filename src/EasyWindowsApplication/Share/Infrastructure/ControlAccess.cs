@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using EasyWindowsApplication.WindowingModule.Frontend;
 
-namespace EasyWindowsApplication;
+namespace EasyWindowsApplication.Share.Infrastructure;
 
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class ControlAccess
 {
     private static IBehaviorServicesController? _controller;

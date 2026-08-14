@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using EasyWindowsApplication.WindowingModule.Frontend;
+using EasyWindowsApplication.Share.Infrastructure;
 
 namespace EasyWindowsApplication.CoreModule.Frontend;
 

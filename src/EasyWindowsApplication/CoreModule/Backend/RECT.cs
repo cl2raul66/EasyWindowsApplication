@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace EasyWindowsApplication.CoreModule.Backend;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct RECT
+internal struct RECT
 {
     public int Left;
     public int Top;

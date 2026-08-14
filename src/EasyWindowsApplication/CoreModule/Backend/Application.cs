@@ -2,6 +2,7 @@ using EasyWindowsApplication.CoreModule.Frontend;
 using EasyWindowsApplication.LayoutModule.Backend;
 using EasyWindowsApplication.LayoutModule.Frontend;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Infrastructure;
 using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Backend;
@@ -38,6 +39,7 @@ internal sealed class Application :
     public IApplicationPostBehaviorPhase Behavior(Action<IBehaviorBuilder> configure)
     {
         BehaviorBuilder.Registry = _registry;
+        ControlAccess.SetController(BehaviorBuilder);
         configure(BehaviorBuilder);
         return this;
     }

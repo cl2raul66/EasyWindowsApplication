@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using SkiaSharp;
 using Svg.Skia;
 
-namespace EasyWindowsApplication.BuildSupport;
+namespace EasyWindowsApplication.Share.Infrastructure;
 
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class IconGenerator
 {
     public static void GenerateIco(string svgPath, string icoPath, int[] sizes)

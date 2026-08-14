@@ -78,13 +78,13 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
                 if (item.IsWindowType)
                 {
                     sb.AppendLine($"            public {item.TypeSymbol} {propName}");
-                    sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
+                    sb.AppendLine($"                => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
                     sb.AppendLine($"                    .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
                 }
                 else
                 {
                     sb.AppendLine($"            public {item.TypeSymbol} {propName}");
-                    sb.AppendLine($"                => global::EasyWindowsApplication.ControlAccess");
+                    sb.AppendLine($"                => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
                     sb.AppendLine($"                    .Get<{item.TypeSymbol}>(\"{item.Name}\");");
                 }
                 sb.AppendLine();
@@ -117,13 +117,13 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
                     if (item.IsWindowType)
                     {
                         sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
-                        sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
+                        sb.AppendLine($"            => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
                         sb.AppendLine($"                .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
                     }
                     else
                     {
                         sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
-                        sb.AppendLine($"            => global::EasyWindowsApplication.ControlAccess");
+                        sb.AppendLine($"            => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
                         sb.AppendLine($"                .Get<{item.TypeSymbol}>(\"{item.Name}\");");
                     }
                     sb.AppendLine();
