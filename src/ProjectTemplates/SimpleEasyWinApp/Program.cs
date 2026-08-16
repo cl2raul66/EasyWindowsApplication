@@ -5,6 +5,7 @@ using EasyWindowsApplication.WindowingModule.Frontend;
 int counter = 0;
 
 WindowsApplication
+    .Resources(rd => rd.Setting(st => st.UseWinApi()))
     .Layout(ly => ly
         .Window(iw => iw
             .Name("MainWindow")
