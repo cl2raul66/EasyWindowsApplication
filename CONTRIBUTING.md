@@ -140,6 +140,8 @@ Los proyectos de plantilla incluyen un `Target` de MSBuild (`GenerateAppIcon`) q
 
 > **Nota**: SkiaSharp es dependencia de *build-time* solo (no se incluye en la app final). El developer puede reemplazar el procesador implementando `IEasyImageProcessor`.
 
+> **Alineación de versiones**: el proyecto temporal `IcoGen` debe referenciar la **misma** versión de `Svg.Skia` que el framework (`EasyWindowsApplication.csproj` usa `*` flotante). La línea se declara como `Version="%2A"` en los tres `.csproj` con el target (`Sample`, `EasyWinApp`, `SimpleEasyWinApp`): `%2A` es el escapado MSBuild de `*`, necesario porque un `*` literal en un `Include` de ItemGroup se interpreta como *wildcard* y MSBuild descarta el item. El `IcoGen.csproj` generado recibe `Version="*"`, de modo que ambos resuelven al mismo `Svg.Skia` en el mismo build. Si se *pinea* el framework, hay que actualizar también las 3 líneas del `IcoGen`; un desajuste produce `System.IO.FileNotFoundException` al ejecutar `IcoGen` (código `-532462766`).
+
 ---
 
 ## Native AOT
@@ -235,7 +237,7 @@ Setup manual (una sola vez):
 
 ### Notas para mantenedores
 
-- **`Svg.Skia` usa `*`** en `EasyWindowsApplication.csproj`. Si un build empieza a fallar tras una actualización de dependencias, considera *pinnear* la versión.
+- **`Svg.Skia` usa `*`** en `EasyWindowsApplication.csproj`. Si un build empieza a fallar tras una actualización de dependencias, considera *pinnear* la versión — en ese caso actualiza también las 3 líneas del proyecto `IcoGen` (ver [Pipeline de iconos SVG→ICO](#pipeline-de-iconos-svg-ico)).
 - **Tags de GitHub**: `v{x.y.z}` (estable) o `v{x.y.z}-preview`. Si el workflow falla al crear el tag por duplicado, elimínalo manualmente (`git push origin --delete v{tag}` o desde la interfaz) y vuelve a disparar el workflow.
 
 ---
