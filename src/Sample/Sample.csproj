@@ -51,7 +51,7 @@
       <_IcoProjLine Include="    &lt;Nullable&gt;enable&lt;/Nullable&gt;" />
       <_IcoProjLine Include="  &lt;/PropertyGroup&gt;" />
       <_IcoProjLine Include="  &lt;ItemGroup&gt;" />
-      <_IcoProjLine Include="    &lt;PackageReference Include=&quot;Svg.Skia&quot; Version=&quot;5.1.1&quot; /&gt;" />
+      <_IcoProjLine Include="    &lt;PackageReference Include=&quot;Svg.Skia&quot; Version=&quot;%2A&quot; /&gt;" />
       <_IcoProjLine Include="    &lt;ProjectReference Include=&quot;$(_EasyWAProj)&quot; /&gt;" />
       <_IcoProjLine Include="  &lt;/ItemGroup&gt;" />
       <_IcoProjLine Include="&lt;/Project&gt;" />

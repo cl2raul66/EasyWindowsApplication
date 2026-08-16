@@ -119,12 +119,17 @@ El proyecto `EasyWindowsApplication.Generators` contiene `EasyBehaviorGenerator`
    }
    ```
 3. **Valida** duplicados en tiempo de compilación (`EAWIN001`: "Name '{0}' is already used...").
-4. **Genera propiedades `internal static`** en la clase envolvente del `Behavior` (cuando se usa un lambda `.Behavior(bh => ...)`), para acceso directo sin el prefijo `bh.`.
+4. **Valida el gate `UseWinApi()`** en tiempo de compilación (`EAWIN002`): si se declara un control (`View<T>` cuyo tipo hereda de `IControl` de `Win32ControlsModule`) sin activar `UseWinApi()`, emite un error y **no genera** ningún accessor de controles. Las ventanas no se gatean.
+5. **Genera propiedades `internal static`** en la clase envolvente del `Behavior` (cuando se usa un lambda `.Behavior(bh => ...)`), para acceso directo sin el prefijo `bh.`.
 
 ### Detección de candidatos
 
 - **Nombre**: invocaciones `.Name("string")` dentro de lambdas `View<T>()` / `Window()` / `AlternativeWindow()`.
 - **Behavior**: invocaciones `.Behavior(bh => ...)` con un lambda (no method-group). Si se pasa un method-group, el enclosing-type no se detecta, pero las extensiones globales sí se generan.
+- **`UseWinApi()`**: invocaciones `.UseWinApi()` (0 args) cuya verificación semántica confirme el símbolo `ISettingsBuilder.UseWinApi` (solo existe dentro de `.Resources(...).Setting(...)`).
+- **Control**: invocaciones `View<T>(lambda)` cuyo `T` hereda de `EasyWindowsApplication.Win32ControlsModule.Frontend.IControl`.
+
+> **Naming**: referenciar un control desde `Behavior` requiere `.Name()` explícito; sin `.Name()` no se genera accessor (el control sigue funcionando en el Layout por HWND). El auto-naming fue evaluado y **rechazado** (deriva semántica silenciosa al editar el Layout).
 
 ---
 
@@ -139,6 +144,8 @@ Los proyectos de plantilla incluyen un `Target` de MSBuild (`GenerateAppIcon`) q
 5. El `.gitignore` excluye `*.ico` generados (`src/ProjectTemplates/**/*.ico`).
 
 > **Nota**: SkiaSharp es dependencia de *build-time* solo (no se incluye en la app final). El developer puede reemplazar el procesador implementando `IEasyImageProcessor`.
+
+> **Alineación de versiones**: el proyecto temporal `IcoGen` debe referenciar la **misma** versión de `Svg.Skia` que el framework (`EasyWindowsApplication.csproj` usa `*` flotante). La línea se declara como `Version="%2A"` en los tres `.csproj` con el target (`Sample`, `EasyWinApp`, `SimpleEasyWinApp`): `%2A` es el escapado MSBuild de `*`, necesario porque un `*` literal en un `Include` de ItemGroup se interpreta como *wildcard* y MSBuild descarta el item. El `IcoGen.csproj` generado recibe `Version="*"`, de modo que ambos resuelven al mismo `Svg.Skia` en el mismo build. Si se *pinea* el framework, hay que actualizar también las 3 líneas del `IcoGen`; un desajuste produce `System.IO.FileNotFoundException` al ejecutar `IcoGen` (código `-532462766`).
 
 ---
 
@@ -158,6 +165,7 @@ Documenta aquí las decisiones de arquitectura relevantes. Usa ADRs (Architectur
 - **Controles como interfaces** (`IButton`, `ILabel`, ...) — permite que el Source Generator genere tipos débilesmente acoplados y facilita testing/mocking.
 - **MasterRouter** — centraliza el bucle de mensajes (`WndProc` → `DefWindowProcW`) y despacha eventos tipados (`WM.COMMAND` → `Click`).
 - **ControlAccess** — punto de acceso público para resolver controles por nombre desde el Behavior (usado por las propiedades generadas). Vive en `Share/Infrastructure` (técnico, `[EditorBrowsable(Never)]`). `SetController` se cablea en `Application.Behavior(...)`.
+- **`UseWinApi()` como bifurcación explícita** — elegir controles nativos por HWND (comctl32) frente a los futuros controles GDI/GDI+ personalizados. Es un gate **compile-time** (`EAWIN002`), no un flag decorativo: el consumidor es el Source Generator, que decide qué accessors existen. Con los módulos MVU futuros, lo que reciba el lambda de `.Behavior(...)` dependerá del mismo flag.
 
 ---
 
@@ -235,7 +243,7 @@ Setup manual (una sola vez):
 
 ### Notas para mantenedores
 
-- **`Svg.Skia` usa `*`** en `EasyWindowsApplication.csproj`. Si un build empieza a fallar tras una actualización de dependencias, considera *pinnear* la versión.
+- **`Svg.Skia` usa `*`** en `EasyWindowsApplication.csproj`. Si un build empieza a fallar tras una actualización de dependencias, considera *pinnear* la versión — en ese caso actualiza también las 3 líneas del proyecto `IcoGen` (ver [Pipeline de iconos SVG→ICO](#pipeline-de-iconos-svg-ico)).
 - **Tags de GitHub**: `v{x.y.z}` (estable) o `v{x.y.z}-preview`. Si el workflow falla al crear el tag por duplicado, elimínalo manualmente (`git push origin --delete v{tag}` o desde la interfaz) y vuelve a disparar el workflow.
 
 ---

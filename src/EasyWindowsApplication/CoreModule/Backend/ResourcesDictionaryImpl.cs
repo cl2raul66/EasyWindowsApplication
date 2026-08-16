@@ -22,12 +22,10 @@ internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
 
 internal sealed class SettingsBuilderImpl : ISettingsBuilder
 {
-    internal bool IsWinApiEnabled { get; private set; }
     internal AppConfigFileConfig AppConfig { get; } = new();
 
     public ISettingsBuilder UseWinApi()
     {
-        IsWinApiEnabled = true;
         return this;
     }
 

@@ -20,6 +20,14 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor UseWinApiRequiredRule = new(
+        id: "EAWIN002",
+        title: "UseWinApi required",
+        messageFormat: "UseWinApi() is required to use Win32 controls in Layout. Add .Resources(s => s.Setting(x => x.UseWinApi())).",
+        category: "EasyWindowsApplication",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var namedItems = context.SyntaxProvider.CreateSyntaxProvider(
@@ -37,9 +45,32 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
         var enclosingType = behaviorCalls.Collect();
 
-        context.RegisterSourceOutput(collected.Combine(enclosingType), static (spc, pair) =>
+        var useWinApi = context.SyntaxProvider.CreateSyntaxProvider(
+            predicate: static (node, _) => IsUseWinApiCandidate(node),
+            transform: static (ctx, _) => IsUseWinApiSymbol(ctx))
+            .Where(static enabled => enabled)
+            .Collect()
+            .Select(static (items, _) => !items.IsDefaultOrEmpty);
+
+        var controlItems = context.SyntaxProvider.CreateSyntaxProvider(
+            predicate: static (node, _) => IsViewControlCandidate(node),
+            transform: static (ctx, _) => ExtractControlLocation(ctx))
+            .Where(static location => location is not null);
+
+        var controlLocations = controlItems.Collect();
+
+        context.RegisterSourceOutput(
+            collected.Combine(enclosingType).Combine(useWinApi).Combine(controlLocations),
+            static (spc, quadruple) =>
         {
-            var (items, enclosing) = pair;
+            var (((items, enclosing), usesWinApi), controls) = quadruple;
+
+            if (!usesWinApi && !controls.IsDefaultOrEmpty)
+            {
+                foreach (var location in controls)
+                    spc.ReportDiagnostic(Diagnostic.Create(UseWinApiRequiredRule, location));
+            }
+
             if (items.IsDefaultOrEmpty) return;
 
             var seen = new HashSet<string>();
@@ -74,6 +105,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
             foreach (var item in unique)
             {
+                if (!usesWinApi && !item.IsWindowType) continue;
                 var propName = SanitizeName(item.Name);
                 if (item.IsWindowType)
                 {
@@ -113,6 +145,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
                 foreach (var item in unique)
                 {
+                    if (!usesWinApi && !item.IsWindowType) continue;
                     var propName = SanitizeName(item.Name);
                     if (item.IsWindowType)
                     {
@@ -224,6 +257,80 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax)
             return false;
         return true;
+    }
+
+    private static bool IsUseWinApiCandidate(SyntaxNode node)
+    {
+        if (node is not InvocationExpressionSyntax inv)
+            return false;
+        if (inv.Expression is not MemberAccessExpressionSyntax ma)
+            return false;
+        if (ma.Name.Identifier.Text != "UseWinApi")
+            return false;
+        if (inv.ArgumentList.Arguments.Count != 0)
+            return false;
+        return true;
+    }
+
+    private static bool IsUseWinApiSymbol(GeneratorSyntaxContext context)
+    {
+        var inv = (InvocationExpressionSyntax)context.Node;
+        if (inv.Expression is not MemberAccessExpressionSyntax ma)
+            return false;
+        var symbol = context.SemanticModel.GetSymbolInfo(ma).Symbol;
+        return symbol is IMethodSymbol method
+            && method.Name == "UseWinApi"
+            && method.ContainingType is { } containingType
+            && containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                == "global::EasyWindowsApplication.CoreModule.Frontend.ISettingsBuilder";
+    }
+
+    private static bool IsViewControlCandidate(SyntaxNode node)
+    {
+        if (node is not InvocationExpressionSyntax inv)
+            return false;
+        if (inv.Expression is not MemberAccessExpressionSyntax ma)
+            return false;
+        if (ma.Name is not GenericNameSyntax generic)
+            return false;
+        if (generic.Identifier.Text != "View")
+            return false;
+        if (generic.TypeArgumentList.Arguments.Count != 1)
+            return false;
+        if (inv.ArgumentList.Arguments.Count != 1)
+            return false;
+        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax)
+            return false;
+        return true;
+    }
+
+    private static Location ExtractControlLocation(GeneratorSyntaxContext context)
+    {
+        var inv = (InvocationExpressionSyntax)context.Node;
+        if (inv.Expression is not MemberAccessExpressionSyntax ma)
+            return null;
+        if (ma.Name is not GenericNameSyntax generic)
+            return null;
+
+        var typeSymbol = context.SemanticModel.GetTypeInfo(generic.TypeArgumentList.Arguments[0]).Type;
+        if (typeSymbol is null)
+            return null;
+
+        var iControl = context.SemanticModel.Compilation.GetTypeByMetadataName(
+            "EasyWindowsApplication.Win32ControlsModule.Frontend.IControl");
+        if (iControl is null)
+            return null;
+
+        if (typeSymbol.Equals(iControl, SymbolEqualityComparer.Default))
+            return inv.GetLocation();
+
+        foreach (var iface in typeSymbol.AllInterfaces)
+        {
+            if (iface.Equals(iControl, SymbolEqualityComparer.Default))
+                return inv.GetLocation();
+        }
+
+        return null;
     }
 
     private static EnclosingTypeInfo ExtractEnclosingType(GeneratorSyntaxContext context)
