@@ -1,5 +1,6 @@
 using EasyWindowsApplication.CoreModule.Backend;
 using EasyWindowsApplication.LayoutModule.Backend;
+using EasyWindowsApplication.Share.Infrastructure;
 
 namespace EasyWindowsApplication.WindowingModule.Backend;
 

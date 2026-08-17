@@ -2,7 +2,7 @@ using EasyWindowsApplication.Share;
 
 namespace EasyWindowsApplication.WindowingModule.Frontend;
 
-public sealed class WindowsScroll : IWindowsScrollConfig
+internal sealed class WindowsScroll : IWindowsScrollConfig
 {
     public ScrollBarVisibility HorizontalScrollBarVisibility { get; set; } = ScrollBarVisibility.Default;
     public ScrollBarVisibility VerticalScrollBarVisibility { get; set; } = ScrollBarVisibility.Default;

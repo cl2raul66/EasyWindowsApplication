@@ -6,6 +6,7 @@
 - `EasyWindowsApplication.Generators` es un proyecto de apoyo a la biblioteca `EasyWindowsApplication`. Mi idea es usar el poder de Source Generator para crear propiedades con el atributo `Name` declarados, donde el generador de código analiza en que contexto aparece  en tiempo de compilación y genera una estructura fuertemente tipada (un strongly-typed alias).
 - `Common` es para código compartido y/o repetitivo entre los módulos, este siempre debe ser interno (internal).
 - `Share` es para código compartido y/o repetitivo entre los módulos (internamente), pero también externamente (public), para ser usados por los desarrolladores que emplean la biblioteca.
+- `Share/Infrastructure` es para código compartido entre módulos que es `public` por razones técnicas (código generado, targets de build o herencia interna), pero NO parte de la API de usuario → debe llevar `[EditorBrowsable(EditorBrowsableState.Never)]`.
 - `WindowsApplication.cs` el punto de entrada del Fluent Api, debe ser simple, limpio, exponer lo que se necesita para la escribir el flujo evitando que se vuelva un fichero de codigo monolitico, esa es su unica funcion.
 - La aplicación se construye mediante una Fluent API declarativa dividida estrictamente en secciones secuenciales. Esto garantiza la separación de responsabilidades:
   ```csharp
@@ -117,7 +118,7 @@
 
 - **`Behavior`**: Enrutamiento de eventos y lógica. Gracias a los Source Generators, los nombres dados en el `Layout` (ej. `BtnGuardar`) aparecen aquí fuertemente tipados, eliminando los *Magic Strings*.Soporta dos modalidades:
 * Behavior<IMvuState> (Implícito/Por defecto): Para un flujo moderno basado en estados y señales, ideal para la mayoría de aplicaciones.
-* Behavior<IWin32State>: Válvula de escape para desarrolladores avanzados. Expone el HWND y permite interceptar mensajes directamente en el WndProc (ej. WM_COMMAND, WM_PAINT) para cada control declarado en el Layout, ofreciendo el mismo nivel de control que C/C++ nativo.
+* Behavior<IWin32State>: Válvula de escape para desarrolladores avanzados. Expone el HWND y permite interceptar mensajes directamente en el WndProc (ej. WM_COMMAND, WM_PAINT) para cada control declarado en el Layout, ofreciendo el mismo nivel de control que C/C++ nativo. Es plomería interna (`IWin32State` es `internal`), se cablea automáticamente al activar `UseWinApi()`.
 - **`Initialize()`**: El nodo terminal que bloquea el hilo, cede el control al `CoreModule` y arranca el bucle de mensajes de Win32. En el flujo, es el nodo terminal de la Fluent API. No debe confundirse con un hook de ciclo de vida ni con las acciones del IDE (Build, Run). Su semántica es: en este punto la declaración está completa, todo ha sido definido y el sistema está habilitado para arrancar. Es el equivalente conceptual de `Build()` en el patrón Builder clásico, con la diferencia de que el nombre refleja que los Source Generators ya han actuado en tiempo de compilación, por lo que al llegar aquí no se construye nada, simplemente se lanza lo que ya está construido.
 - Plantilla para Visual Studio, esta debe servir como un "esqueleto" (scaffolding) para crear las carpetas y poner los archivos placeholder.
 
@@ -640,7 +641,7 @@ Un único fichero `Program.cs` (top-level statements) equivalente al ejemplo de 
 
 | Paquete | Rol |
 |---|---|
-| `EasyWindowsApplication` (NuGet) | Framework + BuildSupport (`IconGenerator`, `.targets` de icono incluido) |
+| `EasyWindowsApplication` (NuGet) | Framework + `Share/Infrastructure` (`IconGenerator`, `.targets` de icono incluido) |
 | `SkiaSharp` (transitivo) | Solo build-time (generación de .ico desde SVG), `PrivateAssets=all` |
 | `EasyWindowsApplication.Templates` (NuGet) | Contiene los templates `dotnet new easywinapp` y `simpleeasywinapp` |
 

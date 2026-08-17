@@ -10,7 +10,7 @@
 *   **UX simplificada** — 4 bloques secuenciales (`Resources → Layout → Behavior → Initialize`) que reducen el esfuerzo de cableado y aceleran la entrega temprana.
 *   **Fluent API declarativa** — El IntelliSense te guía de Resources a Layout a Behavior a Initialize, impidiendo equivocarte de orden.
 *   **Source Generators** — Acceso tipado a controles por su nombre. Si te equivocas, falla en compilación, no en runtime.
-*   **Válvula de escape Win32** — `UseWinApi()` + `WithWin32State` para acceso directo al HWND y WndProc cuando lo necesites.
+*   **Controles Win32 nativos** — `UseWinApi()` es el *gate* obligatorio para declarar controles de `Win32ControlsModule` en `Layout`: sin él el compilador lo rechaza (EAWIN002); con él, el generador emite los accessors tipados.
 
 ## Un vistazo al código
 
@@ -24,6 +24,7 @@ using EasyWindowsApplication.WindowingModule.Frontend;
 int counter = 0;
 
 WindowsApplication
+    .Resources(rd => rd.Setting(st => st.UseWinApi()))
     .Layout(ly => ly
         .Window(iw => iw
             .Name("MainWindow")
@@ -119,7 +120,7 @@ El framework incluye **dos plantillas** oficiales:
 La fase `Resources` registra todo lo que tu app necesita antes de dibujar:
 
 *   **Assets** — imágenes, iconos (`.svg` → `.ico` multi-resolución) y fuentes.
-*   **Settings** — configuración embebida y persistencia (`UseWinApi`, `AppConfigFile`).
+*   **Settings** — configuración embebida y persistencia (`UseWinApi`, `AppConfigFile`). `UseWinApi` es el *gate* obligatorio para usar controles Win32 nativos.
 *   **Services** — contenedor de inyección de dependencias.
 
 ```csharp
@@ -145,9 +146,9 @@ EasyWindowsApplication/src/
 │   ├── CoreModule/                      # Fases del Fluent API, Resources, Behavior
 │   ├── LayoutModule/                    # ILayoutBuilder, Grid, Stack layouts
 │   ├── Share/                           # Tipos públicos (Color, Thickness, IContentBuilder)
+│   │   └── Infrastructure/              # Tipos públicos técnicos ([EditorBrowsable(Never)])
 │   ├── Win32ControlsModule/             # IButton, ILabel, IEdit, ICheckBox, ...
 │   ├── WindowingModule/                 # IWindow, WindowPositionOnScreen
-│   ├── BuildSupport/                    # IconGenerator (pipeline SVG→ICO en build-time)
 │   └── WindowsApplication.cs            # Punto de entrada del Fluent API
 ├── EasyWindowsApplication.Generators/   # Source Generator (EasyBehaviorGenerator)
 └── ProjectTemplates/
@@ -159,18 +160,17 @@ EasyWindowsApplication/src/
 
 El **Source Generator** analiza tu `Layout` en tiempo de compilación: cada `.Name("BtnGuardar")` dentro de un `View<T>` o `Window` genera una propiedad tipada (`bh.BtnGuardar`) en `Behavior`. Al compilar, ya no necesitas localizar controles por string — si el nombre no coincide, el compilador te lo dice. En runtime, el `MasterRouter` centraliza el bucle de mensajes de Win32 y despacha eventos tipados (`Click`, etc.) de forma automatica.
 
-Para acceso total al HWND y WndProc, activa `UseWinApi()` en Resources y usa `WithWin32State`:
+Para usar los controles nativos del módulo Win32, activa `UseWinApi()` en Resources. **Es obligatorio**: si declaras un control (`View<T>`) sin él, el compilador lo rechaza con `EAWIN002` y no se genera ningún accessor:
 
 ```csharp
 WindowsApplication
     .Resources(r => r.Setting(s => s.UseWinApi()))
     .Layout(...)
-    .Behavior(b => b.WithWin32State(ctrl => {
-        var btn = ctrl.Get<IButton>("BtnGuardar");
-        btn.OnMessage(WM.COMMAND, (w, l) => { /* tu código Win32 puro */ });
-    }))
+    .Behavior(bh => { ... })
     .Initialize();
 ```
+
+> **Nota**: el acceso de bajo nivel al HWND/WndProc es plomería interna del framework. Con los futuros módulos MVU, lo que reciba el lambda de `.Behavior(...)` dependerá de que `UseWinApi()` esté activo — resuelto en compile-time por el Source Generator.
 
 ## ¿Desarrollas el framework?
 

@@ -2,6 +2,7 @@ using EasyWindowsApplication.CoreModule.Frontend;
 using EasyWindowsApplication.LayoutModule.Backend;
 using EasyWindowsApplication.LayoutModule.Frontend;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Infrastructure;
 using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWindowsApplication.CoreModule.Backend;
@@ -38,6 +39,7 @@ internal sealed class Application :
     public IApplicationPostBehaviorPhase Behavior(Action<IBehaviorBuilder> configure)
     {
         BehaviorBuilder.Registry = _registry;
+        ControlAccess.SetController(BehaviorBuilder);
         configure(BehaviorBuilder);
         return this;
     }
@@ -60,11 +62,6 @@ internal sealed class Application :
             else
                 RegisterMain(window);
         }
-
-        BehaviorBuilder.ApplyPending(_registry);
-
-        if (BehaviorBuilder.Win32Configurator is not null)
-            BehaviorBuilder.Win32Configurator(new Win32StateImpl(_registry));
 
         Procedures.RunMessageLoop();
     }
@@ -90,18 +87,5 @@ internal sealed class Application :
     {
         _registry.RegisterWindow(new WindowingModule.Backend.AlternativeWindowImpl(
             0, 0, window.Name, window.Title, window.Width, window.Height, window.Position));
-    }
-}
-
-internal sealed class Win32StateImpl : IWin32State
-{
-    private readonly HandleRegistry _registry;
-    internal Win32StateImpl(HandleRegistry registry) => _registry = registry;
-
-    public T Get<T>(string name) where T : View<T>
-    {
-        var control = _registry.GetByName(name)
-            ?? throw new InvalidOperationException($"Control '{name}' not found in the layout.");
-        return (T)control;
     }
 }
