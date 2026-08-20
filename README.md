@@ -71,7 +71,15 @@ El framework incluye **dos plantillas** oficiales:
    dotnet build src\EasyWindowsApplication.slnx
    ```
 
-2. **Instala las plantillas localmente:**
+2. **Instala las plantillas:**
+
+   **Opción A — Paquete NuGet (recomendado para usuarios):**
+   ```bash
+   dotnet new install RandAMediaLabGroup.EasyWindowsApplication.Templates
+   ```
+   El paquete incluye ambas plantillas (`easywinapp` y `simpleeasywinapp`) y los proyectos que genera dependen de los **paquetes NuGet** del framework (`RandAMediaLabGroup.EasyWindowsApplication` y `RandAMediaLabGroup.EasyWindowsApplication.Generators`) en su última versión publicada (preview o estable).
+
+   **Opción B — Desde la carpeta del repositorio (desarrollo):**
    ```bash
    dotnet new install src\ProjectTemplates\EasyWinApp
    dotnet new install src\ProjectTemplates\SimpleEasyWinApp
@@ -84,6 +92,8 @@ El framework incluye **dos plantillas** oficiales:
 
   **Desintalaion de plantillas**
   ```bash
+   dotnet new uninstall RandAMediaLabGroup.EasyWindowsApplication.Templates
+
    dotnet new uninstall src\ProjectTemplates\EasyWinApp
    dotnet new uninstall src\ProjectTemplates\SimpleEasyWinApp
 
@@ -109,8 +119,7 @@ El framework incluye **dos plantillas** oficiales:
 
 1. **Instala las plantillas** (una vez):
    ```bash
-   dotnet new install src\ProjectTemplates\EasyWinApp
-   dotnet new install src\ProjectTemplates\SimpleEasyWinApp
+   dotnet new install RandAMediaLabGroup.EasyWindowsApplication.Templates
    ```
 
 2. **Archivo → Nuevo → Proyecto → Busca "Easy Win App" o "Simple Easy Win App" → Siguiente → Crear.**

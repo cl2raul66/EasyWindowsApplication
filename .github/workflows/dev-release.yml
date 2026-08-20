@@ -53,8 +53,16 @@ jobs:
             Write-Host "ver(gen) no encontrado - se omitira paquete Generators"
           }
 
+          $templateVersion = $null
+          if ($prBody -match '(?i)ver\s*\(\s*template\s*\)\s*:\s*(\d+\.\d+\.\d+-preview)') {
+            $templateVersion = $matches[1]
+            Write-Host "ver(template): $templateVersion"
+          } else {
+            Write-Host "ver(template) no encontrado - se omitira paquete Templates"
+          }
+
           # 2. Validar que al menos uno fue encontrado
-          if (-not $coreVersion -and -not $genVersion) {
+          if (-not $coreVersion -and -not $genVersion -and -not $templateVersion) {
             Write-Host ""
             Write-Host "No se encontro ninguna version valida. Workflow terminado."
             echo "::warning::No se encontraron versiones en el PR body"
@@ -62,8 +70,8 @@ jobs:
             exit 0
           }
 
-          # 3. Determinar version del Release (prioridad: Core > Generators)
-          $releaseVersion = if ($coreVersion) { $coreVersion } else { $genVersion }
+          # 3. Determinar version del Release (prioridad: Core > Generators > Templates)
+          $releaseVersion = if ($coreVersion) { $coreVersion } else { if ($genVersion) { $genVersion } else { $templateVersion } }
 
           # 4. Construir cuerpo del Release en Markdown
           $bodyMsg = "## Preview Release`n`nEsta es una version preview automatica desde development.`n`n### Paquetes publicados"
@@ -73,6 +81,9 @@ jobs:
           }
           if ($genVersion) {
             $bodyMsg += "`n- **RandAMediaLabGroup.EasyWindowsApplication.Generators** ``$genVersion``"
+          }
+          if ($templateVersion) {
+            $bodyMsg += "`n- **RandAMediaLabGroup.EasyWindowsApplication.Templates** ``$templateVersion``"
           }
 
           $bodyMsg += "`n`n### PR Original`n$($env:PR_URL)"
@@ -89,17 +100,21 @@ jobs:
           # Solo exportar versiones que existen para evitar <Version></Version> en .csproj
           if ($coreVersion)  { echo "CORE_VERSION=$coreVersion"          >> $env:GITHUB_OUTPUT }
           if ($genVersion)   { echo "GEN_VERSION=$genVersion"              >> $env:GITHUB_OUTPUT }
+          if ($templateVersion)   { echo "TEMPLATE_VERSION=$templateVersion"              >> $env:GITHUB_OUTPUT }
 
           $hasCore = if ($coreVersion)  { 'true' } else { 'false' }
           $hasGen  = if ($genVersion)   { 'true' } else { 'false' }
+          $hasTemplate  = if ($templateVersion)   { 'true' } else { 'false' }
           echo "HAS_CORE=$hasCore"  >> $env:GITHUB_OUTPUT
           echo "HAS_GEN=$hasGen"    >> $env:GITHUB_OUTPUT
+          echo "HAS_TEMPLATE=$hasTemplate"    >> $env:GITHUB_OUTPUT
 
           Write-Host ""
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "RELEASE_VERSION : $releaseVersion"
           Write-Host "HAS_CORE         : $hasCore"
           Write-Host "HAS_GEN          : $hasGen"
+          Write-Host "HAS_TEMPLATE          : $hasTemplate"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Update project versions
@@ -126,6 +141,15 @@ jobs:
             Write-Host "Generators actualizado a: $version"
           } else {
             Write-Host "Generators omitido (no hay version)"
+          }
+
+          if ("${{ steps.extract_version.outputs.HAS_TEMPLATE }}" -eq "true") {
+            $version  = "${{ steps.extract_version.outputs.TEMPLATE_VERSION }}"
+            $projFile = "src/ProjectTemplates/ProjectTemplates.csproj"
+            (Get-Content $projFile) -replace '<Version>.*</Version>', "<Version>$version</Version>" | Set-Content $projFile
+            Write-Host "Templates actualizado a: $version"
+          } else {
+            Write-Host "Templates omitido (no hay version)"
           }
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -166,6 +190,18 @@ jobs:
 
           Write-Host "Empaquetando Generators..."
           dotnet pack src/EasyWindowsApplication.Generators/EasyWindowsApplication.Generators.csproj --configuration Release --no-build --output ./nupkgs
+          if ($LASTEXITCODE -ne 0) { Write-Error "Pack fallido"; exit 1 }
+
+      - name: Build & Pack Templates package
+        if: steps.extract_version.outputs.SKIP_WORKFLOW != 'true' && steps.extract_version.outputs.HAS_TEMPLATE == 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Restaurando Templates..."
+          dotnet restore src/ProjectTemplates/ProjectTemplates.csproj
+          if ($LASTEXITCODE -ne 0) { Write-Error "Restore fallido"; exit 1 }
+
+          Write-Host "Empaquetando Templates..."
+          dotnet pack src/ProjectTemplates/ProjectTemplates.csproj --configuration Release --no-restore --output ./nupkgs
           if ($LASTEXITCODE -ne 0) { Write-Error "Pack fallido"; exit 1 }
 
       - name: List generated packages
