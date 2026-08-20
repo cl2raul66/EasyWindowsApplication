@@ -25,6 +25,38 @@
       "datatype": "bool",
       "defaultValue": "true",
       "description": "Mantiene el Layout en secciones (Resources/Layout/Behavior). Si se desactiva (--Simple false), descompone el Layout en Views/Controls. Experimental hasta el rework sem\u00E1ntico del generador."
+    },
+    "ProjectReferenceCore": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "<PackageReference Include=\"RandAMediaLabGroup.EasyWindowsApplication\" Version=\"*-*\" />"
+      },
+      "replaces": "<ProjectReference Include=\"..\\..\\EasyWindowsApplication\\EasyWindowsApplication.csproj\" />"
+    },
+    "ProjectReferenceGenerators": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "<PackageReference Include=\"RandAMediaLabGroup.EasyWindowsApplication.Generators\" Version=\"*-*\" OutputItemType=\"Analyzer\" ReferenceOutputAssembly=\"false\" />"
+      },
+      "replaces": "<ProjectReference Include=\"..\\..\\EasyWindowsApplication.Generators\\EasyWindowsApplication.Generators.csproj\" OutputItemType=\"Analyzer\" ReferenceOutputAssembly=\"false\" />"
+    },
+    "EasyWAProj": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": ""
+      },
+      "replaces": "<_EasyWAProj>$(MSBuildProjectDirectory)\\..\\..\\EasyWindowsApplication\\EasyWindowsApplication.csproj</_EasyWAProj>"
+    },
+    "IcoGenReference": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "&lt;PackageReference Include=&quot;RandAMediaLabGroup.EasyWindowsApplication&quot; Version=&quot;%2A-%2A&quot; /&gt;"
+      },
+      "replaces": "&lt;ProjectReference Include=&quot;$(_EasyWAProj)&quot; /&gt;"
     }
   },
   "sources": [

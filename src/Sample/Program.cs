@@ -30,6 +30,6 @@ WindowsApplication
         {
             counter++;
             bh.LbShowIncrement.Text = $"{counter} Increment";
-        });        
+        });
     })
     .Initialize();

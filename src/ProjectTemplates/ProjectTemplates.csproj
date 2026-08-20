@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <PackageType>Template</PackageType>
+    <Title>EasyWindowsApplication.Templates</Title>
+    <PackageId>RandAMediaLabGroup.EasyWindowsApplication.Templates</PackageId>
+    <Version>0.0.0</Version>
+    <Authors>cl2raul66</Authors>
+    <Company>RandAMediaLabGroup</Company>
+    <Description>Plantillas dotnet new (easywinapp / simpleeasywinapp) para el framework EasyWindowsApplication</Description>
+    <PackageTags>template; win32; windows-application; easy-windows-application; easywinapp; simpleeasywinapp</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <RepositoryUrl>https://github.com/cl2raul66/EasyWindowsApplication</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cl2raul66/EasyWindowsApplication</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="**\*" />
+    <Content Include="EasyWinApp\**" Exclude="EasyWinApp\bin\**;EasyWinApp\obj\**;EasyWinApp\.vs\**" />
+    <Content Include="SimpleEasyWinApp\**" Exclude="SimpleEasyWinApp\bin\**;SimpleEasyWinApp\obj\**;SimpleEasyWinApp\.vs\**" />
+  </ItemGroup>
+
+</Project>
