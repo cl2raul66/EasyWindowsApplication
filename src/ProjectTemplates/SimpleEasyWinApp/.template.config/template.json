@@ -19,6 +19,38 @@
       "description": "Target framework",
       "replaces": "net10.0-windows10.0.19041.0",
       "defaultValue": "net10.0-windows10.0.19041.0"
+    },
+    "ProjectReferenceCore": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "<PackageReference Include=\"RandAMediaLabGroup.EasyWindowsApplication\" Version=\"*-*\" />"
+      },
+      "replaces": "<ProjectReference Include=\"..\\..\\EasyWindowsApplication\\EasyWindowsApplication.csproj\" />"
+    },
+    "ProjectReferenceGenerators": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "<PackageReference Include=\"RandAMediaLabGroup.EasyWindowsApplication.Generators\" Version=\"*-*\" OutputItemType=\"Analyzer\" ReferenceOutputAssembly=\"false\" />"
+      },
+      "replaces": "<ProjectReference Include=\"..\\..\\EasyWindowsApplication.Generators\\EasyWindowsApplication.Generators.csproj\" OutputItemType=\"Analyzer\" ReferenceOutputAssembly=\"false\" />"
+    },
+    "EasyWAProj": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": ""
+      },
+      "replaces": "<_EasyWAProj>$(MSBuildProjectDirectory)\\..\\..\\EasyWindowsApplication\\EasyWindowsApplication.csproj</_EasyWAProj>"
+    },
+    "IcoGenReference": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "&lt;PackageReference Include=&quot;RandAMediaLabGroup.EasyWindowsApplication&quot; Version=&quot;%2A-%2A&quot; /&gt;"
+      },
+      "replaces": "&lt;ProjectReference Include=&quot;$(_EasyWAProj)&quot; /&gt;"
     }
   },
   "sources": [

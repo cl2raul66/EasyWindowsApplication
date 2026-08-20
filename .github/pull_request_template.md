@@ -2,6 +2,7 @@
 
 ver(core): x.x.x-preview
 ver(gen): x.x.x-preview
+ver(template): x.x.x-preview
 
 ## Notes:
 

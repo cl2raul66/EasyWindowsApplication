@@ -49,6 +49,16 @@ dotnet build src\EasyWindowsApplication\EasyWindowsApplication.csproj
 dotnet run --project src\ProjectTemplates\SimpleEasyWinApp\SimpleEasyWinApp.csproj
 ```
 
+### Plantillas (desarrollo)
+
+Para reinstalar o desinstalar las plantillas sin recordar comandos, ejecuta el gestor interactivo:
+
+```bash
+.\devtools\install-templates.ps1
+```
+
+El menú permite reinstalar desde el repositorio (`src\ProjectTemplates`) o desde un paquete `.nupkg` local, desinstalar, y salir.
+
 ---
 
 ## Arquitectura de módulos
@@ -181,7 +191,7 @@ Todo trabajo (funcionalidad, ajuste, bugfix) comienza con un **issue** creado co
    git checkout {número}-{slug}
    ```
 4. **Trabaja y haz push** con commits en Conventional Commits (`feat:`, `fix:`, ...).
-5. **Abre un Pull Request contra `develop`** e incluye en el body los marcadores de versión (`ver(core)` / `ver(gen)`) según la sección [CI/CD](#cicd).
+5. **Abre un Pull Request contra `develop`** e incluye en el body los marcadores de versión (`ver(core)` / `ver(gen)` / `ver(template)`) según la sección [CI/CD](#cicd).
 6. **Mergea a `develop`** → `dev-release.yml` publica el preview automáticamente. Los usuarios prueban y dan feedback, que se canaliza en nuevos issues.
 
 Reglas:
@@ -217,9 +227,11 @@ Este repositorio publica paquetes NuGet automáticamente mediante GitHub Actions
    ```text
    ver(core): 0.1.0-preview
    ver(gen): 0.1.0-preview
+   ver(template): 0.1.0-preview
    ```
    - `core` → paquete `RandAMediaLabGroup.EasyWindowsApplication`
    - `gen`   → paquete `RandAMediaLabGroup.EasyWindowsApplication.Generators`
+   - `template`   → paquete `RandAMediaLabGroup.EasyWindowsApplication.Templates` (template pack `easywinapp` / `simpleeasywinapp`)
 3. **Al *mergear*** a `develop`, el workflow `dev-release.yml` publica automáticamente el preview a NuGet y crea un *GitHub Release* con tag `v0.1.0-preview`.
 4. **Para promover a estable**, abre un PR de `develop` → `main` con el **mismo** *body* (marcadores con `-preview`). Al *mergear*, `prod-release.yml` publica la versión estable y elimina el `-preview` del tag.
 

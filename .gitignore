@@ -433,3 +433,6 @@ src/ProjectTemplates/**/*.ico
 
 # Plan files
 plan-*.md
+
+# OpenCode .ignore file
+.ignore

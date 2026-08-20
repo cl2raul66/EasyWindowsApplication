@@ -9,6 +9,7 @@
 		<NoWarn>$(NoWarn);RS2008</NoWarn>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<DevelopmentDependency>true</DevelopmentDependency>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
 
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>EasyWindowsApplication.Generators</Title>
@@ -40,6 +41,10 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="*" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 
 </Project>
