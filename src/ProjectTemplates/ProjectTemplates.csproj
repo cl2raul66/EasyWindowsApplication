@@ -1,28 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <IncludeContentInPack>true</IncludeContentInPack>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <ContentTargetFolders>content</ContentTargetFolders>
-    <PackageType>Template</PackageType>
-    <Title>EasyWindowsApplication.Templates</Title>
-    <PackageId>RandAMediaLabGroup.EasyWindowsApplication.Templates</PackageId>
-    <Version>0.0.0</Version>
-    <Authors>cl2raul66</Authors>
-    <Company>RandAMediaLabGroup</Company>
-    <Description>Plantillas dotnet new (easywinapp / simpleeasywinapp) para el framework EasyWindowsApplication</Description>
-    <PackageTags>template; win32; windows-application; easy-windows-application; easywinapp; simpleeasywinapp</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <RepositoryUrl>https://github.com/cl2raul66/EasyWindowsApplication</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/cl2raul66/EasyWindowsApplication</PackageProjectUrl>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<IncludeContentInPack>true</IncludeContentInPack>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<ContentTargetFolders>content</ContentTargetFolders>
+		<PackageType>Template</PackageType>
+		<Title>EasyWindowsApplication.Templates</Title>
 
-  <ItemGroup>
-    <Compile Remove="**\*" />
-    <Content Include="EasyWinApp\**" Exclude="EasyWinApp\bin\**;EasyWinApp\obj\**;EasyWinApp\.vs\**" />
-    <Content Include="SimpleEasyWinApp\**" Exclude="SimpleEasyWinApp\bin\**;SimpleEasyWinApp\obj\**;SimpleEasyWinApp\.vs\**" />
-  </ItemGroup>
+		<Copyright>MIT License</Copyright>
+		<PackageId>RandAMediaLabGroup.EasyWindowsApplication.Templates</PackageId>
+		<Version>0.0.0</Version>
+		<Authors>cl2raul66</Authors>
+		<Company>RandAMediaLabGroup</Company>
+		<Description>Plantillas dotnet new (easywinapp / simpleeasywinapp) para el framework EasyWindowsApplication</Description>
+		<PackageTags>template; win32; windows-application; easy-windows-application; easywinapp; simpleeasywinapp</PackageTags>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<RepositoryUrl>https://github.com/cl2raul66/EasyWindowsApplication</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/cl2raul66/EasyWindowsApplication</PackageProjectUrl>
+		<PackageIcon>logo_template.png</PackageIcon>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<SuppressDependenciesWhenPacking>True</SuppressDependenciesWhenPacking>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="**\*" />
+		<Content Include="EasyWinApp\**" Exclude="EasyWinApp\bin\**;EasyWinApp\obj\**;EasyWinApp\.vs\**" />
+		<Content Include="SimpleEasyWinApp\**" Exclude="SimpleEasyWinApp\bin\**;SimpleEasyWinApp\obj\**;SimpleEasyWinApp\.vs\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\..\rsc\Images\logo_template.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>
