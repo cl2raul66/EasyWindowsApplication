@@ -1,4 +1,4 @@
-#nullable disable
+
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -128,7 +128,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
             if (!enclosing.IsDefaultOrEmpty && enclosing[0] is not null)
             {
-                var enclosingInfo = enclosing[0];
+                var enclosingInfo = enclosing[0]!;
                 var ns = enclosingInfo.Namespace;
                 var className = enclosingInfo.ClassName;
 
@@ -304,7 +304,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         return true;
     }
 
-    private static Location ExtractControlLocation(GeneratorSyntaxContext context)
+    private static Location? ExtractControlLocation(GeneratorSyntaxContext context)
     {
         var inv = (InvocationExpressionSyntax)context.Node;
         if (inv.Expression is not MemberAccessExpressionSyntax ma)
@@ -333,7 +333,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static EnclosingTypeInfo ExtractEnclosingType(GeneratorSyntaxContext context)
+    private static EnclosingTypeInfo? ExtractEnclosingType(GeneratorSyntaxContext context)
     {
         var current = context.Node.Parent;
         while (current is not null)
@@ -380,20 +380,12 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private readonly struct NamedInfo
+    private readonly struct NamedInfo(string name, string typeSymbol, bool isWindowType, Location location)
     {
-        public readonly string Name;
-        public readonly string TypeSymbol;
-        public readonly bool IsWindowType;
-        public readonly Location Location;
-
-        public NamedInfo(string name, string typeSymbol, bool isWindowType, Location location)
-        {
-            Name = name;
-            TypeSymbol = typeSymbol;
-            IsWindowType = isWindowType;
-            Location = location;
-        }
+        public readonly string Name = name;
+        public readonly string TypeSymbol = typeSymbol;
+        public readonly bool IsWindowType = isWindowType;
+        public readonly Location Location = location;
 
         public override bool Equals(object obj) =>
             obj is NamedInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol && IsWindowType == other.IsWindowType;
@@ -402,10 +394,9 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0) ^ IsWindowType.GetHashCode();
     }
 
-    private sealed class EnclosingTypeInfo
+    private sealed class EnclosingTypeInfo(string ns, string className)
     {
-        public readonly string Namespace;
-        public readonly string ClassName;
-        public EnclosingTypeInfo(string ns, string className) { Namespace = ns; ClassName = className; }
+        public readonly string Namespace = ns;
+        public readonly string ClassName = className;
     }
 }
