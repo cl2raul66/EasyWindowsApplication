@@ -2,14 +2,16 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<ImplicitUsings>disable</ImplicitUsings>
+		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		
 		<LangVersion>latest</LangVersion>
-		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<NoWarn>$(NoWarn);RS2008</NoWarn>
+
 		<IsRoslynComponent>true</IsRoslynComponent>
-		<DevelopmentDependency>true</DevelopmentDependency>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+		<DevelopmentDependency>true</DevelopmentDependency>
 
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>EasyWindowsApplication.Generators</Title>
@@ -28,23 +30,25 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\..\README.md">                  <!-- (B) -->
+		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="..\..\README.md">                 
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\..\rsc\Images\logo_template.png">                  <!-- (B) -->
+		<None Include="..\..\rsc\Images\logo_template.png">                  
 		    <Pack>True</Pack>
 		    <PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="*" PrivateAssets="all" />
+		<AdditionalFiles Include="Properties\AnalyzerReleases.Shipped.md" />
+		<AdditionalFiles Include="Properties\AnalyzerReleases.Unshipped.md" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" PrivateAssets="all"/>
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="*" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>
