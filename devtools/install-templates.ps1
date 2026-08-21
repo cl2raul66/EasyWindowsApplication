@@ -186,6 +186,26 @@ function Install-FromPackage {
     $files = @(Get-ChildItem -Path $nupkgBase -Filter '*.nupkg' -Recurse -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -notmatch '\.(symbols|snupkg)\.nupkg$' })
 
+    if ($files.Count -eq 0) {
+        Write-Host ''
+        Write-Host '  No se encontraron paquetes. Ejecutando dotnet pack...' -ForegroundColor DarkGray
+
+        $csproj = Join-Path $TemplatesFolder 'ProjectTemplates.csproj'
+        & dotnet pack $csproj --configuration Release --output $nupkgBase
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ''
+            Write-Host '  [ERROR] Fallo al empaquetar.' -ForegroundColor Red
+            Wait-BackToMenu
+            return
+        }
+
+        Write-Host '  [OK] Paquete generado.' -ForegroundColor Green
+
+        $files = @(Get-ChildItem -Path $nupkgBase -Filter '*.nupkg' -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notmatch '\.(symbols|snupkg)\.nupkg$' })
+    }
+
     $pkg = $null
 
     if ($files.Count -eq 0) {
