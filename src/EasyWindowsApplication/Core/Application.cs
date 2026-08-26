@@ -1,4 +1,5 @@
-﻿using EasyWindowsApplication.Share;
+﻿using EasyWindowsApplication.Common;
+using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Core.LayoutEngine;
 using EasyWindowsApplication.Core.Windowing;
 using EasyWindowsApplication.Share.Infrastructure;
@@ -51,6 +52,7 @@ internal sealed class Application :
 
     public void Initialize()
     {
+        ControlActivatorRegistry.EnsureInitialized();
         _router = new MasterRouter(_registry);
 
         foreach (var window in _windows)
