@@ -1,6 +1,6 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
+using EasyWindowsApplication.Share;
 
 namespace EasyWindowsApplication.Share.Infrastructure;
 

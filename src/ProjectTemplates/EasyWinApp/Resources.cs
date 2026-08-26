@@ -1,4 +1,4 @@
-using EasyWindowsApplication.CoreModule.Frontend;
+﻿using EasyWindowsApplication.Share;
 
 namespace EasyWinApp;
 

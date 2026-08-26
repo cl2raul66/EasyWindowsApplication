@@ -1,10 +1,10 @@
-using EasyWindowsApplication.Share.Infrastructure;
+﻿using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Win32ControlsModule.Backend;
-using EasyWindowsApplication.WindowingModule.Frontend;
+using EasyWindowsApplication.Share;
 
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public sealed class IpAddress : View<IpAddress>
+public sealed class IpAddress  : ViewBase<IpAddress>
 {
     public void SetAddress(byte b1, byte b2, byte b3, byte b4)
     {

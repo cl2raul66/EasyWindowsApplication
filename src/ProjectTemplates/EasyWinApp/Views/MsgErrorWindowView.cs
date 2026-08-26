@@ -1,6 +1,5 @@
-using EasyWindowsApplication.Share;
+﻿using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
 
 namespace EasyWinApp.Views;
 

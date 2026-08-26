@@ -1,6 +1,6 @@
-using EasyWindowsApplication;
+﻿using EasyWindowsApplication;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
+using EasyWindowsApplication.Share;
 
 int counter = 0;
 
@@ -23,6 +23,7 @@ WindowsApplication
                 })
             )
         )
+        .AlternativeWindow(aw => aw.Name("MsgWindow"))
     )
     .Behavior(bh =>
     {

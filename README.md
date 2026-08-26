@@ -18,8 +18,8 @@ Crear una aplicación nativa nunca fue tan limpio. Todo se divide en 4 bloques l
 
 ```csharp
 using EasyWindowsApplication;
+using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
 
 int counter = 0;
 
@@ -43,7 +43,7 @@ WindowsApplication
     )
     .Behavior(bh =>
     {
-        var btn = bh.BtnGuardar;   // tipado por Source Generator
+        var btn = bh.BtnGuardar;   // tipado por Source Generator (View<T> wrapper)
         btn.OnClick(() =>
         {
             counter++;
@@ -152,14 +152,15 @@ WindowsApplication
 ```
 EasyWindowsApplication/src/
 ├── EasyWindowsApplication/              # Framework principal
-│   ├── CoreModule/                      # Fases del Fluent API, Resources, Behavior
-│   ├── LayoutModule/                    # ILayoutBuilder, Grid, Stack layouts
-│   ├── Share/                           # Tipos públicos (Color, Thickness, IContentBuilder)
-│   │   └── Infrastructure/              # Tipos públicos técnicos ([EditorBrowsable(Never)])
-│   ├── Win32ControlsModule/             # IButton, ILabel, IEdit, ICheckBox, ...
-│   ├── WindowingModule/                 # IWindow, WindowPositionOnScreen
-│   └── WindowsApplication.cs            # Punto de entrada del Fluent API
-├── EasyWindowsApplication.Generators/   # Source Generator (EasyBehaviorGenerator)
+│   ├── Core/                            # Fases Fluent API, Resources, Behavior, MasterRouter (100% internal)
+│   │   ├── Windowing/                   # WindowImpl, AlternativeWindowImpl, Procedures (HWND-based WndProc)
+│   │   └── LayoutEngine/                # ILayoutBuilder, Grid/Stack/Dock layouts, ViewBuilder
+│   ├── Common/                          # ControlActivatorRegistry + ControlActivatorGenerator (IIncrementalGenerator, InternalsVisibleTo)
+│   ├── Share/                           # API pública usuario (IWindow, ILayoutBuilder, View<T> struct, Color, Thickness)
+│   │   └── Infrastructure/              # Técnicos [EditorBrowsable(Never)]: ControlAccess
+│   ├── Win32ControlsModule/             # IButton, ILabel... + Backend (Button, Label → Core.ControlBase)
+│   └── WindowsApplication.cs            # Punto de entrada Fluent API (devuelve Share/IApplicationLayoutPhase)
+├── EasyWindowsApplication.Generators/   # Source Generator (FQN Share.* + GetTypeByMetadataName)
 └── ProjectTemplates/
     ├── EasyWinApp/                      # Plantilla `dotnet new easywinapp`
     └── SimpleEasyWinApp/                # Plantilla `dotnet new simpleeasywinapp`
@@ -167,7 +168,7 @@ EasyWindowsApplication/src/
 
 ## Cómo funciona
 
-El **Source Generator** analiza tu `Layout` en tiempo de compilación: cada `.Name("BtnGuardar")` dentro de un `View<T>` o `Window` genera una propiedad tipada (`bh.BtnGuardar`) en `Behavior`. Al compilar, ya no necesitas localizar controles por string — si el nombre no coincide, el compilador te lo dice. En runtime, el `MasterRouter` centraliza el bucle de mensajes de Win32 y despacha eventos tipados (`Click`, etc.) de forma automatica.
+El **Source Generator** `EasyBehaviorGenerator` analiza tu `Layout` en tiempo de compilación: cada `.Name("BtnGuardar")` dentro de un `View<T>` (struct `View<T>` wrapper con `Action<View<T>>` + `Func<View<T>,View<T>>`) o `Window` genera una propiedad tipada (`bh.BtnGuardar`) en `Behavior`. En runtime, el `MasterRouter` usa un trampolín `[UnmanagedCallersOnly]` con lookup HWND-based (`HandleRegistry.ConcurrentDictionary`) y despacha eventos tipados (`Click`, etc.); `ControlActivatorRegistry` en `Common/` (poblado en `Application.Initialize()` vía `ControlActivatorGenerator` — `IIncrementalGenerator` con `InternalsVisibleTo`, MEF compile-time) elimina el acoplamiento `Core → Win32Controls` sin `ModuleInitializer` (`CA2255`).
 
 Para usar los controles nativos del módulo Win32, activa `UseWinApi()` en Resources. **Es obligatorio**: si declaras un control (`View<T>`) sin él, el compilador lo rechaza con `EAWIN002` y no se genera ningún accessor:
 

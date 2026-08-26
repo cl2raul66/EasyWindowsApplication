@@ -1,5 +1,5 @@
-using System.Runtime.InteropServices;
-using EasyWindowsApplication.CoreModule.Backend;
+﻿using System.Runtime.InteropServices;
+using EasyWindowsApplication.Core;
 
 namespace EasyWindowsApplication.Win32ControlsModule.Backend;
 
