@@ -1,5 +1,4 @@
-using EasyWindowsApplication.Win32ControlsModule.Frontend;
-
+﻿
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 public static class ControlBuilderExtensions

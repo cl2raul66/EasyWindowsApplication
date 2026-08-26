@@ -1,5 +1,4 @@
-using EasyWindowsApplication.CoreModule.Backend;
-using EasyWindowsApplication.Share.Infrastructure;
+﻿using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Win32ControlsModule.Backend;

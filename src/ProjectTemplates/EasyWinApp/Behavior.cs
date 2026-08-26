@@ -1,5 +1,5 @@
-using EasyWindowsApplication;
-using EasyWindowsApplication.CoreModule.Frontend;
+﻿using EasyWindowsApplication;
+using EasyWindowsApplication.Share;
 
 namespace EasyWinApp;
 

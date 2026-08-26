@@ -1,6 +1,4 @@
-using EasyWindowsApplication.LayoutModule.Frontend;
-using EasyWindowsApplication.WindowingModule.Frontend;
-
+﻿
 namespace EasyWindowsApplication.Share;
 
 public interface IContentBuilder
