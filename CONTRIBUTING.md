@@ -67,20 +67,22 @@ El framework está organizado en módulos bajo `src/EasyWindowsApplication/`:
 
 | Módulo | Capa | Responsabilidad |
 |---|---|---|
-| `CoreModule` | Backend + Frontend | Punto de entrada (`WindowsApplication`), fases del Fluent API, Resources, Behavior, MasterRouter, HandleRegistry |
-| `LayoutModule` | Backend + Frontend | `ILayoutBuilder`, layouts (Grid, Stack, Dock), `IContentBuilder`, `IChildrenBuilder`, `IViewBuilder` |
-| `Share` | Frontend (público) | Tipos públicos de la API de usuario: `Color`, `Thickness`, `IContentBuilder`, `LayoutLength`, `LayoutOptions` |
-| `Share/Infrastructure` | Frontend (público técnico) | Tipos `public` **por razones técnicas** con `[EditorBrowsable(Never)]`: `ControlAccess`, `IconGenerator`, `ControlBase`, `View<T>` |
-| `Win32ControlsModule` | Backend + Frontend | Interfaces de controles (`IButton`, `ILabel`, `IEdit`, ...) y sus implementaciones Win32 |
-| `WindowingModule` | Backend + Frontend | Ventanas (`IWindow`, `IAlternativeWindow`), posicionamiento (`WindowPositionOnScreen`) |
+| `Core` | `internal` (100%) | Punto de entrada (`WindowsApplication` → `Share/IApplicationLayoutPhase`), `Application`, `MasterRouter` (trampolín HWND-based), `HandleRegistry` (ConcurrentDictionary HWND→Router), `ControlBase`, `IconGenerator` |
+| `Core/Windowing` | `internal` | `WindowImpl`, `AlternativeWindowImpl`, `Procedures` (CreateMainWindow/CreateAlternativeWindow con `[UnmanagedCallersOnly]`), `UserControl` |
+| `Core/LayoutEngine` | `internal` | `LayoutEngine`, `ILayoutBuilder`, layouts (Grid, Stack, Dock), `ChildrenBuilderImpl` (usa `ControlActivatorRegistry`), `ViewBuilderImpl` |
+| `Common` | `internal` | `ControlActivatorRegistry` + `IControlActivator` (registry genérico `Register<T>/Create<T>`, `EnsureInitialized()` + `ControlActivatorGenerator` `IIncrementalGenerator` con `InternalsVisibleTo`, MEF compile-time) — rompe ciclo `Common ↔ Core` sin `ModuleInitializer` (`CA2255`) |
+| `Share` | `public` | API usuario: `IWindow`, `IAlternativeWindow`, `IWindowConfig`, `IChildrenBuilder` (dual overload `Action<View<T>>` + `Func<View<T>,View<T>>`), `View<T>` struct readonly (`Name/Margin/Width/Height/Background/Dock/Grid/OnClick/Text`), `LayoutLength`, `GridDefinitions`, `IResourcesDictionary`, etc. |
+| `Share/Infrastructure` | `public` técnico | `[EditorBrowsable(Never)]`: `ControlAccess` (punto usado por Source Generator), `ViewBase<TSelf>` base para controles custom (ej. `IpAddress`) |
+| `Win32ControlsModule` | Frontend `public` / Backend `internal` | Interfaces (`IButton`, `ILabel` …) heredando `IControl` + Backend (`Button`, `Label` → `Core.ControlBase`) + `Win32ControlActivator` (`IControlActivator`, `internal`, auto-registrado vía `ControlActivatorGenerator` + `EnsureInitialized()` en `Core/Application`) |
+| `Generators` | `Analyzer` | `EasyBehaviorGenerator` (FQN `Share` + `GetTypeByMetadataName`) + `ControlActivatorGenerator` (descubre `IControlActivator` en `Compilation`, genera `ControlActivatorRegistrations.g.cs`, `InternalsVisibleTo`) |
 
 ### Principios de organización
 
-- **`Common`** — código compartido entre módulos, pero de acceso **`internal`** (no visible para consumidores).
-- **`Share`** — código compartido entre módulos, pero de acceso **`public`** (expuesto a consumidores del framework).
-- **`Share/Infrastructure`** — código compartido entre módulos, `public` **por razones técnicas** (lo alcanzan el código generado, los targets de build o la herencia interna), pero **NO** parte de la API de usuario → obligatorio `[EditorBrowsable(EditorBrowsableState.Never)]`. Si un archivo ahí no lo tiene, es un bug.
-- **`CoreModule/Frontend`** — interfaces de las fases del Fluent API (`IApplicationLayoutPhase` → `IApplicationPostLayoutPhase` → `IApplicationPostBehaviorPhase`) que guían por IntelliSense el orden correcto.
-- **`Backend`** — implementaciones `internal` de esas interfaces.
+- **`Common`** — código compartido `internal` (no visible para consumidores). Contiene `ControlActivatorRegistry` (evita reflexión, factorías genéricas).
+- **`Share`** — API `public` para consumidores. Todo lo que devuelve `WindowsApplication` (`IApplicationLayoutPhase` etc.) vive aquí.
+- **`Share/Infrastructure`** — `public` por razones técnicas (`[EditorBrowsable(Never)]`). Solo `ControlAccess` y `ViewBase<TSelf>` permanecen aquí; `ControlBase`/`IconGenerator` migraron a `Core/`.
+- **`Core/**`** — 100% `internal`. Nada `public` aquí (si aparece `public` es bug, debe ser `internal` o moverse a `Share`). Implementaciones puras.
+- **`Win32ControlsModule/Frontend`** — `public` interfaces controles; `Backend` — `internal` implementaciones que heredan `Core.ControlBase` y se registran vía `IControlActivator`.
 
 ---
 
@@ -118,10 +120,10 @@ Resources/
 
 ## Source Generators
 
-El proyecto `EasyWindowsApplication.Generators` contiene `EasyBehaviorGenerator`, un `IIncrementalGenerator` que:
+El proyecto `EasyWindowsApplication.Generators` contiene `EasyBehaviorGenerator`, un `IIncrementalGenerator` que (FQN actualizados a `EasyWindowsApplication.Share.*` + robustez `GetTypeByMetadataName`):
 
-1. **Detecta** llamadas `.Name("...")`** dentro de lambdas `View<T>(...)` y `Window(...)` en el `Layout`.
-2. **Genera** `EasyBehaviorExtensions` — un *extension property* para cada nombre, tipado con la interfaz del control:
+1. **Detecta** llamadas `.Name("...")`** dentro de lambdas `View<T>(...)` (ahora `View<T>` es `Share/View<T>` struct) y `Window(...)` / `AlternativeWindow(...)` en el `Layout`.
+2. **Genera** `EasyBehaviorExtensions` — un *extension property* para cada nombre, tipado con la interfaz del control (FQN `global::EasyWindowsApplication.Share.IWindow` / `IAlternativeWindow` / `global::EasyWindowsApplication.Share.IBehaviorBuilder`):
    ```csharp
    // Auto-generado (ejemplo)
    extension(IBehaviorBuilder bh) {
@@ -140,6 +142,9 @@ El proyecto `EasyWindowsApplication.Generators` contiene `EasyBehaviorGenerator`
 - **Control**: invocaciones `View<T>(lambda)` cuyo `T` hereda de `EasyWindowsApplication.Win32ControlsModule.Frontend.IControl`.
 
 > **Naming**: referenciar un control desde `Behavior` requiere `.Name()` explícito; sin `.Name()` no se genera accessor (el control sigue funcionando en el Layout por HWND). El auto-naming fue evaluado y **rechazado** (deriva semántica silenciosa al editar el Layout).
+
+- **Robustez FQN**: `ISettingsBuilder` se resuelve vía `Compilation.GetTypeByMetadataName("EasyWindowsApplication.Share.ISettingsBuilder")` + `SymbolEqualityComparer.Default` (no string comparison). Si `GetTypeByMetadataName` retorna `null`, el gate `UseWinApi` no se activa.
+- **View<T>**: el generador detecta `View<T>` genérico con `T : IControl`; `IWindow`/`IAlternativeWindow` usan FQN `Share` (antes `WindowingModule.Frontend`).
 
 ---
 
@@ -171,11 +176,13 @@ Los proyectos de plantilla incluyen un `Target` de MSBuild (`GenerateAppIcon`) q
 
 Documenta aquí las decisiones de arquitectura relevantes. Usa ADRs (Architecture Decision Records) en `docs/adr/`.
 
-- **Fluent API con interfaces de fase** — El IntelliSense guía el orden `Resources → Layout → Behavior → Initialize` mediante interfaces (`IApplicationLayoutPhase`, `IApplicationPostLayoutPhase`, `IApplicationPostBehaviorPhase`).
-- **Controles como interfaces** (`IButton`, `ILabel`, ...) — permite que el Source Generator genere tipos débilesmente acoplados y facilita testing/mocking.
-- **MasterRouter** — centraliza el bucle de mensajes (`WndProc` → `DefWindowProcW`) y despacha eventos tipados (`WM.COMMAND` → `Click`).
-- **ControlAccess** — punto de acceso público para resolver controles por nombre desde el Behavior (usado por las propiedades generadas). Vive en `Share/Infrastructure` (técnico, `[EditorBrowsable(Never)]`). `SetController` se cablea en `Application.Behavior(...)`.
-- **`UseWinApi()` como bifurcación explícita** — elegir controles nativos por HWND (comctl32) frente a los futuros controles GDI/GDI+ personalizados. Es un gate **compile-time** (`EAWIN002`), no un flag decorativo: el consumidor es el Source Generator, que decide qué accessors existen. Con los módulos MVU futuros, lo que reciba el lambda de `.Behavior(...)` dependerá del mismo flag.
+- **Fluent API con interfaces de fase** — El IntelliSense guía el orden `Resources → Layout → Behavior → Initialize` mediante interfaces (`IApplicationLayoutPhase`, `IApplicationPostLayoutPhase`, `IApplicationPostBehaviorPhase`) ahora en `Share/` (antes `CoreModule/Frontend`). `WindowsApplication` devuelve `IApplicationLayoutPhase` público.
+- **Controles como interfaces** (`IButton`, `ILabel`, ...) — permite que el Source Generator genere tipos débilesmente acoplados y facilita testing/mocking. `Button`/`Label` heredan `Core.ControlBase` (antes `Share.Infrastructure.ControlBase`).
+- **MasterRouter** — centraliza el bucle de mensajes con trampolín `[UnmanagedCallersOnly(CallConvs=[Stdcall])]` + lookup HWND-based (`HandleRegistry.ConcurrentDictionary<HWND,MasterRouter>`), `try/catch` que evita tumbar proceso, despacha eventos tipados (`WM.COMMAND` → `Click`). El delegado estático sobrescrito fue eliminado (evita GC).
+- **ControlAccess / ControlActivatorRegistry / ControlActivatorGenerator** — `ControlAccess` sigue en `Share/Infrastructure` (usado por `EasyBehaviorGenerator`). `ControlActivatorRegistry` en `Common/` (genérico `Register<T>/Create<T>`, `Shared` + `EnsureInitialized()` + `partial RegisterGeneratedActivators()`) rompe acoplamiento `Core → Win32ControlsModule` sin `ModuleInitializer` (`CA2255` en `Library`). `ControlActivatorGenerator` (`IIncrementalGenerator` en `Generators`, descubre `IControlActivator` en `Compilation` vía `GetTypeByMetadataName` + `AllInterfaces`, genera `ControlActivatorRegistrations.g.cs` con `new Win32ControlActivator().RegisterActivators(Shared)` y futuros plugins; usa `<InternalsVisibleTo Include="EasyWindowsApplication.Generators"/>` para mantener `internal`.
+- **View<T> struct** — `Share/View<T>` readonly struct `where T : class, IControl` con `Instance` + fluents (`Name/Margin/Width/Height/Background/Dock/Grid/OnClick/Text`). Dual overload en `IChildrenBuilder`: `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` instanciando `View<T>(control)` vía `ControlActivatorRegistry`.
+- **`UseWinApi()` como bifurcación explícita** — gate **compile-time** (`EAWIN002`), consumidor Source Generator decide accessors. `IconGenerator` migró `Share/Infrastructure` → `Core/` (ahora `Core.IconGenerator`, IcoGen usa `EasyWindowsApplication.Core`).
+- **AlternativeWindow** — ahora funcional: `Procedures.CreateAlternativeWindow` registra clase `WS_POPUP|CAPTION|SYSMENU` y `HandleRegistry.RegisterRouter(hwnd, router)`; `Application.RegisterAlternative` crea hwnd real, aplica BackgroundBrush y `Show()`.
 
 ---
 

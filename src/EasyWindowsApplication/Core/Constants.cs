@@ -1,0 +1,144 @@
+﻿namespace EasyWindowsApplication.Core;
+
+    internal static class WS
+    {
+        internal const uint OVERLAPPED = 0x00000000;
+        internal const uint POPUP = 0x80000000;
+        internal const uint CHILD = 0x40000000;
+        internal const uint VISIBLE = 0x10000000;
+        internal const uint DISABLED = 0x08000000;
+        internal const uint TABSTOP = 0x00010000;
+        internal const uint BORDER = 0x00800000;
+        internal const uint CAPTION = 0x00C00000;
+        internal const uint SYSMENU = 0x00080000;
+        internal const uint THICKFRAME = 0x00040000;
+        internal const uint MINIMIZEBOX = 0x00020000;
+        internal const uint MAXIMIZEBOX = 0x00010000;
+        internal const uint VSCROLL = 0x00200000;
+        internal const uint HSCROLL = 0x00100000;
+        internal const uint CLIPCHILDREN = 0x02000000;
+        internal const uint OVERLAPPEDWINDOW = OVERLAPPED | CAPTION | SYSMENU | THICKFRAME | MINIMIZEBOX | MAXIMIZEBOX;
+    }
+    
+    internal static class WS_EX
+    {
+        internal const uint CLIENTEDGE = 0x00000200;
+        internal const uint WINDOWEDGE = 0x00000100;
+        internal const uint ACCEPTFILES = 0x00000010;
+        internal const uint LAYOUTRTL = 0x00400000;
+        internal const uint TOPMOST = 0x00000008;
+    }
+    
+    internal static class CS
+    {
+        internal const uint HREDRAW = 0x0002;
+        internal const uint VREDRAW = 0x0001;
+        internal const uint DBLCLKS = 0x0008;
+        internal const uint OWNDC = 0x0020;
+    }
+    
+    internal static class CW
+    {
+        internal const int USEDEFAULT = unchecked((int)0x80000000);
+    }
+    
+    internal static class IMAGE
+    {
+        internal const uint ICON = 1;
+    }
+    
+    internal static class LR
+    {
+        internal const uint DEFAULTCOLOR = 0x0040;
+    }
+    
+    internal static class WM
+    {
+        internal const uint NULL = 0x0000;
+        internal const uint CREATE = 0x0001;
+        internal const uint DESTROY = 0x0002;
+        internal const uint MOVE = 0x0003;
+        internal const uint SIZE = 0x0005;
+        internal const uint ACTIVATE = 0x0006;
+        internal const uint ERASEBKGND = 0x0014;
+        internal const uint SETFOCUS = 0x0007;
+        internal const uint KILLFOCUS = 0x0008;
+        internal const uint ENABLE = 0x000A;
+        internal const uint PAINT = 0x000F;
+        internal const uint CLOSE = 0x0010;
+        internal const uint QUIT = 0x0012;
+        internal const uint SETTEXT = 0x000C;
+        internal const uint GETTEXT = 0x000D;
+        internal const uint GETTEXTLENGTH = 0x000E;
+        internal const uint COMMAND = 0x0111;
+        internal const uint SYSCOMMAND = 0x0112;
+        internal const uint TIMER = 0x0113;
+        internal const uint NOTIFY = 0x004E;
+        internal const uint CTLCOLORBTN = 0x0135;
+        internal const uint CTLCOLORDLG = 0x0136;
+        internal const uint CTLCOLOREDIT = 0x0133;
+        internal const uint CTLCOLORLISTBOX = 0x0134;
+        internal const uint CTLCOLORMSGBOX = 0x0132;
+        internal const uint CTLCOLORSCROLLBAR = 0x0137;
+        internal const uint CTLCOLORSTATIC = 0x0138;
+        internal const uint SETFONT = 0x0030;
+        internal const uint GETFONT = 0x0031;
+        internal const uint DRAWITEM = 0x002B;
+        internal const uint HSCROLL = 0x0114;
+        internal const uint VSCROLL = 0x0115;
+        internal const uint MOUSEWHEEL = 0x020A;
+    }
+    
+    internal static class DT
+    {
+        internal const uint CALCRECT = 0x00000400;
+        internal const uint SINGLELINE = 0x00000020;
+        internal const uint NOPREFIX = 0x00000800;
+    }
+    
+    internal static class SCROLLBAR
+    {
+        internal const int HORZ = 0;
+        internal const int VERT = 1;
+        internal const int LINEUP = 0;
+        internal const int LINEDOWN = 1;
+        internal const int PAGEUP = 2;
+        internal const int PAGEDOWN = 3;
+        internal const int THUMBTRACK = 5;
+        internal const int TOP = 6;
+        internal const int BOTTOM = 7;
+        internal const int ENDSCROLL = 8;
+    }
+
+    internal static class SIF
+    {
+        internal const uint RANGE = 0x0001;
+        internal const uint PAGE = 0x0002;
+        internal const uint POS = 0x0004;
+        internal const uint ALL = RANGE | PAGE | POS;
+    }
+
+    internal static class BN
+    {
+        internal const uint CLICKED = 0;
+        internal const uint DOUBLECLICKED = 5;
+    }
+    
+    internal static class EN
+    {
+        internal const uint CHANGE = 0x0300;
+        internal const uint UPDATE = 0x0104;
+        internal const uint MAXTEXT = 0x0105;
+    }
+    
+    internal static class SW
+    {
+        internal const int SHOWNORMAL = 1;
+    }
+    
+    internal static class GWL
+    {
+        internal const int STYLE = -16;
+        internal const int EXSTYLE = -20;
+        internal const int ID = -12;
+    }

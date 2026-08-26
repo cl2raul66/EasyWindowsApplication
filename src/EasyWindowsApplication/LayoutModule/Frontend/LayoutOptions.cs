@@ -1,9 +1,0 @@
-using EasyWindowsApplication.Share;
-
-namespace EasyWindowsApplication.LayoutModule.Frontend;
-
-public class LayoutOptions
-{
-    public LayoutAlignment HorizontalAlignment { get; set; } = LayoutAlignment.Start;
-    public LayoutAlignment VerticalAlignment { get; set; } = LayoutAlignment.Start;
-}

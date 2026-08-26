@@ -37,7 +37,7 @@
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName($(_IcoAbs)))" />
     <MakeDir Directories="$(_IcoGenDir)" />
 
-    <WriteLinesToFile File="$(_IcoGenCs)" Lines="using EasyWindowsApplication.Share.Infrastructure%3B" Overwrite="true" />
+    <WriteLinesToFile File="$(_IcoGenCs)" Lines="using EasyWindowsApplication.Core%3B" Overwrite="true" />
     <WriteLinesToFile File="$(_IcoGenCs)" Lines='IconGenerator.GenerateIco(@"$(_SvgAbs)", @"$(_IcoAbs)", new[] { 16, 32, 48, 256 })%3B' />
 
     <ItemGroup>

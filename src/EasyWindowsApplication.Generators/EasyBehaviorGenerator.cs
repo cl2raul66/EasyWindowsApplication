@@ -1,4 +1,4 @@
-
+﻿
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -93,7 +93,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             sb.AppendLine("#pragma warning disable CS0612, CS0618, CS1591");
             sb.AppendLine();
 
-            var ib = "global::EasyWindowsApplication.CoreModule.Frontend.IBehaviorBuilder";
+            var ib = "global::EasyWindowsApplication.Share.IBehaviorBuilder";
 
             sb.AppendLine("namespace EasyWindowsApplication");
             sb.AppendLine("{");
@@ -233,12 +233,12 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
 
         if (parentMa.Name.Identifier.Text == "Window")
         {
-            return new NamedInfo(name, "global::EasyWindowsApplication.WindowingModule.Frontend.IWindow", isWindowType: true, location);
+            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IWindow", isWindowType: true, location);
         }
 
         if (parentMa.Name.Identifier.Text == "AlternativeWindow")
         {
-            return new NamedInfo(name, "global::EasyWindowsApplication.WindowingModule.Frontend.IAlternativeWindow", isWindowType: true, location);
+            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IAlternativeWindow", isWindowType: true, location);
         }
 
         return null;
@@ -278,11 +278,17 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         if (inv.Expression is not MemberAccessExpressionSyntax ma)
             return false;
         var symbol = context.SemanticModel.GetSymbolInfo(ma).Symbol;
-        return symbol is IMethodSymbol method
-            && method.Name == "UseWinApi"
-            && method.ContainingType is { } containingType
-            && containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                == "global::EasyWindowsApplication.CoreModule.Frontend.ISettingsBuilder";
+        if (symbol is not IMethodSymbol method || method.Name != "UseWinApi")
+            return false;
+        if (method.ContainingType is not { } containingType)
+            return false;
+        var iSettingsBuilder = context.SemanticModel.Compilation.GetTypeByMetadataName(
+            "EasyWindowsApplication.Share.ISettingsBuilder");
+        if (iSettingsBuilder is null)
+        {
+            return false;
+        }
+        return containingType.Equals(iSettingsBuilder, SymbolEqualityComparer.Default);
     }
 
     private static bool IsViewControlCandidate(SyntaxNode node)
