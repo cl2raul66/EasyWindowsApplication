@@ -16,6 +16,13 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
     public nint Hwnd { get; internal set; }
     public string Name { get; set; } = "";
 
+    // IBaseWindow lifecycle events (requeridos por IBaseWindow pero no usados en controles)
+    public event EventHandler? Loaded { add { } remove { } }
+    public event EventHandler<Share.CancelEventArgs>? Closing { add { } remove { } }
+    public event EventHandler? Closed { add { } remove { } }
+    public event EventHandler? Activated { add { } remove { } }
+    public event EventHandler? Deactivated { add { } remove { } }
+
     private float _x, _y, _w, _h;
 
     internal event Action? InternalClick;
@@ -142,7 +149,7 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
     float ILayoutable.MeasuredHeight => _measuredH;
 
     private float _measuredW, _measuredH;
-    private float _arrangedX, _arrangedY, _arrangedW, _arrangedH;
+    internal float _arrangedX, _arrangedY, _arrangedW, _arrangedH;
 
     void ILayoutable.Measure(float availableWidth, float availableHeight)
     {

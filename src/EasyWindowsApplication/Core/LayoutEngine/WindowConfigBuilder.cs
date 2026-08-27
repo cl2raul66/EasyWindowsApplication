@@ -40,7 +40,13 @@ internal sealed class WindowConfigBuilder : IWindowConfig
         return this;
     }
 
-    public IWindowConfig Scroll(Action<IWindowsScrollConfig> configure) => this;
+    public IWindowConfig Scroll(Action<IWindowsScrollConfig> configure)
+    {
+        var cfg = new WindowsScroll();
+        configure(cfg);
+        _model.ScrollConfig = cfg;
+        return this;
+    }
 
     public IWindowContentConfig Content<TLayout>(Action<IContentBuilder> configure) where TLayout : IStackLayout
         => RegisterContent(configure);

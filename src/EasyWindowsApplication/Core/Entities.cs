@@ -98,6 +98,22 @@ internal struct SCROLLINFO
 }
 
 [StructLayout(LayoutKind.Sequential)]
+internal struct INITCOMMONCONTROLSEX
+{
+    public uint dwSize;
+    public uint dwICC;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MONITORINFO
+{
+    public uint cbSize;
+    public RECT rcMonitor;
+    public RECT rcWork;
+    public uint dwFlags;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 internal struct DRAWITEMSTRUCT
 {
     public uint CtlType;
