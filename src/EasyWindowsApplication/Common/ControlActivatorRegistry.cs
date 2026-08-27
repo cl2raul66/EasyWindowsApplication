@@ -22,6 +22,7 @@ internal sealed partial class ControlActivatorRegistry
 
     internal T Create<T>() where T : class
     {
+        EnsureInitialized();
         if (_factories.TryGetValue(typeof(T), out var f))
             return (T)f();
         throw new InvalidOperationException($"No control implementation registered for '{typeof(T).FullName}'. Did you forget to add InternalsVisibleTo or reference the plugin assembly?");
@@ -29,16 +30,21 @@ internal sealed partial class ControlActivatorRegistry
 
     internal object CreateFor(Type type)
     {
+        EnsureInitialized();
         if (_factories.TryGetValue(type, out var f))
             return f();
         throw new InvalidOperationException($"No control implementation registered for '{type.FullName}'.");
     }
 
     internal INativeHandleFactory? TryGetFactory(Type type)
-        => _handleFactories.TryGetValue(type, out var f) ? f : null;
+    {
+        EnsureInitialized();
+        return _handleFactories.TryGetValue(type, out var f) ? f : null;
+    }
 
     internal INativeHandleFactory CreateFactory<T>() where T : class
     {
+        EnsureInitialized();
         if (_handleFactories.TryGetValue(typeof(T), out var f))
             return f;
         throw new InvalidOperationException($"No handle factory registered for '{typeof(T).FullName}'. Did you forget to register Win32NativeHandleFactory?");
@@ -46,6 +52,7 @@ internal sealed partial class ControlActivatorRegistry
 
     internal INativeHandleFactory CreateFactoryFor(Type type)
     {
+        EnsureInitialized();
         if (_handleFactories.TryGetValue(type, out var f))
             return f;
         throw new InvalidOperationException($"No handle factory registered for '{type.FullName}'.");
@@ -53,7 +60,7 @@ internal sealed partial class ControlActivatorRegistry
 
     internal bool TryGetFactoryForControl(IControl control, out INativeHandleFactory? factory)
     {
-
+        EnsureInitialized();
         var t = control.GetType();
         if (_handleFactories.TryGetValue(t, out factory))
             return true;
@@ -80,6 +87,7 @@ internal sealed partial class ControlActivatorRegistry
 
     internal static void EnsureInitialized()
     {
+        if (_inited) return;
         lock (_initLock)
         {
             if (_inited) return;
