@@ -5,6 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
 
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Title>EasyWindowsApplication</Title>

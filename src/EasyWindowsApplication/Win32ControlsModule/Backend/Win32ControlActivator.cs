@@ -12,5 +12,11 @@ internal sealed class Win32ControlActivator : IControlActivator
         // Register concrete types as well for direct resolution if needed
         registry.Register<Button>(() => new Button());
         registry.Register<Label>(() => new Label());
+
+        var factory = new Win32NativeHandleFactory();
+        registry.RegisterFactory<IButton>(factory);
+        registry.RegisterFactory<ILabel>(factory);
+        registry.RegisterFactory<Button>(factory);
+        registry.RegisterFactory<Label>(factory);
     }
 }

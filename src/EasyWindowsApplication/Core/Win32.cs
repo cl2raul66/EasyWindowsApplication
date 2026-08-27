@@ -173,4 +173,40 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ScreenToClient(nint hWnd, ref POINT lpPoint);
+
+    // ── ComCtl32 ──
+    [LibraryImport("comctl32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool InitCommonControlsEx(ref INITCOMMONCONTROLSEX lpInitCtrls);
+
+    // ── DeferWindowPos (batching anti-flicker) ──
+    [LibraryImport("user32.dll", SetLastError = true)]
+    internal static partial nint BeginDeferWindowPos(int nNumWindows);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    internal static partial nint DeferWindowPos(nint hWinPosInfo, nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool EndDeferWindowPos(nint hWinPosInfo);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetForegroundWindow(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetMonitorInfoW(nint hMonitor, ref MONITORINFO lpmi);
+
+    // SetWindowTextW con string (para Title)
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowTextW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowText(nint hWnd, string lpString);
 }

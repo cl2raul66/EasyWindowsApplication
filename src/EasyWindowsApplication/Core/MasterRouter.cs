@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EasyWindowsApplication.Common;
+using EasyWindowsApplication.Core.Windowing;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
@@ -11,6 +12,7 @@ internal sealed class MasterRouter
     private readonly Dictionary<(nint Hwnd, uint Msg), Win32MessageHandler> _handlers = new();
     private readonly HandleRegistry _registry;
     private nint _mainHwnd;
+    private bool _isResizing;
 
     private readonly Dictionary<nint, nint> _windowBrushes = new();
     private readonly Dictionary<nint, nint> _controlBrushes = new();
@@ -84,10 +86,149 @@ internal sealed class MasterRouter
 
     internal nint WndProc(nint hwnd, uint msg, nint wParam, nint lParam)
     {
-        if (msg == WM.DESTROY && hwnd == _mainHwnd)
+        // ── Window lifecycle & resize routing (Fase 3) ──
+        if (msg == WM.CLOSE)
         {
-            Win32.PostQuitMessage(0);
-            return 0;
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                bool cancel = false;
+                if (win is WindowImpl wi) cancel = wi.RaiseClosing();
+                else if (win is AlternativeWindowImpl aw) cancel = aw.RaiseClosing();
+                if (cancel) return 0;
+            }
+        }
+
+        if (msg == WM.ENTERSIZEMOVE)
+        {
+            _isResizing = true;
+        }
+        else if (msg == WM.EXITSIZEMOVE)
+        {
+            _isResizing = false;
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                Win32.GetClientRect(hwnd, out RECT rc);
+                int w = rc.Right - rc.Left;
+                int h = rc.Bottom - rc.Top;
+                if (win is WindowImpl wi) wi.RaiseResized(w, h);
+            }
+        }
+        else if (msg == WM.SIZE)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                int wParamType = (int)wParam;
+                if (wParamType != WMSIZE.MINIMIZED)
+                {
+                    int w = (int)Win32Helpers.LOWORD(lParam);
+                    int h = (int)Win32Helpers.HIWORD(lParam);
+                    if (_isResizing)
+                    {
+                        if (win is WindowImpl wi) wi.RaiseResizing(w, h);
+                    }
+                    else
+                    {
+                        if (win is WindowImpl wi) wi.RaiseResized(w, h);
+                    }
+                }
+            }
+        }
+        else if (msg == WM.MOVE)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                int x = (int)(short)Win32Helpers.LOWORD(lParam);
+                int y = (int)(short)Win32Helpers.HIWORD(lParam);
+                if (win is WindowImpl wi) wi.RaiseMoved(x, y);
+            }
+        }
+        else if (msg == WM.ACTIVATE)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                int state = (int)Win32Helpers.LOWORD(wParam);
+                if (state == WA.INACTIVE)
+                {
+                    if (win is WindowImpl wi) wi.RaiseDeactivated();
+                    else if (win is AlternativeWindowImpl aw) aw.RaiseDeactivated();
+                }
+                else
+                {
+                    if (win is WindowImpl wi) wi.RaiseActivated();
+                    else if (win is AlternativeWindowImpl aw) aw.RaiseActivated();
+                }
+            }
+        }
+        else if (msg == WM.HSCROLL)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wi)
+            {
+                int request = (int)Win32Helpers.LOWORD(wParam);
+                int pos = (int)Win32Helpers.HIWORD(wParam);
+                wi.HandleHScroll(request, pos);
+                return 0;
+            }
+        }
+        else if (msg == WM.VSCROLL)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wi)
+            {
+                int request = (int)Win32Helpers.LOWORD(wParam);
+                int pos = (int)Win32Helpers.HIWORD(wParam);
+                wi.HandleVScroll(request, pos);
+                return 0;
+            }
+        }
+        else if (msg == WM.MOUSEWHEEL)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wi)
+            {
+                short delta = (short)Win32Helpers.HIWORD(wParam);
+                wi.HandleMouseWheel(delta);
+                return 0;
+            }
+        }
+
+        if (msg == WM.DESTROY)
+        {
+            // Disparar Closed antes de limpieza
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win != null)
+            {
+                if (win is WindowImpl wi) wi.RaiseClosed();
+                else if (win is AlternativeWindowImpl aw) aw.RaiseClosed();
+            }
+
+            // Limpieza determinística del registry (Fase 1: evita memory leak)
+            _registry.Unregister(hwnd);
+            _registry.UnregisterWindowByHwnd(hwnd);
+            HandleRegistry.UnregisterRouter(hwnd);
+            _windowBrushes.Remove(hwnd);
+            _controlBrushes.Remove(hwnd);
+            _layoutGroupBackgrounds.Remove(hwnd);
+            _scrollOffsets.Remove(hwnd);
+            // Limpia handlers asociados a este hwnd (evita leak de delegates)
+            if (_handlers.Count > 0)
+            {
+                // Copia claves para evitar modificar durante enumeración
+                var toRemove = new List<(nint Hwnd, uint Msg)>();
+                foreach (var key in _handlers.Keys)
+                    if (key.Hwnd == hwnd) toRemove.Add(key);
+                foreach (var key in toRemove) _handlers.Remove(key);
+            }
+            if (hwnd == _mainHwnd)
+            {
+                Win32.PostQuitMessage(0);
+                return 0;
+            }
         }
 
         // Handle WM_ERASEBKGND — paint window background, then LayoutGroup backgrounds on top
