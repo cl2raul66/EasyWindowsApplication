@@ -78,6 +78,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
 
     private List<ILayoutable>? _materializedChildren;
     private ContentModel? _contentModel;
+    private bool _hasLoaded;
 
     public event EventHandler? Loaded;
     public event EventHandler<CancelEventArgs>? Closing;
@@ -96,11 +97,24 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         _positionMode = position;
     }
 
-    public void Show() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
+    public void Show()
+    {
+        EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
+        if (!_hasLoaded)
+        {
+            _hasLoaded = true;
+            Loaded?.Invoke(this, EventArgs.Empty);
+        }
+    }
     public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
     public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
 
-    internal void RaiseLoaded() => Loaded?.Invoke(this, EventArgs.Empty);
+    internal void RaiseLoaded()
+    {
+        if (_hasLoaded) return;
+        _hasLoaded = true;
+        Loaded?.Invoke(this, EventArgs.Empty);
+    }
     internal bool RaiseClosing()
     {
         var args = new CancelEventArgs();

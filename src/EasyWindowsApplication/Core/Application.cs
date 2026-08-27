@@ -110,7 +110,7 @@ internal sealed class Application :
         win.MaterializeContent(window, _registry, _router);
         if (window.Position == WindowPositionOnScreen.Center)
         {
-            // Center para AlternativeWindow (usa misma lógica)
+            // Center para AlternativeWindow (pre-calcula posición pero no muestra)
             nint monitor = Win32.MonitorFromWindow(hwnd, MONITOR.DEFAULTTONEAREST);
             if (monitor == 0) monitor = Win32.MonitorFromWindow(hwnd, MONITOR.DEFAULTTOPRIMARY);
             if (monitor != 0)
@@ -127,7 +127,7 @@ internal sealed class Application :
                 }
             }
         }
-        win.Show();
-        win.RaiseLoaded();
+        // AlternativeWindow inicia oculta — se muestra explícitamente via GetWindow<IAlternativeWindow>(name).Show()
+        // No se llama win.Show() ni win.RaiseLoaded() aquí (Loaded se disparará en el Show manual)
     }
 }
