@@ -87,6 +87,31 @@
         internal const uint HSCROLL = 0x0114;
         internal const uint VSCROLL = 0x0115;
         internal const uint MOUSEWHEEL = 0x020A;
+        internal const uint ENTERSIZEMOVE = 0x0231;
+        internal const uint EXITSIZEMOVE = 0x0232;
+    }
+
+    internal static class WMSIZE
+    {
+        internal const int RESTORED = 0;
+        internal const int MINIMIZED = 1;
+        internal const int MAXIMIZED = 2;
+        internal const int MAXSHOW = 3;
+        internal const int MAXHIDE = 4;
+    }
+
+    internal static class WA
+    {
+        internal const int INACTIVE = 0;
+        internal const int ACTIVE = 1;
+        internal const int CLICKACTIVE = 2;
+    }
+
+    internal static class MONITOR
+    {
+        internal const uint DEFAULTTONULL = 0x00000000;
+        internal const uint DEFAULTTOPRIMARY = 0x00000001;
+        internal const uint DEFAULTTONEAREST = 0x00000002;
     }
     
     internal static class DT
@@ -133,7 +158,18 @@
     
     internal static class SW
     {
+        internal const int HIDE = 0;
         internal const int SHOWNORMAL = 1;
+        internal const int SHOWMINIMIZED = 2;
+        internal const int SHOWMAXIMIZED = 3;
+        internal const int SHOWNOACTIVATE = 4;
+        internal const int SHOW = 5;
+        internal const int MINIMIZE = 6;
+        internal const int SHOWMINNOACTIVE = 7;
+        internal const int SHOWNORMAL2 = 8;
+        internal const int RESTORE = 9;
+        internal const int SHOWDEFAULT = 10;
+        internal const int MAXIMIZE = 3;
     }
     
     internal static class GWL
@@ -141,4 +177,40 @@
         internal const int STYLE = -16;
         internal const int EXSTYLE = -20;
         internal const int ID = -12;
+    }
+
+    internal static class ICC
+    {
+        internal const uint LISTVIEW_CLASSES = 0x00000001;
+        internal const uint TREEVIEW_CLASSES = 0x00000002;
+        internal const uint BAR_CLASSES = 0x00000004;
+        internal const uint TAB_CLASSES = 0x00000008;
+        internal const uint UPDOWN_CLASS = 0x00000010;
+        internal const uint PROGRESS_CLASS = 0x00000020;
+        internal const uint HOTKEY_CLASS = 0x00000040;
+        internal const uint ANIMATE_CLASS = 0x00000080;
+        internal const uint WIN95_CLASSES = 0x000000FF;
+        internal const uint DATE_CLASSES = 0x00000100;
+        internal const uint USEREX_CLASSES = 0x00000200;
+        internal const uint COOL_CLASSES = 0x00000400;
+        internal const uint INTERNET_CLASSES = 0x00000800;
+        internal const uint PAGESCROLLER_CLASS = 0x00001000;
+        internal const uint NATIVEFNTCTL_CLASS = 0x00002000;
+        internal const uint STANDARD_CLASSES = 0x00004000;
+        internal const uint LINK_CLASS = 0x00008000;
+    }
+
+    internal static class SWP
+    {
+        internal const uint NOSIZE = 0x0001;
+        internal const uint NOMOVE = 0x0002;
+        internal const uint NOZORDER = 0x0004;
+        internal const uint NOREDRAW = 0x0008;
+        internal const uint NOACTIVATE = 0x0010;
+        internal const uint FRAMECHANGED = 0x0020;
+        internal const uint SHOWWINDOW = 0x0040;
+        internal const uint HIDEWINDOW = 0x0080;
+        internal const uint NOCOPYBITS = 0x0100;
+        internal const uint NOOWNERZORDER = 0x0200;
+        internal const uint NOSENDCHANGING = 0x0400;
     }

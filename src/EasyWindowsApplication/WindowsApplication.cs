@@ -5,6 +5,11 @@ namespace EasyWindowsApplication;
 
 public static class WindowsApplication
 {
+    static WindowsApplication()
+    {
+        EasyWindowsApplication.Common.ControlActivatorRegistry.EnsureInitialized();
+    }
+
     public static IApplicationLayoutPhase Resources(Action<IResourcesDictionary> configure)
     {
         var app = new Application();

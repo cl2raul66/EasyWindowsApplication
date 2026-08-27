@@ -16,6 +16,7 @@ internal sealed class WindowModel
     internal Color? Background { get; set; }
     internal bool IsAlternative { get; set; }
     internal IContentModel? Content { get; set; }
+    internal WindowsScroll? ScrollConfig { get; set; }
 }
 
 internal sealed class ContentModel : IContentModel
