@@ -13,28 +13,28 @@ internal sealed class ChildrenBuilderImpl : IChildrenBuilder
 
     public IChildrenBuilder View<T>(Action<View<T>> configure) where T : class, IControl
     {
-        var control = ControlActivatorRegistry.Shared.Create<T>();
-        var view = new View<T>(control);
+        var view = new View<T>();
         configure(view);
 
         _content.Children.Add(new ViewModel
         {
-            Name = view.Instance.Name,
-            Control = view.Instance
+            Name = view.PendingName ?? "",
+            ControlType = typeof(T),
+            Configure = view.BuildConfigure()
         });
         return this;
     }
 
     public IChildrenBuilder View<T>(Func<View<T>, View<T>> configure) where T : class, IControl
     {
-        var control = ControlActivatorRegistry.Shared.Create<T>();
-        var view = new View<T>(control);
+        var view = new View<T>();
         var result = configure(view);
 
         _content.Children.Add(new ViewModel
         {
-            Name = result.Instance.Name,
-            Control = result.Instance
+            Name = result.PendingName ?? "",
+            ControlType = typeof(T),
+            Configure = result.BuildConfigure()
         });
         return this;
     }

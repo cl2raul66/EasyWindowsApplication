@@ -16,6 +16,7 @@ internal sealed class HandleRegistry
     private readonly Dictionary<string, WeakReference<IControl>> _nameToControl = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IBaseWindow> _windowByName = new(StringComparer.Ordinal);
     private readonly Dictionary<nint, IBaseWindow> _hwndToWindow = new();
+    private readonly Dictionary<nint, List<nint>> _windowToControls = new();
 
     internal void Register(nint hwnd, IControl control)
     {
@@ -39,6 +40,41 @@ internal sealed class HandleRegistry
                 }
             }
             _hwndToControl.Remove(hwnd);
+        }
+    }
+
+    internal void ClearAllControls()
+    {
+        _hwndToControl.Clear();
+        _nameToControl.Clear();
+        _windowToControls.Clear();
+    }
+
+    internal void TrackChildWindow(nint parentHwnd, nint childHwnd)
+    {
+        if (!_windowToControls.TryGetValue(parentHwnd, out var list))
+        {
+            list = new List<nint>();
+            _windowToControls[parentHwnd] = list;
+        }
+        list.Add(childHwnd);
+    }
+
+    internal void UnregisterWindowControls(nint parentHwnd)
+    {
+        if (!_windowToControls.TryGetValue(parentHwnd, out var direct))
+            return;
+        var stack = new Stack<nint>(direct);
+        _windowToControls.Remove(parentHwnd);
+        while (stack.Count > 0)
+        {
+            var h = stack.Pop();
+            Unregister(h);
+            if (_windowToControls.TryGetValue(h, out var sub))
+            {
+                foreach (var ch in sub) stack.Push(ch);
+                _windowToControls.Remove(h);
+            }
         }
     }
 

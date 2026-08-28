@@ -17,6 +17,7 @@ internal sealed class Application :
     private readonly List<WindowModel> _windows = new();
     private MasterRouter _router = null!;
     private readonly HandleRegistry _registry = new();
+    private Action<IBehaviorBuilder>? _pendingBehavior;
 
     public IApplicationLayoutPhase Resources(Action<IResourcesDictionary> configure)
     {
@@ -37,9 +38,7 @@ internal sealed class Application :
 
     public IApplicationPostBehaviorPhase Behavior(Action<IBehaviorBuilder> configure)
     {
-        BehaviorBuilder.Registry = _registry;
-        ControlAccess.SetController(BehaviorBuilder);
-        configure(BehaviorBuilder);
+        _pendingBehavior += configure;
         return this;
     }
 
@@ -68,6 +67,13 @@ internal sealed class Application :
                 RegisterAlternative(window);
             else
                 RegisterMain(window);
+        }
+
+        if (_pendingBehavior is not null)
+        {
+            BehaviorBuilder.Registry = _registry;
+            ControlAccess.SetController(BehaviorBuilder);
+            _pendingBehavior(BehaviorBuilder);
         }
 
         Procedures.RunMessageLoop();

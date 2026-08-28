@@ -22,49 +22,166 @@ public abstract class ViewBase<TSelf> : ControlBase where TSelf : ViewBase<TSelf
     }
 }
 
-public readonly struct View<T> where T : class, IControl
+public sealed class View<T> where T : class, IControl
 {
-    public T Instance { get; }
+    private readonly List<Action<T>> _configure = new();
+    internal string? PendingName { get; private set; }
 
-    public View(T instance) => Instance = instance;
+    public View() { }
 
-    public View<T> Name(string name) { Instance.Name = name; return this; }
+    public View<T> Name(string name)
+    {
+        PendingName = name;
+        _configure.Add(c => c.Name = name);
+        return this;
+    }
 
-    public View<T> Margin(float uniform) { Instance.Margin = new Thickness(uniform); return this; }
-    public View<T> Margin(float vertical, float horizontal) { Instance.Margin = new Thickness(vertical, horizontal); return this; }
-    public View<T> Margin(float top, float right, float bottom, float left) { Instance.Margin = new Thickness(top, right, bottom, left); return this; }
+    public View<T> Margin(float uniform)
+    {
+        var thickness = new Thickness(uniform);
+        _configure.Add(c => c.Margin = thickness);
+        return this;
+    }
 
-    public View<T> Padding(float uniform) { Instance.Padding = new Thickness(uniform); return this; }
-    public View<T> Padding(float vertical, float horizontal) { Instance.Padding = new Thickness(vertical, horizontal); return this; }
-    public View<T> Padding(float top, float right, float bottom, float left) { Instance.Padding = new Thickness(top, right, bottom, left); return this; }
+    public View<T> Margin(float vertical, float horizontal)
+    {
+        var thickness = new Thickness(vertical, horizontal);
+        _configure.Add(c => c.Margin = thickness);
+        return this;
+    }
 
-    public View<T> Width(float width) { Instance.LayoutWidth = LayoutLength.Absolute(width); return this; }
-    public View<T> Height(float height) { Instance.LayoutHeight = LayoutLength.Absolute(height); return this; }
+    public View<T> Margin(float top, float right, float bottom, float left)
+    {
+        var thickness = new Thickness(top, right, bottom, left);
+        _configure.Add(c => c.Margin = thickness);
+        return this;
+    }
 
-    public View<T> Background(Color color) { Instance.BackgroundColor = color; return this; }
+    public View<T> Padding(float uniform)
+    {
+        var thickness = new Thickness(uniform);
+        _configure.Add(c => c.Padding = thickness);
+        return this;
+    }
 
-    public View<T> Dock(DockPosition dock) { Instance.Dock = dock; return this; }
-    public View<T> DockLeft() { Instance.Dock = DockPosition.Left; return this; }
-    public View<T> DockTop() { Instance.Dock = DockPosition.Top; return this; }
-    public View<T> DockRight() { Instance.Dock = DockPosition.Right; return this; }
-    public View<T> DockBottom() { Instance.Dock = DockPosition.Bottom; return this; }
+    public View<T> Padding(float vertical, float horizontal)
+    {
+        var thickness = new Thickness(vertical, horizontal);
+        _configure.Add(c => c.Padding = thickness);
+        return this;
+    }
 
-    public View<T> Row(int row) { Instance.GridRow = row; return this; }
-    public View<T> Column(int column) { Instance.GridColumn = column; return this; }
-    public View<T> RowSpan(int span) { Instance.GridRowSpan = span; return this; }
-    public View<T> ColumnSpan(int span) { Instance.GridColumnSpan = span; return this; }
+    public View<T> Padding(float top, float right, float bottom, float left)
+    {
+        var thickness = new Thickness(top, right, bottom, left);
+        _configure.Add(c => c.Padding = thickness);
+        return this;
+    }
 
-    public View<T> OnClick(Action handler) { Instance.OnClick(handler); return this; }
+    public View<T> Width(float width)
+    {
+        var layout = LayoutLength.Absolute(width);
+        _configure.Add(c => c.LayoutWidth = layout);
+        return this;
+    }
+
+    public View<T> Height(float height)
+    {
+        var layout = LayoutLength.Absolute(height);
+        _configure.Add(c => c.LayoutHeight = layout);
+        return this;
+    }
+
+    public View<T> Background(Color color)
+    {
+        _configure.Add(c => c.BackgroundColor = color);
+        return this;
+    }
+
+    public View<T> Dock(DockPosition dock)
+    {
+        _configure.Add(c => c.Dock = dock);
+        return this;
+    }
+
+    public View<T> DockLeft()
+    {
+        _configure.Add(c => c.Dock = DockPosition.Left);
+        return this;
+    }
+
+    public View<T> DockTop()
+    {
+        _configure.Add(c => c.Dock = DockPosition.Top);
+        return this;
+    }
+
+    public View<T> DockRight()
+    {
+        _configure.Add(c => c.Dock = DockPosition.Right);
+        return this;
+    }
+
+    public View<T> DockBottom()
+    {
+        _configure.Add(c => c.Dock = DockPosition.Bottom);
+        return this;
+    }
+
+    public View<T> Row(int row)
+    {
+        _configure.Add(c => c.GridRow = row);
+        return this;
+    }
+
+    public View<T> Column(int column)
+    {
+        _configure.Add(c => c.GridColumn = column);
+        return this;
+    }
+
+    public View<T> RowSpan(int span)
+    {
+        _configure.Add(c => c.GridRowSpan = span);
+        return this;
+    }
+
+    public View<T> ColumnSpan(int span)
+    {
+        _configure.Add(c => c.GridColumnSpan = span);
+        return this;
+    }
+
+    public View<T> OnClick(Action handler)
+    {
+        _configure.Add(c => c.OnClick(handler));
+        return this;
+    }
 
     public View<T> Text(string text)
     {
-        if (Instance is IText t) t.Text = text;
+        _configure.Add(c => { if (c is IText t) t.Text = text; });
         return this;
     }
 
     public View<T> OnMessage(uint msg, Win32MessageHandler handler)
     {
-        if (Instance is ControlBase cb) cb.OnMessage(msg, handler);
+        _configure.Add(c => { if (c is ControlBase cb) cb.OnMessage(msg, handler); });
         return this;
+    }
+
+    internal void Apply(T instance)
+    {
+        foreach (var a in _configure) a(instance);
+    }
+
+    internal Action<IControl> BuildConfigure()
+    {
+        var snapshot = _configure.ToArray();
+        return control =>
+        {
+            var typed = (T)control;
+            foreach (var a in snapshot) a(typed);
+        };
     }
 }

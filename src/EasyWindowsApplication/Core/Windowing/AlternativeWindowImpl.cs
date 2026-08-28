@@ -2,6 +2,7 @@
 using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Core.LayoutEngine;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core.Windowing;
 
@@ -154,10 +155,26 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         {
             if (vmBase is not ViewModel vm) continue;
             var control = vm.Control;
-            if (control is null) continue;
+            if (control is null)
+            {
+                if (vm.ControlType is null) continue;
+                control = (IControl)ControlActivatorRegistry.Shared.CreateFor(vm.ControlType);
+                if (control is ControlBase cbPre)
+                {
+                    cbPre.Router = router;
+                    cbPre.Registry = registry;
+                }
+                vm.Configure?.Invoke(control);
+                vm.Control = control;
+            }
 
             if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(control, out var factory) || factory is null)
-                throw new InvalidOperationException($"No handle factory registered for control '{control.GetType().Name}' (name='{control.Name}').");
+            {
+                if (vm.ControlType is not null && ControlActivatorRegistry.Shared.TryGetFactory(vm.ControlType) is { } fallback)
+                    factory = fallback;
+                else
+                    throw new InvalidOperationException($"No handle factory registered for control '{control.GetType().Name}' (name='{control.Name}').");
+            }
 
             nint hwnd = factory.CreateHandle(parentHwnd, control, registry);
             if (hwnd == 0)
