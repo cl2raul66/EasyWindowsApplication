@@ -207,8 +207,9 @@ internal sealed class MasterRouter
                 else if (win is AlternativeWindowImpl aw) aw.RaiseClosed();
             }
 
-            // Limpieza determinística del registry (Fase 1: evita memory leak)
+            // Limpieza determinística del registry (Fase 5: evita memory leak de controles)
             _registry.Unregister(hwnd);
+            _registry.UnregisterWindowControls(hwnd);
             _registry.UnregisterWindowByHwnd(hwnd);
             HandleRegistry.UnregisterRouter(hwnd);
             _windowBrushes.Remove(hwnd);

@@ -31,4 +31,6 @@ internal sealed class ViewModel : IViewModel
     internal string Name { get; set; } = "";
     internal IControl? Control { get; set; }
     internal ContentModel? SubContent { get; set; }
+    internal Type? ControlType { get; set; }
+    internal Action<IControl>? Configure { get; set; }
 }
