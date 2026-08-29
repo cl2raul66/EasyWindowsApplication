@@ -30,6 +30,9 @@ internal static partial class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool DestroyWindow(nint hWnd);
 
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    internal static partial nint FindResourceW(nint hModule, nint lpName, nint lpType);
+
     [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint LoadImageW(nint hInst, nint name, uint type, int cx, int cy, uint fuLoad);
 
@@ -43,6 +46,9 @@ internal static partial class Win32
 
     [LibraryImport("user32.dll")]
     internal static partial int GetSystemMetrics(int nIndex);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint SendMessageW(nint hWnd, uint Msg, nint wParam, nint lParam);
 
     [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint GetModuleHandleW(nint lpModuleName);
