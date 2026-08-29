@@ -8,30 +8,32 @@
     <PublishAot>true</PublishAot>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <ApplicationIcon>Sample.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
+    <PackageReference Include="RandAMediaLabGroup.EasyWindowsApplication" Version="*-*" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+  <!--<ItemGroup>
+    <PackageReference Include="RandAMediaLabGroup.EasyWindowsApplication.Generators" Version="*-*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\Raw\appsettings.json" />
+  </ItemGroup>-->
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj" />
+    <ProjectReference Include="..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
   </ItemGroup>
 
-  <Target Name="GenerateAppIcon" BeforeTargets="BeforeBuild"
-          Inputs="Resources\AppIcon\appicon.svg"
-          Outputs="$(IntermediateOutputPath)$(ApplicationIcon)">
+  <Target Name="GenerateAppIcon" BeforeTargets="BeforeBuild" Inputs="Resources\AppIcon\appicon.svg" Outputs="$(IntermediateOutputPath)$(ApplicationIcon)">
     <PropertyGroup>
       <_IcoGenDir>$(IntermediateOutputPath)IcoGen\</_IcoGenDir>
       <_IcoGenProj>$(_IcoGenDir)IcoGen.csproj</_IcoGenProj>
       <_IcoGenCs>$(_IcoGenDir)Program.cs</_IcoGenCs>
-      <_EasyWAProj>$(MSBuildProjectDirectory)\..\EasyWindowsApplication\EasyWindowsApplication.csproj</_EasyWAProj>
+      
       <_SvgAbs>$(MSBuildProjectDirectory)\Resources\AppIcon\appicon.svg</_SvgAbs>
       <_IcoAbs>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(ApplicationIcon)</_IcoAbs>
     </PropertyGroup>
@@ -40,7 +42,7 @@
     <MakeDir Directories="$(_IcoGenDir)" />
 
     <WriteLinesToFile File="$(_IcoGenCs)" Lines="using EasyWindowsApplication.Core%3B" Overwrite="true" />
-    <WriteLinesToFile File="$(_IcoGenCs)" Lines='IconGenerator.GenerateIco(@"$(_SvgAbs)", @"$(_IcoAbs)", new[] { 16, 32, 48, 256 })%3B' />
+    <WriteLinesToFile File="$(_IcoGenCs)" Lines="IconGenerator.GenerateIco(@&quot;$(_SvgAbs)&quot;, @&quot;$(_IcoAbs)&quot;, new[] { 16, 32, 48, 256 })%3B" />
 
     <ItemGroup>
       <_IcoProjLine Include="&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;" />
@@ -52,7 +54,7 @@
       <_IcoProjLine Include="  &lt;/PropertyGroup&gt;" />
       <_IcoProjLine Include="  &lt;ItemGroup&gt;" />
       <_IcoProjLine Include="    &lt;PackageReference Include=&quot;Svg.Skia&quot; Version=&quot;%2A&quot; /&gt;" />
-      <_IcoProjLine Include="    &lt;ProjectReference Include=&quot;$(_EasyWAProj)&quot; /&gt;" />
+      <_IcoProjLine Include="    &lt;PackageReference Include=&quot;RandAMediaLabGroup.EasyWindowsApplication&quot; Version=&quot;%2A-%2A&quot; /&gt;" />
       <_IcoProjLine Include="  &lt;/ItemGroup&gt;" />
       <_IcoProjLine Include="&lt;/Project&gt;" />
     </ItemGroup>

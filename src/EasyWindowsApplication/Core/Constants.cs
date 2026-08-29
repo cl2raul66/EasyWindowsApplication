@@ -49,7 +49,9 @@
     
     internal static class LR
     {
-        internal const uint DEFAULTCOLOR = 0x0040;
+        internal const uint DEFAULTCOLOR = 0x00000000;
+        internal const uint DEFAULTSIZE = 0x00000040;
+        internal const uint CREATEDIBSECTION = 0x00002000;
     }
     
     internal static class WM
@@ -69,6 +71,7 @@
         internal const uint QUIT = 0x0012;
         internal const uint SETTEXT = 0x000C;
         internal const uint GETTEXT = 0x000D;
+        internal const uint SETICON = 0x0080;
         internal const uint GETTEXTLENGTH = 0x000E;
         internal const uint COMMAND = 0x0111;
         internal const uint SYSCOMMAND = 0x0112;
