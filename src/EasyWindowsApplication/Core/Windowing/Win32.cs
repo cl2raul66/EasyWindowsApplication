@@ -5,6 +5,9 @@ namespace EasyWindowsApplication.Core.Windowing;
 
 internal static partial class Win32
 {
+    // ── System Color Indices (winuser.h) ──
+    internal const int COLOR_WINDOW = 5;
+
     [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     internal static partial ushort RegisterClassExW(ref WNDCLASSEXW lpWndClass);
 

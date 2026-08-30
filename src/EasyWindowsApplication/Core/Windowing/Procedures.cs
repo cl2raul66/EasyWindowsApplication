@@ -65,7 +65,7 @@ internal static class Procedures
             hInstance = hInstance,
             hIcon = hIconLarge,
             hCursor = 0,
-            hbrBackground = 0,
+            hbrBackground = (nint)(Win32.COLOR_WINDOW + 1),
             lpszMenuName = 0,
             lpszClassName = classNamePtr,
             hIconSm = hIconSmall
@@ -124,7 +124,7 @@ internal static class Procedures
             hInstance = hInstance,
             hIcon = 0,
             hCursor = 0,
-            hbrBackground = 0,
+            hbrBackground = (nint)(Win32.COLOR_WINDOW + 1),
             lpszMenuName = 0,
             lpszClassName = classNamePtr,
             hIconSm = 0

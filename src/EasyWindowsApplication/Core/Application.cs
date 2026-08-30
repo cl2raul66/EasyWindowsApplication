@@ -1,4 +1,5 @@
-﻿using EasyWindowsApplication.Common;
+﻿using System.Diagnostics;
+using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Core.LayoutEngine;
 using EasyWindowsApplication.Core.Windowing;
@@ -63,6 +64,11 @@ internal sealed class Application :
 
         ControlActivatorRegistry.EnsureInitialized();
         _router = new MasterRouter(_registry);
+
+        Debug.Assert(
+            UiDefaultsProvider.IsInitialized,
+            "UiDefaultsProvider debe inicializarse (UseWinApi / UseWpf / …) " +
+            "antes de registrar la clase de ventana.");
 
         foreach (var window in _windows)
         {
