@@ -11,17 +11,17 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <PackageReference Include="RandAMediaLabGroup.EasyWindowsApplication" Version="*-*" />
   </ItemGroup>
 
-  <!--<ItemGroup>
+  <ItemGroup>
     <PackageReference Include="RandAMediaLabGroup.EasyWindowsApplication.Generators" Version="*-*" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
+  </ItemGroup>-->
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\Raw\appsettings.json" />
-  </ItemGroup>-->
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj" />
