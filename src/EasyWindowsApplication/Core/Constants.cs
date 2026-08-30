@@ -92,6 +92,14 @@
         internal const uint MOUSEWHEEL = 0x020A;
         internal const uint ENTERSIZEMOVE = 0x0231;
         internal const uint EXITSIZEMOVE = 0x0232;
+        internal const uint SETTINGCHANGE = 0x001A;
+        internal const uint DPICHANGED = 0x02E0;
+    }
+
+    internal static class SPI
+    {
+        internal const uint GETNONCLIENTMETRICS = 0x0029;
+        internal const uint SETNONCLIENTMETRICS = 0x002A;
     }
 
     internal static class WMSIZE

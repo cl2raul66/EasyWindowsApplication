@@ -10,11 +10,79 @@ internal static class ControlProcedures
 
     internal static void SetInstance(nint hInstance) => _hInstance = hInstance;
 
+    internal static void InvalidateDefaultFont()
+    {
+        if (_defaultFont == 0) return;
+        Win32Controls.DeleteObject(_defaultFont);
+        _defaultFont = 0;
+    }
+
     internal static nint GetDefaultFont()
     {
-        if (_defaultFont == 0)
-            _defaultFont = Win32.GetStockObject(17); // DEFAULT_GUI_FONT
+        if (_defaultFont != 0) return _defaultFont;
+
+        var spec = UiDefaultsProvider.Current.DefaultFont;
+
+        if (spec.IsSystemTheme)
+        {
+            var ncm = new NONCLIENTMETRICS
+            {
+                cbSize = (uint)Marshal.SizeOf<NONCLIENTMETRICS>()
+            };
+            if (Win32Controls.SystemParametersInfoW(SPI.GETNONCLIENTMETRICS, ncm.cbSize, ref ncm, 0))
+            {
+                _defaultFont = Win32Controls.CreateFontIndirectW(ref ncm.lfMessageFont);
+                if (_defaultFont != 0) return _defaultFont;
+            }
+        }
+
+        _defaultFont = CreateFontFromSpec(spec);
         return _defaultFont;
+    }
+
+    private static nint CreateFontFromSpec(FontSpec spec)
+    {
+        var lf = new LOGFONT
+        {
+            lfHeight = -(int)(spec.Size * GetDpiForSystemSafe() / 72f),
+            lfWeight = spec.Weight == FontWeight.Bold ? 700 : 400,
+            lfItalic = spec.Style == FontStyle.Italic ? (byte)1 : (byte)0,
+            lfCharSet = 1, // DEFAULT_CHARSET
+            lfQuality = 5, // CLEARTYPE_QUALITY
+            lfFaceName = spec.Family ?? "Segoe UI"
+        };
+        var h = Win32Controls.CreateFontIndirectW(ref lf);
+        if (h != 0) return h;
+        // Ultimate fallback: GetStockObject DEFAULT_GUI_FONT (17)
+        return Win32Controls.GetStockObject(17);
+    }
+
+    private static int GetDpiForSystemSafe()
+    {
+        try { return (int)Win32Controls.GetDpiForSystem(); } catch { }
+        try
+        {
+            nint hdc = Win32Controls.GetDC(0);
+            if (hdc != 0)
+            {
+                int dpi = Win32Controls.GetDeviceCaps(hdc, LOGPIXELS.LOGPIXELSY);
+                Win32Controls.ReleaseDC(0, hdc);
+                if (dpi > 0) return dpi;
+            }
+        }
+        catch { }
+        return 96;
+    }
+
+    private static int GetDpiForWindowSafe(nint hwnd)
+    {
+        try
+        {
+            uint dpi = Win32Controls.GetDpiForWindow(hwnd);
+            if (dpi != 0) return (int)dpi;
+        }
+        catch { }
+        return GetDpiForSystemSafe();
     }
 
     internal static nint CreateControl(

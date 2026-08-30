@@ -196,6 +196,36 @@ internal sealed class MasterRouter
                 return 0;
             }
         }
+        else if (msg == WM.SETTINGCHANGE)
+        {
+            // SPI_SETNONCLIENTMETRICS sent when system font/theme changes
+            if ((uint)wParam == SPI.SETNONCLIENTMETRICS)
+            {
+                try { Win32ControlsModule.Backend.ControlProcedures.InvalidateDefaultFont(); } catch { }
+                nint newFont = 0;
+                try { newFont = Win32ControlsModule.Backend.ControlProcedures.GetDefaultFont(); } catch { }
+                if (newFont != 0)
+                {
+                    foreach (var ch in _registry.AllControlHandles())
+                    {
+                        try { Win32.SendMessageW(ch, WM.SETFONT, newFont, 1); } catch { }
+                    }
+                }
+            }
+        }
+        else if (msg == WM.DPICHANGED)
+        {
+            try { Win32ControlsModule.Backend.ControlProcedures.InvalidateDefaultFont(); } catch { }
+            nint newFont = 0;
+            try { newFont = Win32ControlsModule.Backend.ControlProcedures.GetDefaultFont(); } catch { }
+            if (newFont != 0)
+            {
+                foreach (var ch in _registry.AllControlHandles())
+                {
+                    try { Win32.SendMessageW(ch, WM.SETFONT, newFont, 1); } catch { }
+                }
+            }
+        }
 
         if (msg == WM.DESTROY)
         {
