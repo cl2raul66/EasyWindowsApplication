@@ -145,4 +145,10 @@ internal sealed class HandleRegistry
 
     internal IBaseWindow? GetWindow(string name)
         => _windowByName.TryGetValue(name, out var w) ? w : null;
+
+    internal IEnumerable<nint> AllControlHandles()
+    {
+        foreach (var kv in _hwndToControl)
+            yield return kv.Key;
+    }
 }
