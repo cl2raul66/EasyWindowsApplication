@@ -265,10 +265,13 @@ internal sealed class MasterRouter
         // Handle WM_ERASEBKGND — paint window background, then LayoutGroup backgrounds on top
         if (msg == WM.ERASEBKGND)
         {
+            bool painted = false;
+
             if (_windowBrushes.TryGetValue(hwnd, out var windowBrush))
             {
                 Win32.GetClientRect(hwnd, out RECT rect);
                 Win32.FillRect(wParam, ref rect, windowBrush);
+                painted = true;
             }
 
             if (_layoutGroupBackgrounds.TryGetValue(hwnd, out var backgrounds))
@@ -288,9 +291,10 @@ internal sealed class MasterRouter
                     Win32.FillRect(wParam, ref r, brush);
                     Win32.DeleteObject(brush);
                 }
+                painted = true;
             }
 
-            return 1;
+            if (painted) return 1;
         }
 
         // Handle WM_CTLCOLOR* — return control background brush
