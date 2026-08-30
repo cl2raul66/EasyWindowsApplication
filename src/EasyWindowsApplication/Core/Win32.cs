@@ -4,6 +4,12 @@ namespace EasyWindowsApplication.Core;
 
 internal static partial class Win32
 {
+    // ── System Color Indices (winuser.h) ──
+    internal const int COLOR_WINDOW = 5;
+    internal const int COLOR_WINDOWTEXT = 8;
+    internal const int COLOR_BTNFACE = 15;
+    internal const int COLOR_BTNTEXT = 18;
+
     // ── Message Loop ──
     [LibraryImport("user32.dll", SetLastError = true)]
     internal static partial int GetMessageW(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax);

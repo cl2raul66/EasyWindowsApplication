@@ -23,10 +23,10 @@ internal abstract class CoreUiDefaults : IDefaultUiValues
     public abstract FontSpec DefaultFont { get; }
 
     public virtual Color DefaultForeground
-        => ColorFromSysColor(Win32.GetSysColor(COLOR_WINDOWTEXT));
+        => ColorFromSysColor(Win32.GetSysColor(Win32.COLOR_WINDOWTEXT));
 
     public virtual Color DefaultBackground
-        => ColorFromSysColor(Win32.GetSysColor(COLOR_WINDOW));
+        => ColorFromSysColor(Win32.GetSysColor(Win32.COLOR_WINDOW));
 
     public virtual Thickness DefaultPadding => new(3);
     public virtual int DefaultControlSpacing => 6;
@@ -43,10 +43,4 @@ internal abstract class CoreUiDefaults : IDefaultUiValues
             (byte)(colorRef & 0xFF),
             (byte)((colorRef >> 8) & 0xFF),
             (byte)((colorRef >> 16) & 0xFF));
-
-    // SysColor indices (winuser.h)
-    private const int COLOR_WINDOW = 5;
-    private const int COLOR_WINDOWTEXT = 8;
-    private const int COLOR_BTNFACE = 15;
-    private const int COLOR_BTNTEXT = 18;
 }
