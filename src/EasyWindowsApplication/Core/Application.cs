@@ -51,6 +51,9 @@ internal sealed class Application :
 
     public void Initialize()
     {
+        // 1. Registrar defaults PRIMERO (antes de cualquier control o HFONT)
+        try { UiDefaultsProvider.Set(new Win32ControlsModule.Backend.Win32UiDefaults()); } catch { }
+
         var icc = new INITCOMMONCONTROLSEX
         {
             dwSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<INITCOMMONCONTROLSEX>(),

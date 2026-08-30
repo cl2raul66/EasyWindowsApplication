@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 using EasyWindowsApplication.Core.LayoutEngine;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Win32ControlsModule.Backend;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using static EasyWindowsApplication.Core.Win32;
 
@@ -210,14 +211,19 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
         }
     }
 
+    private static nint GetFallbackFont()
+    {
+        try { return ControlProcedures.GetDefaultFont(); } catch { return GetStockObject(17); }
+    }
+
     protected (int Width, int Height) MeasureText(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
 
         nint hdc = GetDC(Hwnd);
-        nint hfont = SendMessageW(Hwnd, WM.GETFONT, 0, 0);
-        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetStockObject(17));
+        nint hfont = Hwnd != 0 ? SendMessageW(Hwnd, WM.GETFONT, 0, 0) : 0;
+        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetFallbackFont());
         RECT rect = default;
         DrawTextW(hdc, text, -1, ref rect, DT.CALCRECT | DT.SINGLELINE);
         SelectObject(hdc, oldFont);
@@ -231,8 +237,8 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
             return (20, 24);
 
         nint hdc = GetDC(Hwnd);
-        nint hfont = SendMessageW(Hwnd, WM.GETFONT, 0, 0);
-        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetStockObject(17));
+        nint hfont = Hwnd != 0 ? SendMessageW(Hwnd, WM.GETFONT, 0, 0) : 0;
+        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetFallbackFont());
 
         GetTextExtentPoint32W(hdc, text, text.Length, out SIZE size);
 
@@ -247,8 +253,8 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
             return (20, 24);
 
         nint hdc = GetDC(Hwnd);
-        nint hfont = SendMessageW(Hwnd, WM.GETFONT, 0, 0);
-        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetStockObject(17));
+        nint hfont = Hwnd != 0 ? SendMessageW(Hwnd, WM.GETFONT, 0, 0) : 0;
+        nint oldFont = SelectObject(hdc, hfont != 0 ? hfont : GetFallbackFont());
 
         int totalWidth = 0;
         int maxHeight = 0;
