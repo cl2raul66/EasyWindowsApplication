@@ -28,13 +28,15 @@ WindowsApplication.Resources(...).Layout(...).Initialize();
 - Cuando se pone `.` despues de `Behavior(...)`, el IntelliSense debe mostrar `Initialize`.
 - Cuando se pone `.` despues de `Initialize()`, el IntelliSense no debe recomendar nada.
 
+> **Pipeline `Initialize()`:** `Application.Initialize()` ejecuta en orden: `1) UiDefaultsProvider.Set(new Win32UiDefaults())` → `2) InitCommonControlsEx(STANDARD_CLASSES)` → `3) ControlActivatorRegistry.EnsureInitialized()` → `4) new MasterRouter(registry)` → `5) foreach window: CreateMainWindow/CreateAlternativeWindow + MaterializeContent + RegisterWindow` → `6) Behavior(registry)` → `7) Procedures.RunMessageLoop()`. `UiDefaults` debe ir primero porque `GetDefaultFont`/`MeasureContent` lo leen con DPI scaling.
+
 # Flujo en **Resources**
 ```csharp
 WindowsApplication
     .Resources(rd =>
     {
         rd.Setting(st => st
-            .UseWinApi()
+            .UseWinApi() // gate solo compile-time (EAWIN002); runtime es no-op → UiDefaultsProvider.Set(Win32UiDefaults) en Application.Initialize()
             .AppConfigFile(nm => nm.Path("./appsettings.json").WithAutoSave())
         );
         rd.Services(sr => sr.Singleton<IAppSettingsProvider, RegistrySettingsProvider>());
@@ -46,7 +48,7 @@ WindowsApplication
             .Dimensions(420, 280)
             .Content(c => c
                 .Children(ch => ch
-                    .View<Button>(btn => btn
+                    .View<IButton>(btn => btn // IButton : IControl → requiere UseWinApi() o EAWIN002
                         .Name("BtnIncrement")
                         .Text("Click me")
                     )
@@ -56,6 +58,8 @@ WindowsApplication
     )
     .Initialize();
 ```
+
+> **Nota `UseWinApi()` vs `UiDefaults`:** `UseWinApi()` solo afecta al **Source Generator** (`EAWIN002`). En runtime es `SettingsBuilderImpl.UseWinApi() => this` (no-op). El mecanismo runtime real es `Core/UiDefaults`: `Application.Initialize()` llama `UiDefaultsProvider.Set(new Win32UiDefaults())` antes de `InitCommonControlsEx` y de crear HWNDs. `ControlProcedures.GetDefaultFont()` y `Button.MeasureContent()` leen `PreferredHeight`/`FontSpec` vía `UiDefaultsProvider.Current` con DPI scaling `96→dpiActual` (ver `CONTRIBUTING.md` § Arquitectura).
 
 # Flujo en **Layout**
 ## Una ventana sin componentes
@@ -104,7 +108,7 @@ WindowsApplication
             .Content(
                 c => c
                     .Children(ch => ch
-                        .View<ILabel>(lb => lb.Name("LbMsg").Text("El mensage es:"))
+                        .View<ILabel>(lb => lb.Name("LbMsg").Text("El mensaje es:"))
                     )
             )
         )
@@ -113,6 +117,8 @@ WindowsApplication
 ```
 
 ## Una ventana con un control personalizado
+> Usa el 3er overload `IChildrenBuilder.View(Action<IViewBuilder>)` para controles custom sin tipo genérico (`View<T> sealed class` es para `T : IControl`; `IViewBuilder` es para contenido arbitrario con `Padding/Spacing/Children`).
+
 ```csharp
 WindowsApplication.Layout(ly => ly
     .Window(iw =>  iw
@@ -121,7 +127,7 @@ WindowsApplication.Layout(ly => ly
         .Dimensions(800, 600)
         .Content(c => c
             .Children(ch => ch
-                .View(cc => cc
+                .View(cc => cc // Action<IViewBuilder> — control custom (no IControl genérico)
                     .Name("CustomCtrl")
                     .Content(c1 => c1
                         .Padding(8)
@@ -137,6 +143,8 @@ WindowsApplication.Layout(ly => ly
     )
     .Initialize();
 ```
+
+> `IChildrenBuilder` tiene 3 overloads: `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` (ambos con `View<T> sealed class where T : class, IControl`) + `View(Action<IViewBuilder>)` para este caso.
 
 # Flujo en **Behavior**
 ```csharp

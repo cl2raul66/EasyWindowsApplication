@@ -88,17 +88,17 @@ El framework incluye **dos plantillas** oficiales:
    dotnet new install src\ProjectTemplates\
    ```
 
-> NOTA: Si tienes previamente instalada una o varias de estas plantillas y existe una actualizacion, se recomienda desintalar todas y volver a instalar.
+> NOTA: Si tienes previamente instalada una o varias de estas plantillas y existe una actualización, se recomienda desinstalar todas y volver a instalar.
 
-  **Desintalaion de plantillas**
+  **Desinstalación de plantillas**
   ```bash
    dotnet new uninstall RandAMediaLabGroup.EasyWindowsApplication.Templates
 
    dotnet new uninstall src\ProjectTemplates\EasyWinApp
    dotnet new uninstall src\ProjectTemplates\SimpleEasyWinApp
 
-   // Puedes desintalar todas las plantillas en un solo paso
-   dotnet new uninstall src\ProjectTemplates\
+    // Puedes desinstalar todas las plantillas en un solo paso
+    dotnet new uninstall src\ProjectTemplates\
    ```
 
 3. **Crea un nuevo proyecto:**
@@ -153,14 +153,17 @@ WindowsApplication
 EasyWindowsApplication/src/
 ├── EasyWindowsApplication/              # Framework principal
 │   ├── Core/                            # Fases Fluent API, Resources, Behavior, MasterRouter (100% internal)
-│   │   ├── Windowing/                   # WindowImpl, AlternativeWindowImpl, Procedures (HWND-based WndProc)
-│   │   └── LayoutEngine/                # ILayoutBuilder, Grid/Stack/Dock layouts, ViewBuilder
-│   ├── Common/                          # ControlActivatorRegistry + ControlActivatorGenerator (IIncrementalGenerator, InternalsVisibleTo)
-│   ├── Share/                           # API pública usuario (IWindow, ILayoutBuilder, View<T> struct, Color, Thickness)
-│   │   └── Infrastructure/              # Técnicos [EditorBrowsable(Never)]: ControlAccess
-│   ├── Win32ControlsModule/             # IButton, ILabel... + Backend (Button, Label → Core.ControlBase)
-│   └── WindowsApplication.cs            # Punto de entrada Fluent API (devuelve Share/IApplicationLayoutPhase)
-├── EasyWindowsApplication.Generators/   # Source Generator (FQN Share.* + GetTypeByMetadataName)
+│   │   ├── Constants.cs / Entities.cs / Win32.cs  # Interop Win32 central ([LibraryImport], MSG/POINT/WM/WS/…)
+│   │   ├── Procedures.cs                # RunMessageLoop (GetMessageW/Translate/Dispatch)
+│   │   ├── UiDefaults/                  # IDefaultUiValues + UiDefaultsProvider + FontSpec (DPI scaling)
+│   │   ├── Windowing/                   # WindowImpl, AlternativeWindowImpl, Procedures.CreateMainWindow/Alternative, Win32/Entities/Enums, UserControl
+│   │   └── LayoutEngine/                # ILayoutBuilder, Grid/Stack/Dock layouts, ViewBuilder, ContentBuilder, ILayoutStrategy
+│   ├── Common/                          # ControlActivatorRegistry + IControlActivator + INativeHandleFactory + Win32Helpers (HIWORD/LOWORD)
+│   ├── Share/                           # API pública usuario (IBaseWindow→IWindow/IAlternativeWindow/IView, IWindowConfig, IChildrenBuilder con 3 overloads View<T>, View<T> sealed class + ViewBase<TSelf>, Color/Thickness/LayoutLength/GridDefinitions)
+│   │   └── Infrastructure/              # Técnicos [EditorBrowsable(Never)]: ControlAccess (único tipo aquí)
+│   ├── Win32ControlsModule/             # Frontend: IButton/ILabel/… (30 interfaces) + Backend: Button/Label→Core.ControlBase + Win32UiDefaults/Win32NativeHandleFactory/ControlProcedures (GDI/User32)
+│   └── WindowsApplication.cs            # Punto de entrada Fluent API (devuelve Share/IApplicationLayoutPhase, static ctor → EnsureInitialized)
+├── EasyWindowsApplication.Generators/   # Source Generators (EasyBehaviorGenerator EAWIN001/EAWIN002 + ControlActivatorGenerator)
 └── ProjectTemplates/
     ├── EasyWinApp/                      # Plantilla `dotnet new easywinapp`
     └── SimpleEasyWinApp/                # Plantilla `dotnet new simpleeasywinapp`
@@ -168,9 +171,15 @@ EasyWindowsApplication/src/
 
 ## Cómo funciona
 
-El **Source Generator** `EasyBehaviorGenerator` analiza tu `Layout` en tiempo de compilación: cada `.Name("BtnGuardar")` dentro de un `View<T>` (struct `View<T>` wrapper con `Action<View<T>>` + `Func<View<T>,View<T>>`) o `Window` genera una propiedad tipada (`bh.BtnGuardar`) en `Behavior`. En runtime, el `MasterRouter` usa un trampolín `[UnmanagedCallersOnly]` con lookup HWND-based (`HandleRegistry.ConcurrentDictionary`) y despacha eventos tipados (`Click`, etc.); `ControlActivatorRegistry` en `Common/` (poblado en `Application.Initialize()` vía `ControlActivatorGenerator` — `IIncrementalGenerator` con `InternalsVisibleTo`, MEF compile-time) elimina el acoplamiento `Core → Win32Controls` sin `ModuleInitializer` (`CA2255`).
+El **Source Generator** `EasyBehaviorGenerator` analiza tu `Layout` en tiempo de compilación: cada `.Name("BtnGuardar")` dentro de un `View<T>` (`public sealed class View<T> where T : class, IControl` con 3 overloads `Action<View<T>>` + `Func<View<T>,View<T>>` + `View(Action<IViewBuilder>)` para controles custom) o `Window`/`AlternativeWindow` genera una propiedad tipada (`bh.BtnGuardar`) en `Behavior`. En runtime, `Application.Initialize()` registra `UiDefaultsProvider.Set(new Win32UiDefaults())` antes de crear HWNDs — `Button.MeasureContent` y `ControlProcedures.GetDefaultFont` consumen esos defaults con DPI scaling (`96→dpiActual`); el `MasterRouter` (376 líneas) usa un trampolín `[UnmanagedCallersOnly]` con lookup HWND-based (`HandleRegistry.ConcurrentDictionary<nint,MasterRouter>` + 5 diccionarios adicionales) y despacha el ciclo completo `CLOSE/SIZE/MOVE/SCROLL/DPI/ERASEBKGND/CTLCOLOR/DESTROY` + eventos tipados (`WM.COMMAND→Click`); `Core/Procedures.RunMessageLoop` (`GetMessageW/Translate/Dispatch`) está separado de `Win32ControlsModule/Backend/Procedures.ControlProcedures` (capa GDI/User32); `ControlActivatorRegistry` en `Common/` (`Register<T>/Create<T>` + `RegisterFactory/TryGetFactory` + `INativeHandleFactory`, poblado en `Application.Initialize()` vía `ControlActivatorGenerator` — `IIncrementalGenerator` con `InternalsVisibleTo`, MEF compile-time) elimina el acoplamiento `Core → Win32Controls` sin `ModuleInitializer` (`CA2255`).
 
-Para usar los controles nativos del módulo Win32, activa `UseWinApi()` en Resources. **Es obligatorio**: si declaras un control (`View<T>`) sin él, el compilador lo rechaza con `EAWIN002` y no se genera ningún accessor:
+Para usar los controles nativos del módulo Win32, activa `UseWinApi()` en Resources. **Es obligatorio y solo compile-time** (`EAWIN002`): `SettingsBuilderImpl.UseWinApi()` retorna `this` (no-op en runtime); el Source Generator lo usa para decidir si emite accessors tipados. El mecanismo **runtime** real es `Core/UiDefaults` (`UiDefaultsProvider.Set(new Win32UiDefaults())` en `Application.Initialize()`):
+
+```text
+Win32UiDefaults (IDefaultUiValues) → UiDefaultsProvider.Set() → ControlProcedures.GetDefaultFont() / Button.MeasureContent() (DPI 96→actual)
+```
+
+Si declaras un control (`View<T>` donde `T : IControl`) sin `UseWinApi()`, el compilador lo rechaza con `EAWIN002` y no se genera ningún accessor:
 
 ```csharp
 WindowsApplication
