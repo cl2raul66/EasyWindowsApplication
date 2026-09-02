@@ -431,8 +431,10 @@ FodyWeavers.xsd
 # Generated .ico files from template builds
 src/ProjectTemplates/**/*.ico
 
-# Plan files
-plan-*.md
+# Plan, idea, proposal files
+plan*
+proposal*
+idea*
 
 # OpenCode .ignore file
 .ignore
