@@ -38,4 +38,13 @@ internal sealed class LayoutBuilderImpl : ILayoutBuilder, ILayoutBuilderAfterWin
         _app.AddWindow(model);
         return this;
     }
+
+    public ILayoutBuilderAfterWindow AlternativeWindow<T>(Action<IWindowConfig> configure) where T : class, IViewSurface
+    {
+        var model = new WindowModel { IsAlternative = true, SurfaceType = typeof(T) };
+        var config = new WindowConfigBuilder(model);
+        configure(config);
+        _app.AddWindow(model);
+        return this;
+    }
 }

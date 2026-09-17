@@ -48,6 +48,12 @@ internal sealed class WindowConfigBuilder : IWindowConfig
         return this;
     }
 
+    public IWindowConfig SystemTray(Action<ISystemTray> configure)
+    {
+        _model.SystemTrayConfigure = configure;
+        return this;
+    }
+
     public IWindowContentConfig Content<TLayout>(Action<IContentBuilder> configure) where TLayout : IStackLayout
         => RegisterContent(configure);
 

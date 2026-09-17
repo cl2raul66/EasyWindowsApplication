@@ -1,5 +1,6 @@
 ﻿namespace EasyWindowsApplication.Core;
 
+using System.Globalization;
 using EasyWindowsApplication.Share;
 
 internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
@@ -33,6 +34,11 @@ internal sealed class SettingsBuilderImpl : ISettingsBuilder
     {
         configure(new AppConfigFileBuilderImpl(AppConfig));
         return this;
+    }
+
+    public ISettingsBuilder Culture(CultureInfo cultureInfo)
+    {
+        throw new NotImplementedException();
     }
 }
 

@@ -1,5 +1,4 @@
 ﻿using EasyWindowsApplication.Share;
-using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core;
 
@@ -17,6 +16,8 @@ internal sealed class WindowModel
     internal bool IsAlternative { get; set; }
     internal IContentModel? Content { get; set; }
     internal WindowsScroll? ScrollConfig { get; set; }
+    internal Action<ISystemTray>? SystemTrayConfigure { get; set; }
+    internal Type? SurfaceType { get; set; }
 }
 
 internal sealed class ContentModel : IContentModel
@@ -29,8 +30,8 @@ internal sealed class ContentModel : IContentModel
 internal sealed class ViewModel : IViewModel
 {
     internal string Name { get; set; } = "";
-    internal IControl? Control { get; set; }
+    internal IViewSurface? Control { get; set; }
     internal ContentModel? SubContent { get; set; }
     internal Type? ControlType { get; set; }
-    internal Action<IControl>? Configure { get; set; }
+    internal Action<IViewSurface>? Configure { get; set; }
 }

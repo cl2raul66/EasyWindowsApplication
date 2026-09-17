@@ -17,6 +17,7 @@ public interface IWindow : IBaseWindow
     void Minimize();
     void Restore();
     void Focus();
+    void Visibility(bool visible);
 
     (int X, int Y) ScrollOffset { get; }
     void ScrollTo(int x, int y);

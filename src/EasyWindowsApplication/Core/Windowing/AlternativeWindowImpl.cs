@@ -109,6 +109,11 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
     }
     public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
     public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
+    public void Visibility(bool visible)
+    {
+        if (visible) Show();
+        else Hide();
+    }
 
     internal void RaiseLoaded()
     {
@@ -168,7 +173,11 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
                 vm.Control = control;
             }
 
-            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(control, out var factory) || factory is null)
+            // Las superficies sin HWND (IMenu, IMenuItem) no se materializan aquí;
+            // las materializa MenuSurface (Fase 1/2).
+            if (control is not IControl nativeControl) continue;
+
+            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(nativeControl, out var factory) || factory is null)
             {
                 if (vm.ControlType is not null && ControlActivatorRegistry.Shared.TryGetFactory(vm.ControlType) is { } fallback)
                     factory = fallback;
@@ -176,7 +185,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
                     throw new InvalidOperationException($"No handle factory registered for control '{control.GetType().Name}' (name='{control.Name}').");
             }
 
-            nint hwnd = factory.CreateHandle(parentHwnd, control, registry);
+            nint hwnd = factory.CreateHandle(parentHwnd, nativeControl, registry);
             if (hwnd == 0)
                 throw new InvalidOperationException($"CreateHandle failed for control '{control.Name}' ({control.GetType().Name})");
 

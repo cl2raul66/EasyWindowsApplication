@@ -154,4 +154,67 @@ internal static class Procedures
 
         return hwnd;
     }
+
+    internal static nint LoadAppIcon()
+    {
+        nint hInstance = Win32.GetModuleHandleW(0);
+        int iconResId = ResolveIconResourceId(hInstance);
+        nint hIcon = Win32.LoadImageW(
+            hInstance, (nint)iconResId, IMAGE.ICON,
+            0, 0,
+            LR.DEFAULTSIZE | LR.CREATEDIBSECTION);
+        if (hIcon == 0)
+            hIcon = Win32.LoadIconW(0, (nint)RT_MAINICON);
+        return hIcon;
+    }
+
+    internal static unsafe nint CreateHiddenWindow(MasterRouter router)
+    {
+        nint hInstance = Win32.GetModuleHandleW(0);
+
+        string className = $"EasyWinTray_{Guid.NewGuid():N}";
+        nint classNamePtr = Marshal.StringToHGlobalUni(className);
+
+        nint wndProcPtr = (nint)(delegate* unmanaged[Stdcall]<nint, uint, nint, nint, nint>)&MasterRouter.WndProcTrampoline;
+
+        var wndClass = new WNDCLASSEXW
+        {
+            cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(),
+            style = CS.HREDRAW | CS.VREDRAW | CS.DBLCLKS,
+            lpfnWndProc = wndProcPtr,
+            cbClsExtra = 0,
+            cbWndExtra = 0,
+            hInstance = hInstance,
+            hIcon = 0,
+            hCursor = 0,
+            hbrBackground = 0,
+            lpszMenuName = 0,
+            lpszClassName = classNamePtr,
+            hIconSm = 0
+        };
+
+        ushort atom = Win32.RegisterClassExW(ref wndClass);
+        if (atom == 0)
+        {
+            Marshal.FreeHGlobal(classNamePtr);
+            throw new InvalidOperationException($"RegisterClassExW failed: {Marshal.GetLastWin32Error()}");
+        }
+
+        nint titlePtr = Marshal.StringToHGlobalUni("EasyWinTray");
+        nint hwnd = Win32.CreateWindowExW(
+            0, classNamePtr, titlePtr,
+            WS.POPUP,
+            0, 0, 0, 0,
+            0, 0, hInstance, 0);
+
+        Marshal.FreeHGlobal(classNamePtr);
+        Marshal.FreeHGlobal(titlePtr);
+
+        if (hwnd == 0)
+            throw new InvalidOperationException($"CreateWindowExW failed: {Marshal.GetLastWin32Error()}");
+
+        HandleRegistry.RegisterRouter(hwnd, router);
+
+        return hwnd;
+    }
 }

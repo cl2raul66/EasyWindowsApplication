@@ -8,4 +8,5 @@ public interface IAlternativeWindow : IBaseWindow
     int Width { get; set; }
     int Height { get; set; }
     WindowPositionOnScreen PositionMode { get; set; }
+    void Visibility(bool visible);
 }

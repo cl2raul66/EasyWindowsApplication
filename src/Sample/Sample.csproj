@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj" />
+    <ProjectReference Include="..\EasyWindowsApplication.Generators\EasyWindowsApplication.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\EasyWindowsApplication\EasyWindowsApplication.csproj" />
   </ItemGroup>
 

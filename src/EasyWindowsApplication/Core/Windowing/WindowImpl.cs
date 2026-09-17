@@ -96,6 +96,11 @@ internal sealed class WindowImpl : IWindow
     public void Show() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
     public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
     public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
+    public void Visibility(bool visible)
+    {
+        if (visible) Show();
+        else Hide();
+    }
 
     public void Center()
     {
@@ -444,8 +449,12 @@ internal sealed class WindowImpl : IWindow
                 vm.Control = control;
             }
 
+            // Las superficies sin HWND (IMenu, IMenuItem) no se materializan aquí;
+            // las materializa MenuSurface (Fase 1/2).
+            if (control is not IControl nativeControl) continue;
+
             // Resolver factory por tipo concreto/interfaz
-            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(control, out var factory) || factory is null)
+            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(nativeControl, out var factory) || factory is null)
             {
                 if (vm.ControlType is not null && ControlActivatorRegistry.Shared.TryGetFactory(vm.ControlType) is { } fallback && fallback is not null)
                     factory = fallback;
@@ -453,7 +462,7 @@ internal sealed class WindowImpl : IWindow
                     throw new InvalidOperationException($"No handle factory registered for control '{control.GetType().Name}' (name='{control.Name}'). Registre un INativeHandleFactory para ese tipo.");
             }
 
-            nint hwnd = factory.CreateHandle(parentHwnd, control, registry);
+            nint hwnd = factory.CreateHandle(parentHwnd, nativeControl, registry);
             if (hwnd == 0)
                 throw new InvalidOperationException($"CreateHandle failed for control '{control.Name}' ({control.GetType().Name})");
 

@@ -28,7 +28,7 @@ WindowsApplication.Resources(...).Layout(...).Initialize();
 - Cuando se pone `.` despues de `Behavior(...)`, el IntelliSense debe mostrar `Initialize`.
 - Cuando se pone `.` despues de `Initialize()`, el IntelliSense no debe recomendar nada.
 
-> **Pipeline `Initialize()`:** `Application.Initialize()` ejecuta en orden: `1) UiDefaultsProvider.Set(new Win32UiDefaults())` → `2) InitCommonControlsEx(STANDARD_CLASSES)` → `3) ControlActivatorRegistry.EnsureInitialized()` → `4) new MasterRouter(registry)` → `5) foreach window: CreateMainWindow/CreateAlternativeWindow + MaterializeContent + RegisterWindow` → `6) Behavior(registry)` → `7) Procedures.RunMessageLoop()`. `UiDefaults` debe ir primero porque `GetDefaultFont`/`MeasureContent` lo leen con DPI scaling.
+> **Pipeline `Initialize()`:** `Application.Initialize()` ejecuta en orden: `1) UiDefaultsProvider.Set(new Win32UiDefaults())` → `2) InitCommonControlsEx(STANDARD_CLASSES)` → `3) ControlActivatorRegistry.EnsureInitialized()` → `4) new MasterRouter(registry)` → `5) foreach window: RegisterMain (CreateMainWindow + MaterializeContent + RegisterWindow + SetupSystemTrayIcon si hay `.SystemTray(...)`) o RegisterAlternative (rama `IMenu`: `MenuSurface` sin HWND + `EnsureMaterialized`; resto: CreateAlternativeWindow + MaterializeContent)` → `6) Behavior(registry + MainHwnd)` → `7) RaiseLaunched()` → `8) Procedures.RunMessageLoop()`. `UiDefaults` debe ir primero porque `GetDefaultFont`/`MeasureContent` lo leen con DPI scaling.
 
 # Flujo en **Resources**
 ```csharp
@@ -117,7 +117,7 @@ WindowsApplication
 ```
 
 ## Una ventana con un control personalizado
-> Usa el 3er overload `IChildrenBuilder.View(Action<IViewBuilder>)` para controles custom sin tipo genérico (`View<T> sealed class` es para `T : IControl`; `IViewBuilder` es para contenido arbitrario con `Padding/Spacing/Children`).
+> Usa el 3er overload `IChildrenBuilder.View(Action<IViewBuilder>)` para controles custom sin tipo genérico (`View<T> sealed class` es para `T : IViewSurface` — `IControl` para controles Win32 con HWND, `IMenu`/`IMenuItem` para superficies sin HWND; `IViewBuilder` es para contenido arbitrario con `Padding/Spacing/Children`).
 
 ```csharp
 WindowsApplication.Layout(ly => ly
@@ -144,7 +144,42 @@ WindowsApplication.Layout(ly => ly
     .Initialize();
 ```
 
-> `IChildrenBuilder` tiene 3 overloads: `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` (ambos con `View<T> sealed class where T : class, IControl`) + `View(Action<IViewBuilder>)` para este caso.
+> `IChildrenBuilder` tiene 4 overloads: `View<T>()` (superficie anónima, sin `Name` ni lookup `bh.*` — p. ej. separadores) + `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` (ambos con `View<T> sealed class where T : class, IViewSurface`) + `View(Action<IViewBuilder>)` para este caso.
+
+## Superficies de menú (`IMenu` / `IMenuItem`)
+> `AlternativeWindow<T>` acepta cualquier `IViewSurface`. Con `T = IMenu` no se crea HWND: `Application.RegisterAlternative` construye un `MenuSurface` (motor `HMENU` Win32 puro, `Core/Menus/Win32MenuEngine`) y lo registra por nombre. Los items se declaran con `View<IMenuItem>` (`Name` + `Text` + `IsEnabled` + `IsChecked` + `OnClick` + submenú vía `SubContent`); se materializan una vez (`EnsureMaterialized`) y se registran para `bh.*`.
+
+```csharp
+WindowsApplication.Layout(ly => ly
+    .AlternativeWindow<IMenu>(m => m
+        .Name("MySystemTrayMenu")
+        .Content(c => c
+            .Children(ch =>
+            {
+                ch.View<IMenuItem>(i => i.Name("Mi1").Text("Mostrar ventana principal"));
+                ch.View<IMenuItem>(i => i.Name("Mi2").Text("Salir"));
+            })
+        )
+    )
+)
+.Initialize();
+```
+
+## SystemTray en ventana (config-time)
+> `.SystemTray(...)` vive en `IWindowConfig` y recibe `Action<ISystemTray>`: `Tooltip` (+ balloon con `TooltipShow`/`TooltipHide`) y suscripción de triggers. En `RegisterMain`, `SetupSystemTrayIcon` crea el broker (ventana oculta + `Shell_NotifyIconW` + `NOTIFYICON_VERSION_4`), aplica la configuración, añade el icono y registra la superficie como `"SystemTray"`.
+
+```csharp
+WindowsApplication.Layout(ly => ly
+    .Window(iw => iw
+        .SystemTray(st => st.Tooltip("Mi app"))
+        .Name("MainWindow")
+        .Title("Easy Win App")
+        .Dimensions(420, 280)
+        .Content(...)
+    )
+)
+.Initialize();
+```
 
 # Flujo en **Behavior**
 ```csharp
@@ -173,3 +208,50 @@ WindowsApplication
     )
     .Initialize();
 ```
+
+## SystemTray y menús en **Behavior**
+> El generator emite accessors tipados: `IControl` → `ControlAccess.Get<T>`, `IBaseWindow` → `GetWindow<T>`, `IViewSurface` (menús/items) → `GetSurface<T>`. `bh.SystemTray` es miembro real de `IBehaviorBuilder` (nombre reservado, lazy). Triggers tipados sin nombres de dispositivo: `OnInputWithSpatialPosition<TTrigger>` (+ overload con `TCount`: `OneTap…TenTap`) y `OnInputWithoutSpatialPosition<TTrigger>`. `bh.WindowsApplication.OnLaunched` se dispara tras Behavior; `TaskbarButtonVisibility(bool)` usa `ITaskbarList`.
+
+```csharp
+WindowsApplication
+    .Layout(ly =>
+    {
+        ly.Window(iw => iw
+            .SystemTray(wst => wst.Tooltip(""))
+            .Name("MainWindow")
+            .Title("Easy Win App")
+            .Dimensions(420, 280)
+            .Position(WindowPositionOnScreen.Center)
+            .Content(c => c
+                .Children(ch => ch
+                    .View<IButton>(btn => btn.Name("BtnIncrement").Text("Click me"))
+                )
+            )
+        );
+        ly.AlternativeWindow<IMenu>(m => m
+            .Name("MySystemTrayMenu")
+            .Content(c => c
+                .Children(ch =>
+                {
+                    ch.View<IMenuItem>(i => i.Name("Mi1").Text("Mostrar ventana principal"));
+                    ch.View<IMenuItem>(i => i.Name("Mi2").Text("Salir"));
+                })
+            )
+        );
+    })
+    .Behavior(bh =>
+    {
+        bh.WindowsApplication.OnLaunched(wa => wa.TaskbarButtonVisibility(false));
+        bh.MainWindow.Visibility(false);
+        bh.SystemTray.Visibility(true);
+
+        bh.SystemTray.OnInputWithSpatialPosition<Hover>(() => bh.SystemTray.TooltipShow());
+        bh.SystemTray.OnInputWithSpatialPosition<MainTap, OneTap>(() => bh.MySystemTrayMenu.Show());
+        bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => bh.MySystemTrayMenu.Show());
+        bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => bh.MySystemTrayMenu.Show());
+        bh.SystemTray.OnInputWithSpatialPosition<MainTap, ThreeTap>(() => { /* multi-tap */ });
+    })
+    .Initialize();
+```
+
+> Mapeo OS→trigger (`SystemTrayBroker`): `WM_LBUTTONUP`/`NIN_SELECT`/`NIN_KEYSELECT`→`MainTap`, `WM_LBUTTONDBLCLK`→`MainDoubleTap`, `WM_RBUTTONUP`→`AlternativeTap1`, `WM_MBUTTONUP`→`AlternativeTap2`, `WM_MOUSEMOVE`/`NIN_POPUPOPEN`→`Hover` (flanco, reset 1s), `WM_CONTEXTMENU` de teclado→`KeyMenu` (+ `Chord<KeyShift,KeyF10>` con Shift). `LongTap`/`Holding` son **derivados** (no nativos del OS): `WM_LBUTTONDOWN` + timer 500ms → `Holding` (aún presionado); soltar tras hold → `LongTap`; soltar antes → `MainTap`. Conteo encadenado con ventana `GetDoubleClickTime()` (cap 10).

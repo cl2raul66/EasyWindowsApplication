@@ -107,18 +107,14 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
             {
                 if (!usesWinApi && !item.IsWindowType) continue;
                 var propName = SanitizeName(item.Name);
-                if (item.IsWindowType)
-                {
-                    sb.AppendLine($"            public {item.TypeSymbol} {propName}");
-                    sb.AppendLine($"                => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
-                    sb.AppendLine($"                    .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
-                }
-                else
-                {
-                    sb.AppendLine($"            public {item.TypeSymbol} {propName}");
-                    sb.AppendLine($"                => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
-                    sb.AppendLine($"                    .Get<{item.TypeSymbol}>(\"{item.Name}\");");
-                }
+                var lookup = item.IsWindowType
+                    ? $"GetWindow<{item.TypeSymbol}>(\"{item.Name}\")"
+                    : item.IsSurfaceType
+                        ? $"GetSurface<{item.TypeSymbol}>(\"{item.Name}\")"
+                        : $"Get<{item.TypeSymbol}>(\"{item.Name}\")";
+                sb.AppendLine($"            public {item.TypeSymbol} {propName}");
+                sb.AppendLine($"                => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
+                sb.AppendLine($"                    .{lookup};");
                 sb.AppendLine();
             }
 
@@ -147,18 +143,14 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
                 {
                     if (!usesWinApi && !item.IsWindowType) continue;
                     var propName = SanitizeName(item.Name);
-                    if (item.IsWindowType)
-                    {
-                        sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
-                        sb.AppendLine($"            => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
-                        sb.AppendLine($"                .GetWindow<{item.TypeSymbol}>(\"{item.Name}\");");
-                    }
-                    else
-                    {
-                        sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
-                        sb.AppendLine($"            => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
-                        sb.AppendLine($"                .Get<{item.TypeSymbol}>(\"{item.Name}\");");
-                    }
+                    var lookup = item.IsWindowType
+                        ? $"GetWindow<{item.TypeSymbol}>(\"{item.Name}\")"
+                        : item.IsSurfaceType
+                            ? $"GetSurface<{item.TypeSymbol}>(\"{item.Name}\")"
+                            : $"Get<{item.TypeSymbol}>(\"{item.Name}\")";
+                    sb.AppendLine($"        internal static {item.TypeSymbol} {propName}");
+                    sb.AppendLine($"            => global::EasyWindowsApplication.Share.Infrastructure.ControlAccess");
+                    sb.AppendLine($"                .{lookup};");
                     sb.AppendLine();
                 }
 
@@ -228,20 +220,82 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
                 name,
                 typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 isWindowType: false,
+                isSurfaceType: IsSurfaceType(context, typeSymbol),
                 location);
         }
 
         if (parentMa.Name.Identifier.Text == "Window")
         {
-            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IWindow", isWindowType: true, location);
+            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IWindow", isWindowType: true, isSurfaceType: false, location);
+        }
+
+        if (parentMa.Name is GenericNameSyntax altGeneric
+            && altGeneric.Identifier.Text == "AlternativeWindow"
+            && altGeneric.TypeArgumentList.Arguments.Count == 1)
+        {
+            var typeArg = altGeneric.TypeArgumentList.Arguments[0];
+            var typeSymbol = context.SemanticModel.GetTypeInfo(typeArg).Type;
+            if (typeSymbol == null) return null;
+
+            var compilation = context.SemanticModel.Compilation;
+            var iBaseWindow = compilation.GetTypeByMetadataName(
+                "EasyWindowsApplication.Share.IBaseWindow");
+            if (iBaseWindow is not null && Implements(typeSymbol, iBaseWindow))
+            {
+                return new NamedInfo(
+                    name,
+                    typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    isWindowType: true,
+                    isSurfaceType: false,
+                    location);
+            }
+            if (IsSurfaceType(context, typeSymbol))
+            {
+                return new NamedInfo(
+                    name,
+                    typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    isWindowType: false,
+                    isSurfaceType: true,
+                    location);
+            }
+            return null;
         }
 
         if (parentMa.Name.Identifier.Text == "AlternativeWindow")
         {
-            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IAlternativeWindow", isWindowType: true, location);
+            return new NamedInfo(name, "global::EasyWindowsApplication.Share.IAlternativeWindow", isWindowType: true, isSurfaceType: false, location);
         }
 
         return null;
+    }
+
+    private static bool IsSurfaceType(GeneratorSyntaxContext context, ITypeSymbol typeSymbol)
+    {
+        var iControl = context.SemanticModel.Compilation.GetTypeByMetadataName(
+            "EasyWindowsApplication.Win32ControlsModule.Frontend.IControl");
+        if (iControl is not null && Implements(typeSymbol, iControl))
+            return false;
+
+        var iViewSurface = context.SemanticModel.Compilation.GetTypeByMetadataName(
+            "EasyWindowsApplication.Share.IViewSurface");
+        if (iViewSurface is null)
+            return false;
+
+        return Implements(typeSymbol, iViewSurface);
+    }
+
+    private static bool Implements(ITypeSymbol typeSymbol, ITypeSymbol iface)
+    {
+        if (typeSymbol.Equals(iface, SymbolEqualityComparer.Default))
+            return true;
+
+        foreach (var implemented in typeSymbol.AllInterfaces)
+        {
+            if (implemented.Equals(iface, SymbolEqualityComparer.Default))
+                return true;
+        }
+
+        return false;
     }
 
     private static bool IsBehaviorCandidate(SyntaxNode node)
@@ -386,18 +440,19 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private readonly struct NamedInfo(string name, string typeSymbol, bool isWindowType, Location location)
+    private readonly struct NamedInfo(string name, string typeSymbol, bool isWindowType, bool isSurfaceType, Location location)
     {
         public readonly string Name = name;
         public readonly string TypeSymbol = typeSymbol;
         public readonly bool IsWindowType = isWindowType;
+        public readonly bool IsSurfaceType = isSurfaceType;
         public readonly Location Location = location;
 
         public override bool Equals(object obj) =>
-            obj is NamedInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol && IsWindowType == other.IsWindowType;
+            obj is NamedInfo other && Name == other.Name && TypeSymbol == other.TypeSymbol && IsWindowType == other.IsWindowType && IsSurfaceType == other.IsSurfaceType;
 
         public override int GetHashCode() =>
-            (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0) ^ IsWindowType.GetHashCode();
+            (Name?.GetHashCode() ?? 0) ^ (TypeSymbol?.GetHashCode() ?? 0) ^ IsWindowType.GetHashCode() ^ IsSurfaceType.GetHashCode();
     }
 
     private sealed class EnclosingTypeInfo(string ns, string className)

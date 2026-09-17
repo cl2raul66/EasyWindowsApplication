@@ -1,7 +1,6 @@
 ﻿using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Share;
-using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core.LayoutEngine;
 
@@ -11,7 +10,19 @@ internal sealed class ChildrenBuilderImpl : IChildrenBuilder
 
     internal ChildrenBuilderImpl(ContentModel content) => _content = content;
 
-    public IChildrenBuilder View<T>(Action<View<T>> configure) where T : class, IControl
+    public IChildrenBuilder View<T>() where T : class, IViewSurface
+    {
+        var view = new View<T>();
+        _content.Children.Add(new ViewModel
+        {
+            Name = view.PendingName ?? "",
+            ControlType = typeof(T),
+            Configure = view.BuildConfigure()
+        });
+        return this;
+    }
+
+    public IChildrenBuilder View<T>(Action<View<T>> configure) where T : class, IViewSurface
     {
         var view = new View<T>();
         configure(view);
@@ -25,7 +36,7 @@ internal sealed class ChildrenBuilderImpl : IChildrenBuilder
         return this;
     }
 
-    public IChildrenBuilder View<T>(Func<View<T>, View<T>> configure) where T : class, IControl
+    public IChildrenBuilder View<T>(Func<View<T>, View<T>> configure) where T : class, IViewSurface
     {
         var view = new View<T>();
         var result = configure(view);

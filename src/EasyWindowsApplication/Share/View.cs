@@ -22,7 +22,7 @@ public abstract class ViewBase<TSelf> : ControlBase where TSelf : ViewBase<TSelf
     }
 }
 
-public sealed class View<T> where T : class, IControl
+public sealed class View<T> where T : class, IViewSurface
 {
     private readonly List<Action<T>> _configure = new();
     internal string? PendingName { get; private set; }
@@ -175,12 +175,12 @@ public sealed class View<T> where T : class, IControl
         foreach (var a in _configure) a(instance);
     }
 
-    internal Action<IControl> BuildConfigure()
+    internal Action<IViewSurface> BuildConfigure()
     {
         var snapshot = _configure.ToArray();
-        return control =>
+        return surface =>
         {
-            var typed = (T)control;
+            var typed = (T)surface;
             foreach (var a in snapshot) a(typed);
         };
     }

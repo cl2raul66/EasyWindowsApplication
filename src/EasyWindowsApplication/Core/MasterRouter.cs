@@ -305,10 +305,10 @@ internal sealed class MasterRouter
                 return ctrlBrush;
         }
 
-        // 1. Try registered raw handlers (lowest level)
-        if (hwnd == _mainHwnd && _handlers.TryGetValue((hwnd, msg), out var mainWindowHandler))
+        // 1. Try registered raw handlers (lowest level, any window incl. hidden broker windows)
+        if (_handlers.TryGetValue((hwnd, msg), out var windowHandler))
         {
-            var result = mainWindowHandler(wParam, lParam);
+            var result = windowHandler(wParam, lParam);
             if (result != 0) return result;
         }
 

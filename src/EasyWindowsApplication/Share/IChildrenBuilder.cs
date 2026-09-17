@@ -1,11 +1,10 @@
-﻿using EasyWindowsApplication.Win32ControlsModule.Frontend;
-
-namespace EasyWindowsApplication.Share;
+﻿namespace EasyWindowsApplication.Share;
 
 public interface IChildrenBuilder
 {
-    IChildrenBuilder View<T>(Action<View<T>> configure) where T : class, IControl;
-    IChildrenBuilder View<T>(Func<View<T>, View<T>> configure) where T : class, IControl;
+    IChildrenBuilder View<T>() where T : class, IViewSurface;
+    IChildrenBuilder View<T>(Action<View<T>> configure) where T : class, IViewSurface;
+    IChildrenBuilder View<T>(Func<View<T>, View<T>> configure) where T : class, IViewSurface;
     IChildrenBuilder View(Action<IViewBuilder> configure);
 
     IChildrenBuilder Row(int row);

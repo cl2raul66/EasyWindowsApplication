@@ -15,6 +15,7 @@ internal sealed class HandleRegistry
     private readonly Dictionary<nint, WeakReference<IControl>> _hwndToControl = new();
     private readonly Dictionary<string, WeakReference<IControl>> _nameToControl = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IBaseWindow> _windowByName = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IViewSurface> _surfaceByName = new(StringComparer.Ordinal);
     private readonly Dictionary<nint, IBaseWindow> _hwndToWindow = new();
     private readonly Dictionary<nint, List<nint>> _windowToControls = new();
 
@@ -145,6 +146,18 @@ internal sealed class HandleRegistry
 
     internal IBaseWindow? GetWindow(string name)
         => _windowByName.TryGetValue(name, out var w) ? w : null;
+
+    internal void RegisterSurface(string name, IViewSurface surface)
+    {
+        if (!string.IsNullOrEmpty(name))
+            _surfaceByName[name] = surface;
+    }
+
+    internal IViewSurface? GetSurface(string name)
+        => _surfaceByName.TryGetValue(name, out var s) ? s : null;
+
+    internal T? GetSurface<T>(string name) where T : class, IViewSurface
+        => GetSurface(name) as T;
 
     internal IEnumerable<nint> AllControlHandles()
     {

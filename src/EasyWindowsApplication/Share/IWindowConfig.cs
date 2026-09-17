@@ -9,6 +9,7 @@ public interface IWindowConfig
     IWindowConfig Position(WindowPositionOnScreen position);
     IWindowConfig Background(Color color);
     IWindowConfig Scroll(Action<IWindowsScrollConfig> configure);
+    IWindowConfig SystemTray(Action<ISystemTray> configure);
     IWindowContentConfig Content<TLayout>(Action<IContentBuilder> configure) where TLayout : IStackLayout;
     IWindowContentConfig Content(Action<IContentBuilder> configure);
 }

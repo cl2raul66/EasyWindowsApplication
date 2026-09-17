@@ -94,6 +94,7 @@
         internal const uint EXITSIZEMOVE = 0x0232;
         internal const uint SETTINGCHANGE = 0x001A;
         internal const uint DPICHANGED = 0x02E0;
+        internal const uint CONTEXTMENU = 0x007B;
     }
 
     internal static class SPI
@@ -224,4 +225,74 @@
         internal const uint NOCOPYBITS = 0x0100;
         internal const uint NOOWNERZORDER = 0x0200;
         internal const uint NOSENDCHANGING = 0x0400;
+    }
+
+    internal static class MF
+    {
+        internal const uint STRING = 0x00000000;
+        internal const uint SEPARATOR = 0x00000800;
+        internal const uint POPUP = 0x00000010;
+        internal const uint GRAYED = 0x00000001;
+        internal const uint DISABLED = 0x00000002;
+        internal const uint CHECKED = 0x00000008;
+        internal const uint UNCHECKED = 0x00000000;
+        internal const uint BYCOMMAND = 0x00000000;
+        internal const uint BYPOSITION = 0x00000400;
+    }
+
+    internal static class TPM
+    {
+        internal const uint LEFTALIGN = 0x0000;
+        internal const uint CENTERALIGN = 0x0004;
+        internal const uint RIGHTALIGN = 0x0008;
+        internal const uint TOPALIGN = 0x0000;
+        internal const uint VCENTERALIGN = 0x0010;
+        internal const uint BOTTOMALIGN = 0x0020;
+        internal const uint NONOTIFY = 0x0080;
+        internal const uint RETURNCMD = 0x0100;
+    }
+
+    internal static class NIM
+    {
+        internal const uint ADD = 0x00000000;
+        internal const uint MODIFY = 0x00000001;
+        internal const uint DELETE = 0x00000002;
+        internal const uint SETFOCUS = 0x00000003;
+        internal const uint SETVERSION = 0x00000004;
+    }
+
+    internal static class NIF
+    {
+        internal const uint MESSAGE = 0x00000001;
+        internal const uint ICON = 0x00000002;
+        internal const uint TIP = 0x00000004;
+        internal const uint STATE = 0x00000008;
+        internal const uint INFO = 0x00000010;
+        internal const uint GUID = 0x00000020;
+        internal const uint SHOWTIP = 0x00000080;
+    }
+
+    internal static class NIN
+    {
+        internal const uint SELECT = 0x0400;
+        internal const uint KEYSELECT = 0x0401;
+        internal const uint BALLOONSHOW = 0x0402;
+        internal const uint BALLOONHIDE = 0x0403;
+        internal const uint BALLOONTIMEOUT = 0x0404;
+        internal const uint BALLOONUSERCLICK = 0x0405;
+        internal const uint POPUPOPEN = 0x0406;
+        internal const uint POPUPCLOSE = 0x0407;
+    }
+
+    internal static class NOTIFYICON
+    {
+        internal const uint VERSION_4 = 4;
+    }
+
+    internal static class VK
+    {
+        internal const int SHIFT = 0x10;
+        internal const int CONTROL = 0x11;
+        internal const int MENU = 0x12;
+        internal const int APPS = 0x5D;
     }

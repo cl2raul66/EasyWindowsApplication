@@ -39,6 +39,9 @@ internal static partial class Win32
     [LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint LoadImageW(nint hInst, nint name, uint type, int cx, int cy, uint fuLoad);
 
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial nint LoadIconW(nint hInstance, nint lpIconName);
+
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetClientRect(nint hWnd, out RECT lpRect);

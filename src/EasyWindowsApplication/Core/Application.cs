@@ -19,6 +19,9 @@ internal sealed class Application :
     private MasterRouter _router = null!;
     private readonly HandleRegistry _registry = new();
     private Action<IBehaviorBuilder>? _pendingBehavior;
+    private nint _mainHwnd;
+    private SystemTray.SystemTrayBroker? _trayBroker;
+    private readonly List<Menus.MenuSurface> _pendingMenuSurfaces = new();
 
     public IApplicationLayoutPhase Resources(Action<IResourcesDictionary> configure)
     {
@@ -81,8 +84,10 @@ internal sealed class Application :
         if (_pendingBehavior is not null)
         {
             BehaviorBuilder.Registry = _registry;
+            BehaviorBuilder.MainHwnd = _mainHwnd;
             ControlAccess.SetController(BehaviorBuilder);
             _pendingBehavior(BehaviorBuilder);
+            BehaviorBuilder.RaiseLaunched();
         }
 
         Procedures.RunMessageLoop();
@@ -91,6 +96,7 @@ internal sealed class Application :
     private void RegisterMain(WindowModel window)
     {
         var hwnd = Core.Windowing.Procedures.CreateMainWindow(_router, window.Title, window.Width, window.Height);
+        _mainHwnd = hwnd;
 
         var win = new Core.Windowing.WindowImpl(
             hwnd, window.Name, window.Title, window.Width, window.Height, window.Position);
@@ -109,10 +115,49 @@ internal sealed class Application :
             win.Center();
         win.Show();
         win.RaiseLoaded();
+        if (window.SystemTrayConfigure is { } trayConfigure)
+            SetupSystemTrayIcon(trayConfigure, hwnd);
+    }
+
+    private void SetupSystemTrayIcon(Action<ISystemTray> configure, nint mainHwnd)
+    {
+        SystemTray.SystemTrayImpl? tray = null;
+        var broker = SystemTray.SystemTrayBroker.Create(_router, (trigger, count) => tray?.DispatchTrigger(trigger, count));
+        tray = new SystemTray.SystemTrayImpl(broker);
+        configure(tray);
+        nint hIcon = Core.Windowing.Procedures.LoadAppIcon();
+        broker.AddIcon(hIcon);
+        _registry.RegisterSurface(tray.Name, tray);
+        _trayBroker = broker;
+        WireMenuSurfaces();
+        _router.RegisterHandler(mainHwnd, WM.DESTROY, (w, l) => { broker.Shutdown(); return 0; });
+    }
+
+    private void WireMenuSurfaces()
+    {
+        if (_trayBroker is null) return;
+        foreach (var surface in _pendingMenuSurfaces)
+        {
+            surface.SetOwner(_trayBroker.Hwnd);
+            surface.SetIconAnchor(_trayBroker.Hwnd, SystemTray.SystemTrayBroker.IconId);
+        }
+        _pendingMenuSurfaces.Clear();
     }
 
     private void RegisterAlternative(WindowModel window)
     {
+        if (window.SurfaceType is not null && typeof(IMenu).IsAssignableFrom(window.SurfaceType))
+        {
+            var surface = new Menus.MenuSurface(window.Content as ContentModel);
+            if (!string.IsNullOrEmpty(window.Name))
+                surface.Name = window.Name;
+            surface.Registry = _registry;
+            surface.EnsureMaterialized();
+            _registry.RegisterSurface(window.Name, surface);
+            _pendingMenuSurfaces.Add(surface);
+            WireMenuSurfaces();
+            return;
+        }
         var hwnd = Core.Windowing.Procedures.CreateAlternativeWindow(_router, 0, window.Title, window.Width, window.Height);
         var win = new Core.Windowing.AlternativeWindowImpl(hwnd, 0, window.Name, window.Title, window.Width, window.Height, window.Position);
         if (window.Background.HasValue)
