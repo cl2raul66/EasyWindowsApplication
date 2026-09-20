@@ -73,7 +73,7 @@ internal sealed partial class ControlActivatorRegistry
 #pragma warning restore IL2075
         // fallback por base types
         var bt = t.BaseType;
-        while (bt != null && bt != typeof(object))
+        while (bt is not null && bt != typeof(object))
         {
             if (_handleFactories.TryGetValue(bt, out factory))
                 return true;

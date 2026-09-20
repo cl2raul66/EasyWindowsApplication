@@ -24,6 +24,7 @@ internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
 internal sealed class SettingsBuilderImpl : ISettingsBuilder
 {
     internal AppConfigFileConfig AppConfig { get; } = new();
+    internal CultureInfo? SelectedCulture { get; private set; }
 
     public ISettingsBuilder UseWinApi()
     {
@@ -38,7 +39,8 @@ internal sealed class SettingsBuilderImpl : ISettingsBuilder
 
     public ISettingsBuilder Culture(CultureInfo cultureInfo)
     {
-        throw new NotImplementedException();
+        SelectedCulture = cultureInfo;
+        return this;
     }
 }
 

@@ -272,6 +272,18 @@
         internal const uint SHOWTIP = 0x00000080;
     }
 
+    internal static class NIIF
+    {
+        internal const uint NONE = 0x00000000;
+        internal const uint INFO = 0x00000001;
+        internal const uint WARNING = 0x00000002;
+        internal const uint ERROR = 0x00000003;
+        internal const uint USER = 0x00000004;
+        internal const uint NOSOUND = 0x00000010;
+        internal const uint LARGE_ICON = 0x00000020;
+        internal const uint RESPECT_QUIET_TIME = 0x00000080;
+    }
+
     internal static class NIN
     {
         internal const uint SELECT = 0x0400;

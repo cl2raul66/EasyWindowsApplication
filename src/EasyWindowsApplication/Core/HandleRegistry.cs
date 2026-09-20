@@ -106,7 +106,7 @@ internal sealed class HandleRegistry
         string? keyToRemove = null;
         foreach (var kv in _windowByName)
             if (kv.Value.Hwnd == hwnd) { keyToRemove = kv.Key; break; }
-        if (keyToRemove != null) _windowByName.Remove(keyToRemove);
+        if (keyToRemove is not null) _windowByName.Remove(keyToRemove);
     }
 
     internal IBaseWindow? GetWindowByHwnd(nint hwnd)

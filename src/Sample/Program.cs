@@ -6,30 +6,31 @@ using EasyWindowsApplication.Win32ControlsModule.Frontend;
 //WindowsApplication.Layout(ly => ly.Window()).Initialize();
 
 WindowsApplication
-    .Resources(rd => rd.Setting(st => { 
+    .Resources(rd => rd.Setting(st =>
+    {
         st.UseWinApi();
-        st.Culture(new System.Globalization.CultureInfo("en-us"));
+        st.Culture(CultureInfoEnUS);
     }))
     .Layout(ly =>
     {
         ly.Window(iw => iw
-                .SystemTray(st =>
-                {
-                    st.Tooltip("");
-                })
-                .Name("MainWindow")
-                .Title("Easy Win App")
-                .Dimensions(420, 280)
-                .Position(WindowPositionOnScreen.Center)
-                .Content(c => c
-                    .Children(ch => ch
-                        .View<IButton>(btn => btn
-                            .Name("BtnIncrement")
-                            .Text("Click me")
-                        )
+            .SystemTray(st =>
+            {
+                st.Tooltip("Click here for show main window");
+            })
+            .Name("MainWindow")
+            .Title("Easy Win App")
+            .Dimensions(420, 280)
+            .Position(WindowPositionOnScreen.Center)
+            .Content(c => c
+                .Children(ch => ch
+                    .View<IButton>(btn => btn
+                        .Name("BtnIncrement")
+                        .Text("Click me")
                     )
                 )
-            );
+            )
+        );
         ly.AlternativeWindow<IMenu>(m => m
             .Name("MySystemTrayMenu")
             .Content(c => c
@@ -50,9 +51,24 @@ WindowsApplication
             bh.MainWindow.Visibility(false);
             bh.SystemTray.Visibility(true);
         });
-        bh.SystemTray.OnInputWithSpatialPosition<Hover>(() => { bh.SystemTray.TooltipShow(); });
-        bh.SystemTray.OnInputWithSpatialPosition<MainTap, OneTap>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.SystemTray.OnInputWithSpatialPosition<AlternativeTap1, OneTap>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.SystemTray.OnInputWithSpatialPosition<MainTap, TwoTap>(() =>
+        {
+            bh.SystemTray.Visibility(false);
+            bh.WindowsApplication.TaskbarButtonVisibility(true);
+            bh.MainWindow.Visibility(true);
+        });
         bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => { bh.MySystemTrayMenu.Show(); });
         bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.Mi1.OnClick(() =>
+        {
+            bh.SystemTray.Visibility(false);
+            bh.WindowsApplication.TaskbarButtonVisibility(true);
+            bh.MainWindow.Visibility(true);
+        });
+        bh.Mi2.OnClick(() =>
+        {
+            bh.MainWindow.Close();
+        });
     })
     .Initialize();

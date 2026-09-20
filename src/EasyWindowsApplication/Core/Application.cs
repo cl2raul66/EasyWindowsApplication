@@ -2,7 +2,6 @@
 using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Core.LayoutEngine;
-using EasyWindowsApplication.Core.Windowing;
 using EasyWindowsApplication.Share.Infrastructure;
 
 namespace EasyWindowsApplication.Core;
@@ -15,13 +14,13 @@ internal sealed class Application :
     internal ResourcesDictionaryImpl ResourcesDictionary { get; } = new();
     internal BehaviorBuilderImpl BehaviorBuilder { get; } = new();
 
-    private readonly List<WindowModel> _windows = new();
+    private readonly List<WindowModel> _windows = [];
     private MasterRouter _router = null!;
     private readonly HandleRegistry _registry = new();
     private Action<IBehaviorBuilder>? _pendingBehavior;
     private nint _mainHwnd;
     private SystemTray.SystemTrayBroker? _trayBroker;
-    private readonly List<Menus.MenuSurface> _pendingMenuSurfaces = new();
+    private readonly List<Menus.MenuSurface> _pendingMenuSurfaces = [];
 
     public IApplicationLayoutPhase Resources(Action<IResourcesDictionary> configure)
     {
@@ -57,6 +56,16 @@ internal sealed class Application :
     {
         // 1. Registrar defaults PRIMERO (antes de cualquier control o HFONT)
         try { UiDefaultsProvider.Set(new Win32ControlsModule.Backend.Win32UiDefaults()); } catch { }
+
+        // Cultura explícita (Resources) o automática del OS (no tocar nada)
+        var culture = ResourcesDictionary.SettingsContext.SelectedCulture;
+        if (culture is not null)
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+            System.Globalization.CultureInfo.CurrentUICulture = culture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+        }
 
         var icc = new INITCOMMONCONTROLSEX
         {
@@ -126,7 +135,10 @@ internal sealed class Application :
         tray = new SystemTray.SystemTrayImpl(broker);
         configure(tray);
         nint hIcon = Core.Windowing.Procedures.LoadAppIcon();
-        broker.AddIcon(hIcon);
+        if (hIcon == 0)
+            throw new InvalidOperationException("No hay icono disponible para el SystemTray.");
+        if (!broker.AddIcon(hIcon))
+            throw new InvalidOperationException("Shell_NotifyIconW(NIM_ADD) falló para el SystemTray.");
         _registry.RegisterSurface(tray.Name, tray);
         _trayBroker = broker;
         WireMenuSurfaces();
@@ -168,7 +180,7 @@ internal sealed class Application :
         _registry.RegisterWindow(win);
         // Fase 2: materializar contenido para AlternativeWindow también
         win.MaterializeContent(window, _registry, _router);
-        if (window.Position == WindowPositionOnScreen.Center)
+        if (window.Position is WindowPositionOnScreen.Center)
         {
             // Center para AlternativeWindow (pre-calcula posición pero no muestra)
             nint monitor = Win32.MonitorFromWindow(hwnd, MONITOR.DEFAULTTONEAREST);

@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using EasyWindowsApplication.Core.Windowing;
 using EasyWindowsApplication.Share.Input;
 
 namespace EasyWindowsApplication.Core.SystemTray;
@@ -46,6 +45,8 @@ internal sealed class SystemTrayBroker
     {
         nint hwnd = Windowing.Procedures.CreateHiddenWindow(router);
         uint callback = Win32.RegisterWindowMessageW("EasyWindowsApplication.Tray.v1");
+        if (callback == 0)
+            throw new InvalidOperationException("RegisterWindowMessageW failed for tray callback.");
         var broker = new SystemTrayBroker(hwnd, callback, dispatch);
         router.RegisterHandler(hwnd, callback, broker.OnCallback);
         router.RegisterHandler(hwnd, WM.CONTEXTMENU, broker.OnContextMenu);
@@ -57,7 +58,7 @@ internal sealed class SystemTrayBroker
     internal bool AddIcon(nint icon)
     {
         _icon = icon;
-        var data = NewData(NIF.MESSAGE | NIF.ICON | NIF.TIP);
+        var data = NewData(NIF.MESSAGE | NIF.ICON | NIF.TIP | NIF.SHOWTIP);
         CopyStrings(ref data, _tooltip, null, null);
         if (!Win32.Shell_NotifyIconW(NIM.ADD, ref data)) return false;
         _iconAdded = true;
@@ -78,7 +79,7 @@ internal sealed class SystemTrayBroker
     {
         _tooltip = tooltip;
         if (!_iconAdded) return;
-        var data = NewData(NIF.TIP);
+        var data = NewData(NIF.TIP | NIF.SHOWTIP);
         CopyStrings(ref data, tooltip, null, null);
         Win32.Shell_NotifyIconW(NIM.MODIFY, ref data);
     }
@@ -123,14 +124,18 @@ internal sealed class SystemTrayBroker
 
     private nint OnCallback(nint wParam, nint lParam)
     {
-        switch ((uint)lParam)
+        // VERSION_4 empaqueta lParam = mensaje (LOWORD) | uID del icono (HIWORD).
+        uint packed = (uint)lParam;
+        if ((packed >> 16) != IconId) return 0;
+        switch (packed & 0xFFFF)
         {
             case WM_MOUSEMOVE: OnHover(); break;
             case WM_LBUTTONDOWN: OnButtonDown(); break;
             case WM_LBUTTONUP: OnButtonUp(); break;
             case WM_LBUTTONDBLCLK: Fire(typeof(MainDoubleTap)); break;
-            case WM_RBUTTONUP: Fire(typeof(AlternativeTap1)); break;
-            case WM_MBUTTONUP: Fire(typeof(AlternativeTap2)); break;
+            case WM_RBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap1)); break;
+            case WM_MBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap2)); break;
+            case WM.CONTEXTMENU: OnContextMenuKey(); break;
             case var m when m == NIN.SELECT || m == NIN.KEYSELECT: Fire(typeof(MainTap)); break;
             case var m when m == NIN.POPUPOPEN: OnHover(); break;
         }
@@ -144,6 +149,36 @@ internal sealed class SystemTrayBroker
         if (Win32.GetKeyState(VK.SHIFT) < 0)
             _dispatch(typeof(Chord<KeyShift, KeyF10>), 1);
         return 0;
+    }
+
+    private void OnContextMenuKey()
+    {
+        // WM_CONTEXTMENU por callback llega igual con ratón y con teclado.
+        // Heurística: el click de ratón exige el cursor sobre el icono;
+        // la tecla de menú funciona con el cursor en cualquier parte.
+        if (IsCursorOverIcon())
+        {
+            Fire(typeof(AlternativeTap1));
+            return;
+        }
+        Fire(typeof(KeyMenu));
+        if (Win32.GetKeyState(VK.SHIFT) < 0)
+            _dispatch(typeof(Chord<KeyShift, KeyF10>), 1);
+    }
+
+    private bool IsCursorOverIcon()
+    {
+        if (!Win32.GetCursorPos(out var pt)) return false;
+        var identifier = new NOTIFYICONIDENTIFIER
+        {
+            cbSize = (uint)Marshal.SizeOf<NOTIFYICONIDENTIFIER>(),
+            hWnd = Hwnd,
+            uID = IconId,
+            guidItem = Guid.Empty
+        };
+        if (Win32.Shell_NotifyIconGetRect(ref identifier, out var rect) != 0)
+            return false;
+        return pt.X >= rect.Left && pt.X < rect.Right && pt.Y >= rect.Top && pt.Y < rect.Bottom;
     }
 
     private nint OnTimer(nint wParam, nint lParam)

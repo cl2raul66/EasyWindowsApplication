@@ -7,13 +7,13 @@ internal sealed class MenuItemModel
     internal bool IsEnabled = true;
     internal bool IsChecked;
     internal bool IsSeparator;
-    internal List<MenuItemModel> Children = new();
+    internal List<MenuItemModel> Children = [];
     internal Action? OnClick;
 }
 
 internal sealed class MenuModel
 {
-    internal List<MenuItemModel> Items = new();
+    internal List<MenuItemModel> Items = [];
 
     internal MenuItemModel? FindById(int id)
     {

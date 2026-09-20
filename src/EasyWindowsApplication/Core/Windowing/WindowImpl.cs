@@ -150,7 +150,7 @@ internal sealed class WindowImpl : IWindow
         _scrollY = newY;
 
         // Actualizar SCROLLINFO
-        if (_scrollConfig != null)
+        if (_scrollConfig is not null)
         {
             if (_maxScrollY > 0 || _scrollConfig.VerticalScrollBarVisibility == ScrollBarVisibility.Always)
             {
@@ -286,7 +286,7 @@ internal sealed class WindowImpl : IWindow
         // Calcular tamaños totales del contenido
         int totalH = 0;
         int totalW = 0;
-        if (_materializedChildren != null && _materializedChildren.Count > 0)
+        if (_materializedChildren is not null && _materializedChildren.Count > 0)
         {
             // Altura total para VerticalStack
             foreach (var c in _materializedChildren)
@@ -379,14 +379,14 @@ internal sealed class WindowImpl : IWindow
         _clientW = w;
         _clientH = h;
 
-        if (_materializedChildren != null && _contentModel != null && _materializedChildren.Count > 0)
+        if (_materializedChildren is not null && _contentModel is not null && _materializedChildren.Count > 0)
         {
             var engine = new EasyWindowsApplication.Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
             engine.Execute(_materializedChildren, w, h, _contentModel.Spacing, _contentModel.Padding);
         }
 
         // Reconfigurar scrollbars tras resize (puede cambiar necesidad de scroll)
-        if (_scrollConfig != null) ConfigureScrollbars();
+        if (_scrollConfig is not null) ConfigureScrollbars();
 
         Resized?.Invoke(this, new WindowResizedEventArgs(w, h));
     }
@@ -418,7 +418,7 @@ internal sealed class WindowImpl : IWindow
         _clientH = (int)availH;
 
         // Fase 4: Scroll
-        if (window.ScrollConfig != null)
+        if (window.ScrollConfig is not null)
         {
             _scrollConfig = window.ScrollConfig;
             _scrollX = (int)window.ScrollConfig.ScrollX;

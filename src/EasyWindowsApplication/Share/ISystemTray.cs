@@ -2,11 +2,8 @@ using EasyWindowsApplication.Share.Input;
 
 namespace EasyWindowsApplication.Share;
 
-public interface ISystemTray : IViewSurface
+public interface ISystemTray : IViewSurface, ISystemTrayNotifications
 {
-    ISystemTray Tooltip(string text);
-    ISystemTray TooltipShow();
-    ISystemTray TooltipHide();
     ISystemTray OnInputWithSpatialPosition<TTrigger>(Action handler)
         where TTrigger : ISpatialPositionTrigger;
     ISystemTray OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Core.Windowing;
@@ -9,15 +10,15 @@ namespace EasyWindowsApplication.Core;
 
 internal sealed class MasterRouter
 {
-    private readonly Dictionary<(nint Hwnd, uint Msg), Win32MessageHandler> _handlers = new();
+    private readonly Dictionary<(nint Hwnd, uint Msg), Win32MessageHandler> _handlers = [];
     private readonly HandleRegistry _registry;
     private nint _mainHwnd;
     private bool _isResizing;
 
-    private readonly Dictionary<nint, nint> _windowBrushes = new();
-    private readonly Dictionary<nint, nint> _controlBrushes = new();
-    private readonly Dictionary<nint, List<(RECT Rect, int Color)>> _layoutGroupBackgrounds = new();
-    private readonly Dictionary<nint, (int X, int Y)> _scrollOffsets = new();
+    private readonly Dictionary<nint, nint> _windowBrushes = [];
+    private readonly Dictionary<nint, nint> _controlBrushes = [];
+    private readonly Dictionary<nint, List<(RECT Rect, int Color)>> _layoutGroupBackgrounds = [];
+    private readonly Dictionary<nint, (int X, int Y)> _scrollOffsets = [];
 
     internal MasterRouter(HandleRegistry registry)
     {
@@ -30,7 +31,7 @@ internal sealed class MasterRouter
         int colorRef = color.ToCOLORREF();
         if (!_layoutGroupBackgrounds.TryGetValue(hwnd, out var list))
         {
-            list = new List<(RECT, int)>();
+            list = [];
             _layoutGroupBackgrounds[hwnd] = list;
         }
         list.Add((rect, colorRef));
@@ -79,7 +80,7 @@ internal sealed class MasterRouter
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.Fail(ex.ToString());
+            Debug.Fail(ex.ToString());
             return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);
         }
     }
@@ -90,7 +91,7 @@ internal sealed class MasterRouter
         if (msg == WM.CLOSE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 bool cancel = false;
                 if (win is WindowImpl wi) cancel = wi.RaiseClosing();
@@ -107,7 +108,7 @@ internal sealed class MasterRouter
         {
             _isResizing = false;
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 Win32.GetClientRect(hwnd, out RECT rc);
                 int w = rc.Right - rc.Left;
@@ -118,7 +119,7 @@ internal sealed class MasterRouter
         else if (msg == WM.SIZE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int wParamType = (int)wParam;
                 if (wParamType != WMSIZE.MINIMIZED)
@@ -139,7 +140,7 @@ internal sealed class MasterRouter
         else if (msg == WM.MOVE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int x = (int)(short)Win32Helpers.LOWORD(lParam);
                 int y = (int)(short)Win32Helpers.HIWORD(lParam);
@@ -149,7 +150,7 @@ internal sealed class MasterRouter
         else if (msg == WM.ACTIVATE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int state = (int)Win32Helpers.LOWORD(wParam);
                 if (state == WA.INACTIVE)
@@ -231,7 +232,7 @@ internal sealed class MasterRouter
         {
             // Disparar Closed antes de limpieza
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 if (win is WindowImpl wi) wi.RaiseClosed();
                 else if (win is AlternativeWindowImpl aw) aw.RaiseClosed();

@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
 namespace EasyWindowsApplication.Core.Menus;
 
 internal static class Win32MenuEngine
@@ -44,7 +47,7 @@ internal static class Win32MenuEngine
             return id;
         }
         finally
-        {
+        {            
             Win32.DestroyMenu(hMenu);
         }
     }

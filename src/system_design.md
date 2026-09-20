@@ -61,6 +61,20 @@ WindowsApplication
 
 > **Nota `UseWinApi()` vs `UiDefaults`:** `UseWinApi()` solo afecta al **Source Generator** (`EAWIN002`). En runtime es `SettingsBuilderImpl.UseWinApi() => this` (no-op). El mecanismo runtime real es `Core/UiDefaults`: `Application.Initialize()` llama `UiDefaultsProvider.Set(new Win32UiDefaults())` antes de `InitCommonControlsEx` y de crear HWNDs. `ControlProcedures.GetDefaultFont()` y `Button.MeasureContent()` leen `PreferredHeight`/`FontSpec` vía `UiDefaultsProvider.Current` con DPI scaling `96→dpiActual` (ver `CONTRIBUTING.md` § Arquitectura).
 
+## Cultura (`Culture`) — explícita o automática del OS
+> Cadena de prioridad: 1) `st.Culture(...)` explícito → gana; 2) sin especificar → automático = locale del OS (el framework no toca nada); 3) `.csproj` sin efecto (`<NeutralLanguage>` solo es metadatos para `ResourceManager`; `<InvariantGlobalization>` fuerza invariante y se respeta). Si hay cultura explícita, `Initialize` fija las 4 (`CurrentCulture` + `CurrentUICulture` del hilo actual y `DefaultThreadCurrentCulture` + `DefaultThreadCurrentUICulture` para hilos futuros).
+> Sin strings libres: lo único válido sale del catálogo `Cultures` (generado, ~50 curadas, instancia cacheada vía `GetCultureInfo`). El generator emite además `global using static` → los presets se usan pelados (`CultureInfoEnUS`) con IntelliSense `CultureInfo*`.
+
+```csharp
+WindowsApplication
+    .Resources(rd => rd.Setting(st => st
+        .UseWinApi()
+        .Culture(CultureInfoEnUS) // o .Culture(Cultures.CultureInfoJaJP); sin llamada = OS
+    ))
+    .Layout(...)
+    .Initialize();
+```
+
 # Flujo en **Layout**
 ## Una ventana sin componentes
 ```csharp
@@ -147,7 +161,7 @@ WindowsApplication.Layout(ly => ly
 > `IChildrenBuilder` tiene 4 overloads: `View<T>()` (superficie anónima, sin `Name` ni lookup `bh.*` — p. ej. separadores) + `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` (ambos con `View<T> sealed class where T : class, IViewSurface`) + `View(Action<IViewBuilder>)` para este caso.
 
 ## Superficies de menú (`IMenu` / `IMenuItem`)
-> `AlternativeWindow<T>` acepta cualquier `IViewSurface`. Con `T = IMenu` no se crea HWND: `Application.RegisterAlternative` construye un `MenuSurface` (motor `HMENU` Win32 puro, `Core/Menus/Win32MenuEngine`) y lo registra por nombre. Los items se declaran con `View<IMenuItem>` (`Name` + `Text` + `IsEnabled` + `IsChecked` + `OnClick` + submenú vía `SubContent`); se materializan una vez (`EnsureMaterialized`) y se registran para `bh.*`.
+> `AlternativeWindow<T>` acepta cualquier `IViewSurface`. Con `T = IMenu` no se crea HWND: `Application.RegisterAlternative` construye un `MenuSurface` (motor `HMENU` Win32 puro, `Core/Menus/Win32MenuEngine`) y lo registra por nombre. Los items se declaran con `View<IMenuItem>` (`Name` + `Text` + `IsEnabled` + `IsChecked` + `OnClick` + submenú vía `SubContent`); se materializan una vez (`EnsureMaterialized`) y se registran para `bh.*`. `Show()` se ancla al icono (`Shell_NotifyIconGetRect`): los triggers sin posición espacial nunca consumen la posición del mouse (el cursor es solo fallback si no hay rect).
 
 ```csharp
 WindowsApplication.Layout(ly => ly
@@ -166,7 +180,7 @@ WindowsApplication.Layout(ly => ly
 ```
 
 ## SystemTray en ventana (config-time)
-> `.SystemTray(...)` vive en `IWindowConfig` y recibe `Action<ISystemTray>`: `Tooltip` (+ balloon con `TooltipShow`/`TooltipHide`) y suscripción de triggers. En `RegisterMain`, `SetupSystemTrayIcon` crea el broker (ventana oculta + `Shell_NotifyIconW` + `NOTIFYICON_VERSION_4`), aplica la configuración, añade el icono y registra la superficie como `"SystemTray"`.
+> `.SystemTray(...)` vive en `IWindowConfig` y recibe `Action<ISystemTray>`: `Tooltip` (hint clásico, automático al hover vía `NIF_TIP` + `NIF_SHOWTIP`) y suscripción de triggers. Notificaciones reales aparte: `Notify(title, message)` / `DismissNotification()` (toast con banner + sonido, espejo de `AppNotification`). En `RegisterMain`, `SetupSystemTrayIcon` crea el broker (ventana oculta + `Shell_NotifyIconW` + `NOTIFYICON_VERSION_4`), aplica la configuración, añade el icono y registra la superficie como `"SystemTray"`.
 
 ```csharp
 WindowsApplication.Layout(ly => ly
@@ -245,7 +259,6 @@ WindowsApplication
         bh.MainWindow.Visibility(false);
         bh.SystemTray.Visibility(true);
 
-        bh.SystemTray.OnInputWithSpatialPosition<Hover>(() => bh.SystemTray.TooltipShow());
         bh.SystemTray.OnInputWithSpatialPosition<MainTap, OneTap>(() => bh.MySystemTrayMenu.Show());
         bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => bh.MySystemTrayMenu.Show());
         bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => bh.MySystemTrayMenu.Show());
@@ -254,4 +267,6 @@ WindowsApplication
     .Initialize();
 ```
 
-> Mapeo OS→trigger (`SystemTrayBroker`): `WM_LBUTTONUP`/`NIN_SELECT`/`NIN_KEYSELECT`→`MainTap`, `WM_LBUTTONDBLCLK`→`MainDoubleTap`, `WM_RBUTTONUP`→`AlternativeTap1`, `WM_MBUTTONUP`→`AlternativeTap2`, `WM_MOUSEMOVE`/`NIN_POPUPOPEN`→`Hover` (flanco, reset 1s), `WM_CONTEXTMENU` de teclado→`KeyMenu` (+ `Chord<KeyShift,KeyF10>` con Shift). `LongTap`/`Holding` son **derivados** (no nativos del OS): `WM_LBUTTONDOWN` + timer 500ms → `Holding` (aún presionado); soltar tras hold → `LongTap`; soltar antes → `MainTap`. Conteo encadenado con ventana `GetDoubleClickTime()` (cap 10).
+> Mapeo OS→trigger (`SystemTrayBroker`, `lParam` empaquetado v4: `LOWORD` = mensaje, `HIWORD` = uID): `WM_LBUTTONUP`/`NIN_SELECT`/`NIN_KEYSELECT`→`MainTap`, `WM_LBUTTONDBLCLK`→`MainDoubleTap`, `WM_RBUTTONUP`→`AlternativeTap1` y `WM_MBUTTONUP`→`AlternativeTap2` (ambos solo con cursor sobre el icono), `WM_MOUSEMOVE`/`NIN_POPUPOPEN`→`Hover` (flanco, reset 1s), `WM_CONTEXTMENU` por callback→`AlternativeTap1` (cursor encima) o `KeyMenu` (+ `Chord<KeyShift,KeyF10>` con Shift, cursor fuera = teclado). `LongTap`/`Holding` son **derivados** (no nativos del OS): `WM_LBUTTONDOWN` + timer 500ms → `Holding` (aún presionado); soltar tras hold → `LongTap`; soltar antes → `MainTap`. Conteo encadenado con ventana `GetDoubleClickTime()` (cap 10).
+>
+> Tooltip vs notificación (`ISystemTrayNotifications` = `IToolTipService` + `ITrayNotificationService`, punto de extensión para módulos): `Tooltip(text)` = hint clásico (`NIF_TIP` + `NIF_SHOWTIP`, automático al hover, silencioso); `Notify(title, message)` / `DismissNotification()` = toast real (banner + sonido + Action Center, espejo de `AppNotification`).

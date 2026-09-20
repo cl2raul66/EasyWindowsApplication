@@ -47,13 +47,13 @@ internal sealed class SystemTrayImpl : ISystemTray
         return this;
     }
 
-    public ISystemTray TooltipShow()
+    public ISystemTray Notify(string title, string message)
     {
-        _broker.ShowBalloon(Name, _tooltip);
+        _broker.ShowBalloon(title, message);
         return this;
     }
 
-    public ISystemTray TooltipHide()
+    public ISystemTray DismissNotification()
     {
         _broker.HideBalloon();
         return this;

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using EasyWindowsApplication.Share;
 
@@ -27,8 +28,11 @@ internal sealed class MenuSurface : IMenu
                 uID = trayId,
                 guidItem = Guid.Empty
             };
-            if (Win32.Shell_NotifyIconGetRect(ref identifier, out var rect) != 0)
+            // S_OK (0) = rect válido: el menú se ancla al icono (foco), nunca al mouse.
+            // Sin rect (icono no localizable) el cursor es fallback documentado.
+            if (Win32.Shell_NotifyIconGetRect(ref identifier, out var rect) == 0)
                 return (rect.Right, rect.Top);
+
             Win32.GetCursorPos(out var pt);
             return (pt.X, pt.Y);
         };
@@ -102,8 +106,7 @@ internal sealed class MenuSurface : IMenu
 
     internal MenuModel EnsureMaterialized()
     {
-        if (_cachedModel is null)
-            _cachedModel = BuildModel();
+        _cachedModel ??= BuildModel();
         return _cachedModel;
     }
 
