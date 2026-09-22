@@ -44,7 +44,7 @@ WindowsApplication
     .Behavior(bh =>
     {
         var btn = bh.BtnGuardar;   // tipado por Source Generator (View<T> wrapper)
-        btn.OnClick(() =>
+        btn.OnMainTap(() =>
         {
             counter++;
             btn.Text = $"Contador: {counter}";

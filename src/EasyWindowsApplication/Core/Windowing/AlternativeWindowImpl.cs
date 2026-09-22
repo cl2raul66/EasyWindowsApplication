@@ -1,13 +1,29 @@
 ﻿using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Core.LayoutEngine;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core.Windowing;
 
-internal sealed class AlternativeWindowImpl : IAlternativeWindow
+internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
 {
+    private readonly SurfaceInputHub _hub = new();
+    void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
+
+    public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
+        => _hub.AddSpatial(typeof(TTrigger), handler);
+
+    public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
+        where TTrigger : ISpatialPositionTrigger
+        where TCount : ITapCount
+        => _hub.AddCounted(typeof(TTrigger), typeof(TCount), handler);
+
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+        => _hub.AddNonSpatial(typeof(TTrigger), handler);
+
     public nint Hwnd { get; }
     public string Name { get; }
     public nint OwnerHwnd { get; }
@@ -18,7 +34,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         set
         {
             _title = value ?? "";
-            if (Hwnd != 0) EasyWindowsApplication.Core.Win32.SetWindowText(Hwnd, _title);
+            if (Hwnd != 0) Core.Win32.SetWindowText(Hwnd, _title);
         }
     }
     private int _width;
@@ -30,7 +46,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (_width == value) return;
             _width = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
     private int _height;
@@ -42,7 +58,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (_height == value) return;
             _height = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
     private WindowPositionOnScreen _positionMode;
@@ -56,21 +72,21 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (Hwnd != 0 && _positionMode == WindowPositionOnScreen.Center)
             {
                 // Reuse Center logic similar to WindowImpl
-                nint monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
-                if (monitor == 0) monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
+                nint monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+                if (monitor == 0) monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
                 if (monitor != 0)
                 {
                     MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
-                    if (EasyWindowsApplication.Core.Win32.GetMonitorInfoW(monitor, ref mi))
+                    if (Core.Win32.GetMonitorInfoW(monitor, ref mi))
                     {
-                        EasyWindowsApplication.Core.Win32.GetWindowRect(Hwnd, out RECT wr);
+                        Core.Win32.GetWindowRect(Hwnd, out RECT wr);
                         int winW = wr.Right - wr.Left;
                         int winH = wr.Bottom - wr.Top;
                         int workW = mi.rcWork.Right - mi.rcWork.Left;
                         int workH = mi.rcWork.Bottom - mi.rcWork.Top;
                         int x = mi.rcWork.Left + (workW - winW) / 2;
                         int y = mi.rcWork.Top + (workH - winH) / 2;
-                        EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+                        Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
                     }
                 }
             }
@@ -100,15 +116,15 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
 
     public void Show()
     {
-        EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
+        Win32.ShowWindow(Hwnd, SW.SHOW);
         if (!_hasLoaded)
         {
             _hasLoaded = true;
             Loaded?.Invoke(this, EventArgs.Empty);
         }
     }
-    public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
-    public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
+    public void Hide() => Win32.ShowWindow(Hwnd, SW.HIDE);
+    public void Close() => Win32.DestroyWindow(Hwnd);
     public void Visibility(bool visible)
     {
         if (visible) Show();
@@ -147,7 +163,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         if (availW <= 0) availW = window.Width;
         if (availH <= 0) availH = window.Height;
 
-        var engine = new EasyWindowsApplication.Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
+        var engine = new LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
         engine.Execute(layoutables, availW, availH, content.Spacing, content.Padding);
 
         _materializedChildren = layoutables;

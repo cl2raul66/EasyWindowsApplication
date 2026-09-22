@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share.Input;
 
 namespace EasyWindowsApplication.Core.SystemTray;
@@ -13,7 +14,6 @@ internal sealed class SystemTrayBroker
     private const uint WM_MOUSEMOVE = 0x0200;
     private const uint WM_LBUTTONDOWN = 0x0201;
     private const uint WM_LBUTTONUP = 0x0202;
-    private const uint WM_LBUTTONDBLCLK = 0x0203;
     private const uint WM_RBUTTONUP = 0x0205;
     private const uint WM_MBUTTONUP = 0x0208;
 
@@ -25,11 +25,9 @@ internal sealed class SystemTrayBroker
     private nint _icon;
     private bool _disposed;
 
-    private Type? _lastTrigger;
-    private int _lastCount;
-    private int _lastTick;
     private int _lastHoverTick;
     private bool _holding;
+    private readonly TapChainCounter _counter = new();
 
     internal nint Hwnd { get; }
     internal uint CallbackMessage => _callbackMessage;
@@ -132,7 +130,8 @@ internal sealed class SystemTrayBroker
             case WM_MOUSEMOVE: OnHover(); break;
             case WM_LBUTTONDOWN: OnButtonDown(); break;
             case WM_LBUTTONUP: OnButtonUp(); break;
-            case WM_LBUTTONDBLCLK: Fire(typeof(MainDoubleTap)); break;
+            // WM_LBUTTONDBLCLK se ignora a propósito: el doble-tap ya se codifica
+            // como cadena MainTap + TwoTap en el segundo WM_LBUTTONUP (§4.2).
             case WM_RBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap1)); break;
             case WM_MBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap2)); break;
             case WM.CONTEXTMENU: OnContextMenuKey(); break;
@@ -228,32 +227,9 @@ internal sealed class SystemTrayBroker
 
     private void Fire(Type trigger)
     {
-        int count = 1;
-        if (IsChainable(trigger) && trigger == _lastTrigger)
-        {
-            int now = Environment.TickCount;
-            if (unchecked(now - _lastTick) <= (int)Win32.GetDoubleClickTime())
-                count = Math.Min(_lastCount + 1, 10);
-        }
-        if (IsChainable(trigger))
-        {
-            _lastTrigger = trigger;
-            _lastCount = count;
-            _lastTick = Environment.TickCount;
-        }
-        else
-        {
-            _lastTrigger = null;
-            _lastCount = 0;
-        }
+        int count = _counter.Next(trigger, Environment.TickCount, Win32.GetDoubleClickTime());
         _dispatch(trigger, count);
     }
-
-    private static bool IsChainable(Type trigger)
-        => trigger == typeof(MainTap)
-            || trigger == typeof(AlternativeTap1)
-            || trigger == typeof(AlternativeTap2)
-            || trigger == typeof(LongTap);
 
     private NOTIFYICONDATAW NewData(uint flags)
     {

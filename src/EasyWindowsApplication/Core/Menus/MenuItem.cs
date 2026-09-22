@@ -1,9 +1,14 @@
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 
 namespace EasyWindowsApplication.Core.Menus;
 
-internal sealed class MenuItem : IMenuItem
+internal sealed class MenuItem : IMenuItem, IInputFeed
 {
+    private readonly SurfaceInputHub _hub = new();
+    void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
+
     public string Name { get; set; } = "";
     public string Text { get; set; } = "";
     public bool IsEnabled { get; set; } = true;
@@ -20,9 +25,14 @@ internal sealed class MenuItem : IMenuItem
     public int GridColumnSpan { get; set; }
     public Color? BackgroundColor { get; set; }
 
-    public event Action? Clicked;
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+        => _hub.AddNonSpatial(typeof(TTrigger), handler);
 
-    public void OnClick(Action handler) => Clicked += handler;
+    public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
+        => _hub.AddSpatial(typeof(TTrigger), handler);
 
-    internal void RaiseClicked() => Clicked?.Invoke();
+    public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
+        where TTrigger : ISpatialPositionTrigger
+        where TCount : ITapCount
+        => _hub.AddCounted(typeof(TTrigger), typeof(TCount), handler);
 }

@@ -672,7 +672,7 @@ Un único fichero `Program.cs` (top-level statements) equivalente al ejemplo de 
             )
         )
         .Behavior(bh => bh
-            .BtnIncrement.OnClick(() =>
+            .BtnIncrement.OnMainTap(() =>
             {
                 counter++;
                 bh.BtnIncrement.Text = $"Click: {counter}";

@@ -1,13 +1,29 @@
 ﻿using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Core.LayoutEngine;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core.Windowing;
 
-internal sealed class WindowImpl : IWindow
+internal sealed class WindowImpl : IWindow, IInputFeed
 {
+    private readonly SurfaceInputHub _hub = new();
+    void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
+
+    public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
+        => _hub.AddSpatial(typeof(TTrigger), handler);
+
+    public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
+        where TTrigger : ISpatialPositionTrigger
+        where TCount : ITapCount
+        => _hub.AddCounted(typeof(TTrigger), typeof(TCount), handler);
+
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+        => _hub.AddNonSpatial(typeof(TTrigger), handler);
+
     public nint Hwnd { get; }
     public string Name { get; }
     private string _title;
@@ -17,7 +33,7 @@ internal sealed class WindowImpl : IWindow
         set
         {
             _title = value ?? "";
-            if (Hwnd != 0) EasyWindowsApplication.Core.Win32.SetWindowText(Hwnd, _title);
+            if (Hwnd != 0) Core.Win32.SetWindowText(Hwnd, _title);
         }
     }
 
@@ -30,7 +46,7 @@ internal sealed class WindowImpl : IWindow
             if (_width == value) return;
             _width = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, (int)_width, (int)_height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, (int)_width, (int)_height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
 
@@ -43,7 +59,7 @@ internal sealed class WindowImpl : IWindow
             if (_height == value) return;
             _height = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, (int)_width, (int)_height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, (int)_width, (int)_height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
 
@@ -93,9 +109,9 @@ internal sealed class WindowImpl : IWindow
         _positionMode = position;
     }
 
-    public void Show() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
-    public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
-    public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
+    public void Show() => Win32.ShowWindow(Hwnd, SW.SHOW);
+    public void Hide() => Win32.ShowWindow(Hwnd, SW.HIDE);
+    public void Close() => Win32.DestroyWindow(Hwnd);
     public void Visibility(bool visible)
     {
         if (visible) Show();
@@ -105,14 +121,14 @@ internal sealed class WindowImpl : IWindow
     public void Center()
     {
         if (Hwnd == 0) return;
-        nint monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
-        if (monitor == 0) monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
+        nint monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (monitor == 0) monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
         if (monitor == 0) return;
 
         MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
-        if (!EasyWindowsApplication.Core.Win32.GetMonitorInfoW(monitor, ref mi)) return;
+        if (!Core.Win32.GetMonitorInfoW(monitor, ref mi)) return;
 
-        EasyWindowsApplication.Core.Win32.GetWindowRect(Hwnd, out RECT wr);
+        Core.Win32.GetWindowRect(Hwnd, out RECT wr);
         int winW = wr.Right - wr.Left;
         int winH = wr.Bottom - wr.Top;
 
@@ -122,13 +138,13 @@ internal sealed class WindowImpl : IWindow
         int x = mi.rcWork.Left + (workW - winW) / 2;
         int y = mi.rcWork.Top + (workH - winH) / 2;
 
-        EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+        Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
     }
 
-    public void Maximize() => EasyWindowsApplication.Core.Win32.ShowWindow(Hwnd, SW.MAXIMIZE);
-    public void Minimize() => EasyWindowsApplication.Core.Win32.ShowWindow(Hwnd, SW.MINIMIZE);
-    public void Restore() => EasyWindowsApplication.Core.Win32.ShowWindow(Hwnd, SW.RESTORE);
-    public void Focus() => EasyWindowsApplication.Core.Win32.SetForegroundWindow(Hwnd);
+    public void Maximize() => Core.Win32.ShowWindow(Hwnd, SW.MAXIMIZE);
+    public void Minimize() => Core.Win32.ShowWindow(Hwnd, SW.MINIMIZE);
+    public void Restore() => Core.Win32.ShowWindow(Hwnd, SW.RESTORE);
+    public void Focus() => Core.Win32.SetForegroundWindow(Hwnd);
 
     internal void RaiseLoaded() => Loaded?.Invoke(this, EventArgs.Empty);
     internal bool RaiseClosing()
@@ -152,15 +168,15 @@ internal sealed class WindowImpl : IWindow
         // Actualizar SCROLLINFO
         if (_scrollConfig is not null)
         {
-            if (_maxScrollY > 0 || _scrollConfig.VerticalScrollBarVisibility == ScrollBarVisibility.Always)
+            if (_maxScrollY > 0 || _scrollConfig.VerticalScrollBarVisibility is ScrollBarVisibility.Always)
             {
                 var siV = new SCROLLINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<SCROLLINFO>(), fMask = SIF.POS, nPos = _scrollY };
-                EasyWindowsApplication.Core.Win32.SetScrollInfo(Hwnd, 1, ref siV, true);
+                Core.Win32.SetScrollInfo(Hwnd, 1, ref siV, true);
             }
-            if (_maxScrollX > 0 || _scrollConfig.HorizontalScrollBarVisibility == ScrollBarVisibility.Always)
+            if (_maxScrollX > 0 || _scrollConfig.HorizontalScrollBarVisibility is ScrollBarVisibility.Always)
             {
                 var siH = new SCROLLINFO { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<SCROLLINFO>(), fMask = SIF.POS, nPos = _scrollX };
-                EasyWindowsApplication.Core.Win32.SetScrollInfo(Hwnd, 0, ref siH, true);
+                Core.Win32.SetScrollInfo(Hwnd, 0, ref siH, true);
             }
         }
 
@@ -174,8 +190,8 @@ internal sealed class WindowImpl : IWindow
 
     private void ApplyScrollOffset()
     {
-        if (_materializedChildren == null || _materializedChildren.Count == 0) return;
-        nint hdwp = EasyWindowsApplication.Core.Win32.BeginDeferWindowPos(_materializedChildren.Count);
+        if (_materializedChildren is null || _materializedChildren.Count == 0) return;
+        nint hdwp = Core.Win32.BeginDeferWindowPos(_materializedChildren.Count);
         bool batching = hdwp != 0;
         if (batching)
         {
@@ -185,30 +201,31 @@ internal sealed class WindowImpl : IWindow
                 {
                     int x = (int)cb._arrangedX - _scrollX;
                     int y = (int)cb._arrangedY - _scrollY;
-                    nint next = EasyWindowsApplication.Core.Win32.DeferWindowPos(hdwp, cb.Hwnd, 0, x, y, (int)cb._arrangedW, (int)cb._arrangedH, SWP.NOZORDER | SWP.NOACTIVATE);
+                    nint next = Core.Win32.DeferWindowPos(hdwp, cb.Hwnd, 0, x, y, (int)cb._arrangedW, (int)cb._arrangedH, SWP.NOZORDER | SWP.NOACTIVATE);
                     if (next != 0) hdwp = next;
                     else batching = false;
                 }
             }
             if (batching)
             {
-                EasyWindowsApplication.Core.Win32.EndDeferWindowPos(hdwp);
+                Core.Win32.EndDeferWindowPos(hdwp);
                 return;
             }
-            if (hdwp != 0) EasyWindowsApplication.Core.Win32.EndDeferWindowPos(hdwp);
+            if (hdwp != 0) Core.Win32.EndDeferWindowPos(hdwp);
         }
         foreach (var child in _materializedChildren)
         {
             if (child is ControlBase cb && cb.Hwnd != 0)
             {
-                EasyWindowsApplication.Core.Win32.SetWindowPos(cb.Hwnd, 0, (int)cb._arrangedX - _scrollX, (int)cb._arrangedY - _scrollY, (int)cb._arrangedW, (int)cb._arrangedH, SWP.NOZORDER | SWP.NOACTIVATE);
+                Core.Win32.SetWindowPos(cb.Hwnd, 0, (int)cb._arrangedX - _scrollX, (int)cb._arrangedY - _scrollY, (int)cb._arrangedW, (int)cb._arrangedH, SWP.NOZORDER | SWP.NOACTIVATE);
             }
         }
     }
 
     internal void HandleVScroll(int request, int thumbPos)
     {
-        if (_scrollConfig == null) return;
+        if (_scrollConfig is null) return;
+
         int newPos = _scrollY;
         switch (request)
         {
@@ -236,7 +253,7 @@ internal sealed class WindowImpl : IWindow
 
     internal void HandleHScroll(int request, int thumbPos)
     {
-        if (_scrollConfig == null) return;
+        if (_scrollConfig is null) return;
         int newPos = _scrollX;
         switch (request)
         {
@@ -264,9 +281,9 @@ internal sealed class WindowImpl : IWindow
 
     internal void HandleMouseWheel(int delta)
     {
-        if (_scrollConfig == null) return;
+        if (_scrollConfig is null) return;
         // Rueda vertical por defecto; si orientación es Horizontal, scrollear horizontal
-        bool isHorizontal = _scrollConfig.Orientation == ScrollOrientation.Horizontal;
+        bool isHorizontal = _scrollConfig.Orientation is ScrollOrientation.Horizontal;
         if (isHorizontal)
         {
             int newX = _scrollX - delta * 30 / 120;
@@ -281,7 +298,7 @@ internal sealed class WindowImpl : IWindow
 
     private void ConfigureScrollbars()
     {
-        if (_scrollConfig == null || Hwnd == 0) return;
+        if (_scrollConfig is null || Hwnd == 0) return;
 
         // Calcular tamaños totales del contenido
         int totalH = 0;
@@ -306,25 +323,25 @@ internal sealed class WindowImpl : IWindow
         if (wantsV)
         {
             needV = totalH > _clientH;
-            if (_scrollConfig.VerticalScrollBarVisibility == ScrollBarVisibility.Never) needV = false;
-            else if (_scrollConfig.VerticalScrollBarVisibility == ScrollBarVisibility.Always) needV = true;
+            if (_scrollConfig.VerticalScrollBarVisibility is ScrollBarVisibility.Never) needV = false;
+            else if (_scrollConfig.VerticalScrollBarVisibility is ScrollBarVisibility.Always) needV = true;
         }
         if (wantsH)
         {
             needH = totalW > _clientW;
-            if (_scrollConfig.HorizontalScrollBarVisibility == ScrollBarVisibility.Never) needH = false;
-            else if (_scrollConfig.HorizontalScrollBarVisibility == ScrollBarVisibility.Always) needH = true;
+            if (_scrollConfig.HorizontalScrollBarVisibility is ScrollBarVisibility.Never) needH = false;
+            else if (_scrollConfig.HorizontalScrollBarVisibility is ScrollBarVisibility.Always) needH = true;
         }
 
         // Activar estilos WS_HSCROLL/VSCROLL
-        int style = EasyWindowsApplication.Core.Win32.GetWindowLongW(Hwnd, GWL.STYLE);
+        int style = Core.Win32.GetWindowLongW(Hwnd, GWL.STYLE);
         int newStyle = style;
         if (needV) newStyle |= (int)WS.VSCROLL; else newStyle &= ~(int)WS.VSCROLL;
         if (needH) newStyle |= (int)WS.HSCROLL; else newStyle &= ~(int)WS.HSCROLL;
         if (newStyle != style)
         {
-            EasyWindowsApplication.Core.Win32.SetWindowLongW(Hwnd, GWL.STYLE, newStyle);
-            EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE | SWP.NOSIZE | SWP.FRAMECHANGED);
+            Core.Win32.SetWindowLongW(Hwnd, GWL.STYLE, newStyle);
+            Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE | SWP.NOSIZE | SWP.FRAMECHANGED);
         }
 
         _maxScrollY = Math.Max(0, totalH - _clientH);
@@ -335,7 +352,7 @@ internal sealed class WindowImpl : IWindow
         _scrollY = Math.Clamp(_scrollY, 0, _maxScrollY);
 
         // Configurar SCROLLINFO
-        if (needV || _scrollConfig.VerticalScrollBarVisibility == ScrollBarVisibility.Always)
+        if (needV || _scrollConfig.VerticalScrollBarVisibility is ScrollBarVisibility.Always)
         {
             var si = new SCROLLINFO
             {
@@ -346,9 +363,9 @@ internal sealed class WindowImpl : IWindow
                 nPage = (uint)Math.Max(0, _clientH),
                 nPos = _scrollY
             };
-            EasyWindowsApplication.Core.Win32.SetScrollInfo(Hwnd, 1, ref si, true);
+            Core.Win32.SetScrollInfo(Hwnd, 1, ref si, true);
         }
-        if (needH || _scrollConfig.HorizontalScrollBarVisibility == ScrollBarVisibility.Always)
+        if (needH || _scrollConfig.HorizontalScrollBarVisibility is ScrollBarVisibility.Always)
         {
             var si = new SCROLLINFO
             {
@@ -359,7 +376,7 @@ internal sealed class WindowImpl : IWindow
                 nPage = (uint)Math.Max(0, _clientW),
                 nPos = _scrollX
             };
-            EasyWindowsApplication.Core.Win32.SetScrollInfo(Hwnd, 0, ref si, true);
+            Core.Win32.SetScrollInfo(Hwnd, 0, ref si, true);
         }
 
         // Sincronizar con MasterRouter para dibujado
@@ -381,7 +398,7 @@ internal sealed class WindowImpl : IWindow
 
         if (_materializedChildren is not null && _contentModel is not null && _materializedChildren.Count > 0)
         {
-            var engine = new EasyWindowsApplication.Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
+            var engine = new Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
             engine.Execute(_materializedChildren, w, h, _contentModel.Spacing, _contentModel.Padding);
         }
 
@@ -409,7 +426,7 @@ internal sealed class WindowImpl : IWindow
         if (availW <= 0) availW = window.Width;
         if (availH <= 0) availH = window.Height;
 
-        var engine = new EasyWindowsApplication.Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
+        var engine = new Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
         engine.Execute(layoutables, availW, availH, content.Spacing, content.Padding);
 
         _materializedChildren = layoutables;

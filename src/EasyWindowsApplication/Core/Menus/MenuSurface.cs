@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 
 namespace EasyWindowsApplication.Core.Menus;
 
@@ -50,10 +52,6 @@ internal sealed class MenuSurface : IMenu
     public int GridRowSpan { get; set; }
     public int GridColumnSpan { get; set; }
     public Color? BackgroundColor { get; set; }
-
-    public event Action? Clicked;
-
-    public void OnClick(Action handler) => Clicked += handler;
 
     public void Show()
     {
@@ -142,10 +140,7 @@ internal sealed class MenuSurface : IMenu
             Text = item.Text,
             IsEnabled = item.IsEnabled,
             IsChecked = item.IsChecked,
-            OnClick = () =>
-            {
-                if (item is MenuItem concrete) concrete.RaiseClicked();
-            }
+            OnSelected = () => ((IInputFeed)item).FeedTrigger(typeof(MainTap), 1)
         };
         if (sub is not null)
         {
@@ -162,7 +157,6 @@ internal sealed class MenuSurface : IMenu
     private void ShowAt(int x, int y, uint align)
     {
         var model = EnsureMaterialized();
-        int id = Win32MenuEngine.Show(_ownerHwnd, model, x, y, align);
-        if (id > 0) Clicked?.Invoke();
+        Win32MenuEngine.Show(_ownerHwnd, model, x, y, align);
     }
 }

@@ -2,7 +2,9 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EasyWindowsApplication.Common;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Core.Windowing;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
@@ -337,8 +339,11 @@ internal sealed class MasterRouter
         {
             case WM.COMMAND:
                 nint code = Win32Helpers.HIWORD(wParam);
-                if ((code == BN.CLICKED || code == BN.DOUBLECLICKED) && control is IClickEventSource clickable)
-                    clickable.RaiseClickInternal();
+                if (control is IInputFeed feed)
+                {
+                    if (code == BN.CLICKED) feed.FeedTrigger(typeof(MainTap), 1);
+                    if (code == BN.DOUBLECLICKED) feed.FeedTrigger(typeof(MainTap), 2);
+                }
                 break;
         }
     }

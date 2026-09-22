@@ -31,7 +31,7 @@ internal static class Win32MenuEngine
         if (id <= 0) return false;
         var item = model.FindById(id);
         if (item is null || !item.IsEnabled || item.IsSeparator) return false;
-        item.OnClick?.Invoke();
+        item.OnSelected?.Invoke();
         return true;
     }
 

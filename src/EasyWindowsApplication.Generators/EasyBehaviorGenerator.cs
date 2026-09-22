@@ -214,7 +214,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         {
             var typeArg = generic.TypeArgumentList.Arguments[0];
             var typeSymbol = context.SemanticModel.GetTypeInfo(typeArg).Type;
-            if (typeSymbol == null) return null;
+            if (typeSymbol is null) return null;
 
             return new NamedInfo(
                 name,
@@ -235,7 +235,7 @@ public sealed class EasyBehaviorGenerator : IIncrementalGenerator
         {
             var typeArg = altGeneric.TypeArgumentList.Arguments[0];
             var typeSymbol = context.SemanticModel.GetTypeInfo(typeArg).Type;
-            if (typeSymbol == null) return null;
+            if (typeSymbol is null) return null;
 
             var compilation = context.SemanticModel.Compilation;
             var iBaseWindow = compilation.GetTypeByMetadataName(

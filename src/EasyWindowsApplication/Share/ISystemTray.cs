@@ -1,14 +1,6 @@
-using EasyWindowsApplication.Share.Input;
-
 namespace EasyWindowsApplication.Share;
 
-public interface ISystemTray : IViewSurface, ISystemTrayNotifications
+public interface ISystemTray : IViewSurface, ISystemTrayNotifications, IInputSurface
 {
-    ISystemTray OnInputWithSpatialPosition<TTrigger>(Action handler)
-        where TTrigger : ISpatialPositionTrigger;
-    ISystemTray OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
-        where TTrigger : ISpatialPositionTrigger
-        where TCount : ITapCount;
-    ISystemTray OnInputWithoutSpatialPosition<TTrigger>(Action handler)
-        where TTrigger : WithoutSpatialPositionTrigger;
+    
 }

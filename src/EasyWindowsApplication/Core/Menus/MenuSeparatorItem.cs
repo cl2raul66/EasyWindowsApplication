@@ -16,10 +16,4 @@ internal sealed class MenuSeparatorItem : IMenuItemSeparator
     public int GridRowSpan { get; set; }
     public int GridColumnSpan { get; set; }
     public Color? BackgroundColor { get; set; }
-
-    public event Action? Clicked;
-
-    public void OnClick(Action handler) => Clicked += handler;
-
-    internal void RaiseClicked() => Clicked?.Invoke();
 }

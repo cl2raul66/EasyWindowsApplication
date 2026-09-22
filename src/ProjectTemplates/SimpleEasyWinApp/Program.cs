@@ -23,7 +23,7 @@ WindowsApplication
         )
     )
     .Behavior(bh => bh
-        .BtnIncrement.OnClick(() =>
+        .BtnIncrement.OnMainTap(() =>
         {
             counter++;
             bh.BtnIncrement.Text = $"Click: {counter}";

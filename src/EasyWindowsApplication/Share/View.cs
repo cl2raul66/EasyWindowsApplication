@@ -14,12 +14,6 @@ public abstract class ViewBase<TSelf> : ControlBase where TSelf : ViewBase<TSelf
         base.OnMessage(msg, handler);
         return (TSelf)this;
     }
-
-    public new TSelf OnClick(Action handler)
-    {
-        base.OnClick(handler);
-        return (TSelf)this;
-    }
 }
 
 public sealed class View<T> where T : class, IViewSurface
@@ -149,12 +143,6 @@ public sealed class View<T> where T : class, IViewSurface
     public View<T> ColumnSpan(int span)
     {
         _configure.Add(c => c.GridColumnSpan = span);
-        return this;
-    }
-
-    public View<T> OnClick(Action handler)
-    {
-        _configure.Add(c => c.OnClick(handler));
         return this;
     }
 

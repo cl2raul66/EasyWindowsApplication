@@ -1,5 +1,7 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IDateTimePicker : IControl
+public interface IDateTimePicker : IControl, IInputSurface
 {
 }

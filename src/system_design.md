@@ -161,7 +161,7 @@ WindowsApplication.Layout(ly => ly
 > `IChildrenBuilder` tiene 4 overloads: `View<T>()` (superficie anónima, sin `Name` ni lookup `bh.*` — p. ej. separadores) + `View<T>(Action<View<T>>)` + `View<T>(Func<View<T>,View<T>>)` (ambos con `View<T> sealed class where T : class, IViewSurface`) + `View(Action<IViewBuilder>)` para este caso.
 
 ## Superficies de menú (`IMenu` / `IMenuItem`)
-> `AlternativeWindow<T>` acepta cualquier `IViewSurface`. Con `T = IMenu` no se crea HWND: `Application.RegisterAlternative` construye un `MenuSurface` (motor `HMENU` Win32 puro, `Core/Menus/Win32MenuEngine`) y lo registra por nombre. Los items se declaran con `View<IMenuItem>` (`Name` + `Text` + `IsEnabled` + `IsChecked` + `OnClick` + submenú vía `SubContent`); se materializan una vez (`EnsureMaterialized`) y se registran para `bh.*`. `Show()` se ancla al icono (`Shell_NotifyIconGetRect`): los triggers sin posición espacial nunca consumen la posición del mouse (el cursor es solo fallback si no hay rect).
+> `AlternativeWindow<T>` acepta cualquier `IViewSurface`. Con `T = IMenu` no se crea HWND: `Application.RegisterAlternative` construye un `MenuSurface` (motor `HMENU` Win32 puro, `Core/Menus/Win32MenuEngine`) y lo registra por nombre. Los items se declaran con `View<IMenuItem>` (`Name` + `Text` + `IsEnabled` + `IsChecked` + submenú vía `SubContent`); la activación se suscribe en Behavior con `OnInputWithSpatialPosition<MainTap>`; se materializan una vez (`EnsureMaterialized`) y se registran para `bh.*`. `Show()` se ancla al icono (`Shell_NotifyIconGetRect`): los triggers sin posición espacial nunca consumen la posición del mouse (el cursor es solo fallback si no hay rect).
 
 ```csharp
 WindowsApplication.Layout(ly => ly
@@ -214,7 +214,7 @@ WindowsApplication
         )
     )
     .Behavior(bh => bh
-        .BtnIncrement.OnClick(() =>
+        .BtnIncrement.OnMainTap(() =>
         {
             counter++;
             bh.BtnIncrement.Text = $"Click: {counter}";
@@ -267,6 +267,6 @@ WindowsApplication
     .Initialize();
 ```
 
-> Mapeo OS→trigger (`SystemTrayBroker`, `lParam` empaquetado v4: `LOWORD` = mensaje, `HIWORD` = uID): `WM_LBUTTONUP`/`NIN_SELECT`/`NIN_KEYSELECT`→`MainTap`, `WM_LBUTTONDBLCLK`→`MainDoubleTap`, `WM_RBUTTONUP`→`AlternativeTap1` y `WM_MBUTTONUP`→`AlternativeTap2` (ambos solo con cursor sobre el icono), `WM_MOUSEMOVE`/`NIN_POPUPOPEN`→`Hover` (flanco, reset 1s), `WM_CONTEXTMENU` por callback→`AlternativeTap1` (cursor encima) o `KeyMenu` (+ `Chord<KeyShift,KeyF10>` con Shift, cursor fuera = teclado). `LongTap`/`Holding` son **derivados** (no nativos del OS): `WM_LBUTTONDOWN` + timer 500ms → `Holding` (aún presionado); soltar tras hold → `LongTap`; soltar antes → `MainTap`. Conteo encadenado con ventana `GetDoubleClickTime()` (cap 10).
+> Mapeo OS→trigger (`SystemTrayBroker`, `lParam` empaquetado v4: `LOWORD` = mensaje, `HIWORD` = uID): `WM_LBUTTONUP`/`NIN_SELECT`/`NIN_KEYSELECT`→`MainTap` (el doble-tap se codifica como cadena `MainTap` + `TwoTap` en el segundo `WM_LBUTTONUP`; `WM_LBUTTONDBLCLK` se ignora), `WM_RBUTTONUP`→`AlternativeTap1` y `WM_MBUTTONUP`→`AlternativeTap2` (ambos solo con cursor sobre el icono), `WM_MOUSEMOVE`/`NIN_POPUPOPEN`→`Hover` (flanco, reset 1s), `WM_CONTEXTMENU` por callback→`AlternativeTap1` (cursor encima) o `KeyMenu` (+ `Chord<KeyShift,KeyF10>` con Shift, cursor fuera = teclado). `LongTap`/`Holding` son **derivados** (no nativos del OS): `WM_LBUTTONDOWN` + timer 500ms → `Holding` (aún presionado); soltar tras hold → `LongTap`; soltar antes → `MainTap`. Conteo encadenado con ventana `GetDoubleClickTime()` (cap 10).
 >
 > Tooltip vs notificación (`ISystemTrayNotifications` = `IToolTipService` + `ITrayNotificationService`, punto de extensión para módulos): `Tooltip(text)` = hint clásico (`NIF_TIP` + `NIF_SHOWTIP`, automático al hover, silencioso); `Notify(title, message)` / `DismissNotification()` = toast real (banner + sonido + Action Center, espejo de `AppNotification`).

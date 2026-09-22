@@ -17,9 +17,6 @@ public interface IViewSurface
 
     Color? BackgroundColor { get; set; }
 
-    event Action? Clicked;
-    void OnClick(Action handler);
-
     void Visibility(bool visible)
     {
         if (this is IBaseWindow window)

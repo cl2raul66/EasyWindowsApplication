@@ -1,7 +1,7 @@
 ﻿
 namespace EasyWindowsApplication.Share;
 
-public interface IWindow : IBaseWindow
+public interface IWindow : IBaseWindow, IInputSurface
 {
     string Title { get; set; }
     float Width { get; set; }

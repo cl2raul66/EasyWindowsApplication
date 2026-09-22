@@ -1,7 +1,7 @@
 ﻿
 namespace EasyWindowsApplication.Share;
 
-public interface IAlternativeWindow : IBaseWindow
+public interface IAlternativeWindow : IBaseWindow, IInputSurface
 {
     nint OwnerHwnd { get; }
     string Title { get; set; }

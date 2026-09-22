@@ -8,7 +8,7 @@ internal sealed class MenuItemModel
     internal bool IsChecked;
     internal bool IsSeparator;
     internal List<MenuItemModel> Children = [];
-    internal Action? OnClick;
+    internal Action? OnSelected;
 }
 
 internal sealed class MenuModel

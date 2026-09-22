@@ -1,5 +1,7 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IToolbar : IControl
+public interface IToolbar : IControl, IInputSurface
 {
 }

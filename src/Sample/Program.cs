@@ -60,13 +60,13 @@ WindowsApplication
         });
         bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => { bh.MySystemTrayMenu.Show(); });
         bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => { bh.MySystemTrayMenu.Show(); });
-        bh.Mi1.OnClick(() =>
+        bh.Mi1.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
         {
             bh.SystemTray.Visibility(false);
             bh.WindowsApplication.TaskbarButtonVisibility(true);
             bh.MainWindow.Visibility(true);
         });
-        bh.Mi2.OnClick(() =>
+        bh.Mi2.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
         {
             bh.MainWindow.Close();
         });
