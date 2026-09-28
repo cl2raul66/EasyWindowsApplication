@@ -54,6 +54,11 @@ internal sealed class Application :
 
     public void Initialize()
     {
+        Threading.UiApartment.RunStaOrCurrent(RunPipeline);
+    }
+
+    private void RunPipeline()
+    {
         // 1. Registrar defaults PRIMERO (antes de cualquier control o HFONT)
         try { UiDefaultsProvider.Set(new Win32ControlsModule.Backend.Win32UiDefaults()); } catch { }
 
@@ -158,6 +163,11 @@ internal sealed class Application :
 
     private void RegisterAlternative(WindowModel window)
     {
+        if (window.SurfaceType is not null && typeof(ISystemDialog).IsAssignableFrom(window.SurfaceType))
+        {
+            RegisterAlternativeDialog(window);
+            return;
+        }
         if (window.SurfaceType is not null && typeof(IMenu).IsAssignableFrom(window.SurfaceType))
         {
             var surface = new Menus.MenuSurface(window.Content as ContentModel);
@@ -201,5 +211,37 @@ internal sealed class Application :
         }
         // AlternativeWindow inicia oculta — se muestra explícitamente via GetWindow<IAlternativeWindow>(name).Show()
         // No se llama win.Show() ni win.RaiseLoaded() aquí (Loaded se disparará en el Show manual)
+    }
+
+    private void RegisterAlternativeDialog(WindowModel window)
+    {
+        Dialogs.DialogSurfaceBase surface = window.SurfaceType == typeof(IOpenFileDialog)
+            ? new Dialogs.OpenFileDialogImpl()
+            : window.SurfaceType == typeof(ISaveFileDialog)
+            ? new Dialogs.SaveFileDialogImpl()
+            : window.SurfaceType == typeof(ISelectFolderDialog)
+            ? new Dialogs.SelectFolderDialogImpl()
+            : window.SurfaceType == typeof(ITaskDialog)
+            ? new Dialogs.TaskDialogImpl()
+            : throw new InvalidOperationException($"Tipo de diálogo del sistema no soportado: {window.SurfaceType}.");
+
+        // Owner resuelto en Show() para no depender del orden de declaración en Layout.
+        surface.OwnerProvider = () => _mainHwnd;
+
+        if (window.ConfigureSurface is null)
+        {
+            if (!string.IsNullOrEmpty(window.Name))
+                surface.Name = window.Name;
+            if (!string.IsNullOrEmpty(window.Title))
+                surface.Title(window.Title);
+        }
+        else
+        {
+            window.ConfigureSurface(surface);
+        }
+
+        if (string.IsNullOrEmpty(surface.Name))
+            throw new InvalidOperationException("Los diálogos del sistema requieren Name(...).");
+        _registry.RegisterSurface(surface.Name, surface);
     }
 }

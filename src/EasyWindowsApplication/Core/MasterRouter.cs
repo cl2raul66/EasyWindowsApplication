@@ -82,6 +82,10 @@ internal sealed class MasterRouter
         }
         catch (Exception ex)
         {
+            // Tragar aquí protege la message loop (una excepción en un handler
+            // no tumba la app), pero Release no puede quedar en silencio:
+            // Debug.Fail solo existe en DEBUG, así que el Trace es el registro.
+            Trace.WriteLine($"[EWA] Excepción en WndProc hwnd=0x{hwnd:X16} msg=0x{msg:X8}:{Environment.NewLine}{ex}");
             Debug.Fail(ex.ToString());
             return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);
         }
