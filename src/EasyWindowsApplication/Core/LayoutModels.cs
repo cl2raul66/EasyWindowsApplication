@@ -18,6 +18,7 @@ internal sealed class WindowModel
     internal WindowsScroll? ScrollConfig { get; set; }
     internal Action<ISystemTray>? SystemTrayConfigure { get; set; }
     internal Type? SurfaceType { get; set; }
+    internal Action<IViewSurface>? ConfigureSurface { get; set; }
 }
 
 internal sealed class ContentModel : IContentModel
