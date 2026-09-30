@@ -18,6 +18,10 @@ internal sealed class BehaviorBuilderImpl : IBehaviorBuilder, ControlAccess.IBeh
 
     internal void RaiseLaunched() => _appBehavior?.RaiseLaunched();
 
+    internal bool RaiseTerminating() => _appBehavior?.RaiseTerminating() ?? false;
+
+    internal void RaiseTerminated() => _appBehavior?.RaiseTerminated();
+
     T ControlAccess.IBehaviorServicesController.Get<T>(string name)
         => (T)Registry!.GetByName(name)!;
 

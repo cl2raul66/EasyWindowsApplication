@@ -91,8 +91,6 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     public (int X, int Y) ScrollOffset => (_scrollX, _scrollY);
 
     public event EventHandler? Loaded;
-    public event EventHandler<CancelEventArgs>? Closing;
-    public event EventHandler? Closed;
     public event EventHandler? Activated;
     public event EventHandler? Deactivated;
     public event EventHandler<WindowResizingEventArgs>? Resizing;
@@ -111,7 +109,6 @@ internal sealed class WindowImpl : IWindow, IInputFeed
 
     public void Show() => Win32.ShowWindow(Hwnd, SW.SHOW);
     public void Hide() => Win32.ShowWindow(Hwnd, SW.HIDE);
-    public void Close() => Win32.DestroyWindow(Hwnd);
     public void Visibility(bool visible)
     {
         if (visible) Show();
@@ -147,13 +144,6 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     public void Focus() => Core.Win32.SetForegroundWindow(Hwnd);
 
     internal void RaiseLoaded() => Loaded?.Invoke(this, EventArgs.Empty);
-    internal bool RaiseClosing()
-    {
-        var args = new CancelEventArgs();
-        Closing?.Invoke(this, args);
-        return args.Cancel;
-    }
-    internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
     internal void RaiseActivated() => Activated?.Invoke(this, EventArgs.Empty);
     internal void RaiseDeactivated() => Deactivated?.Invoke(this, EventArgs.Empty);
     public void ScrollTo(int x, int y)

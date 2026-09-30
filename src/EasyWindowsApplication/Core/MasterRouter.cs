@@ -17,6 +17,18 @@ internal sealed class MasterRouter
     private nint _mainHwnd;
     private bool _isResizing;
 
+    internal nint MainHwnd
+    {
+        get => _mainHwnd;
+        set => _mainHwnd = value;
+    }
+
+    /// <summary>
+    /// Portón de terminación: retorna true si la salida fue vetada
+    /// (OnTerminating con Cancel=true). Null = sin Behavior, cierre directo.
+    /// </summary>
+    internal Func<bool>? TerminationGate;
+
     private readonly Dictionary<nint, nint> _windowBrushes = [];
     private readonly Dictionary<nint, nint> _controlBrushes = [];
     private readonly Dictionary<nint, List<(RECT Rect, int Color)>> _layoutGroupBackgrounds = [];
@@ -96,13 +108,22 @@ internal sealed class MasterRouter
         // ── Window lifecycle & resize routing (Fase 3) ──
         if (msg == WM.CLOSE)
         {
-            var win = _registry.GetWindowByHwnd(hwnd);
-            if (win is not null)
+            // Portón de la app: la principal no tiene Closing local;
+            // su X pasa por OnTerminating (vetable, UI viva).
+            if (hwnd == _mainHwnd)
             {
-                bool cancel = false;
-                if (win is WindowImpl wi) cancel = wi.RaiseClosing();
-                else if (win is AlternativeWindowImpl aw) cancel = aw.RaiseClosing();
-                if (cancel) return 0;
+                if (TerminationGate?.Invoke() == true)
+                    return 0;
+                // No vetada (o sin Behavior): caer a DefWindowProc → WM_DESTROY.
+            }
+            else
+            {
+                var alt = _registry.GetWindowByHwnd(hwnd);
+                if (alt is AlternativeWindowImpl aw)
+                {
+                    if (aw.RaiseClosing())
+                        return 0;
+                }
             }
         }
 
@@ -236,13 +257,11 @@ internal sealed class MasterRouter
 
         if (msg == WM.DESTROY)
         {
-            // Disparar Closed antes de limpieza
+            // Disparar Closed solo en secundarias (la principal no tiene
+            // concepto "cerrar": su destrucción ES el ciclo de la app).
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win is not null)
-            {
-                if (win is WindowImpl wi) wi.RaiseClosed();
-                else if (win is AlternativeWindowImpl aw) aw.RaiseClosed();
-            }
+            if (win is AlternativeWindowImpl awClosed)
+                awClosed.RaiseClosed();
 
             // Limpieza determinística del registry (Fase 5: evita memory leak de controles)
             _registry.Unregister(hwnd);
@@ -253,6 +272,9 @@ internal sealed class MasterRouter
             _controlBrushes.Remove(hwnd);
             _layoutGroupBackgrounds.Remove(hwnd);
             _scrollOffsets.Remove(hwnd);
+            // Marca la secundaria como destruida (Show() posterior re-crea).
+            if (win is AlternativeWindowImpl awDestroyed)
+                awDestroyed.MarkDestroyed();
             // Limpia handlers asociados a este hwnd (evita leak de delegates)
             if (_handlers.Count > 0)
             {

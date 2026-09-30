@@ -42,6 +42,12 @@ internal sealed class AppBehaviorBuilderImpl : IAppBehavior
         return this;
     }
 
+    public void Terminate()
+    {
+        if (MainHwnd != 0)
+            Win32.PostMessageW(MainHwnd, WM.CLOSE, 0, 0);
+    }
+
     internal void RaiseLaunched()
     {
         foreach (var handler in _launched.ToArray()) handler();

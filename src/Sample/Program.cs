@@ -10,7 +10,7 @@ WindowsApplication
     {
         st.UseWinApi();
     }))
-    .Layout(ly =>
+    .Layout(static ly =>
     {
         ly.Window(iw => iw
             .SystemTray(st =>
@@ -32,79 +32,61 @@ WindowsApplication
                 })
             )
         );
-        ly.AlternativeWindow<IOpenFileDialog>(ofd => ofd
-            .Name("MyOpenDialog")
-            .Title("Abrir captura")
-            .Filters(f => f.Children(ch =>
-            {
-                ch.FileFilter("Imágenes", PngFile, JpgFile);
-                ch.FileFilter("Todas las imágenes", AllImageFile);
-            }))
-            .Content(c =>
-            {
-                c.DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
-                c.MultiSelect(true);
-            }));
-        ly.AlternativeWindow<ISaveFileDialog>(sfd => sfd
-            .Name("MySaveDialog")
-            .Title("Guardar captura")
-            .Filters(f => f.Children(ch =>
-            {
-                ch.FileFilter(PngFile);
-                ch.FileFilter("Todas los ficheros", AllFile);
-            }))
-            .Content(c =>
-            {
-                c.DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
-                c.DefaultFileName("captura");
-                c.DefaultExtension(PngFile);
-            }));
-        ly.AlternativeWindow<ISelectFolderDialog>(sfd => sfd
-            .Name("MyFolderDialog")
-            .Title("Seleccionar carpeta")
-            .Content(c =>
-            {
-                c.DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
-                c.PersistLastDirectory(false);
-            }));
+        ly.AlternativeWindow<IMenu>(m => m
+            .Name("MySystemTrayMenu")
+            .Content(c => c
+                .Children(ch =>
+                {
+                    ch.View<IMenuItem>(mi => mi.Name("Mi1").Text("Show main window"));
+                    ch.View<IMenuItemSeparator>();
+                    ch.View<IMenuItem>(mi => mi.Name("Mi2").Text("Exit"));
+                })
+            )
+        );
         ly.AlternativeWindow<ITaskDialog>(td => td
-            .Name("ConfirmDelete")
-            .Title("Confirmación")
+            .Name("ConfirmExit")
+            .Title("Salir")
             .Content(c =>
             {
-                c.NotificationIcon(TaskDialogIcon.Warning);
-                c.PrimaryText("¿Eliminar el elemento?");
-                c.SecondaryText("Esta acción no se puede deshacer.");
+                c.PrimaryText("¿Cerrar la aplicación?");
                 c.Choices(TaskDialogChoices.Yes | TaskDialogChoices.No);
                 c.DefaultChoice(TaskDialogChoice.No);
-            }));
-        // Variante mínima solo Name/Title (path de defaults).
-        // Nota: el parámetro lleva tipo explícito porque un lambda solo con
-        // Name/Title sería convertible tanto a Action<IWindowConfig> como a
-        // Action<TDialog> (CS0121, llamada ambigua).
-        ly.AlternativeWindow<IOpenFileDialog>((IOpenFileDialog ofd) => ofd
-            .Name("MinimalOpenDialog")
-            .Title("Abrir")
-            .Content(c => c.MultiSelect(false)));
+            })
+        );
     })
     .Behavior(bh =>
-    {        
-        bh.BtnIncrement.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
+    {
+        bh.WindowsApplication.OnLaunched(wa =>
         {
-            var confirm = bh.ConfirmDelete.Show();
-            if (!confirm.IsCanceled) { bh.LbResult.Text = $"TaskDialog: {confirm.Choice}"; }
-
-            var folder = bh.MyFolderDialog.Show();
-            if (!folder.IsCanceled) { bh.LbResult.Text = $"Carpeta: {folder.FolderPath}"; }
-
-            var save = bh.MySaveDialog.Show();
-            if (!save.IsCanceled) { bh.LbResult.Text = $"Guardar: {save.FilePath}"; }
-
-            var result = bh.MyOpenDialog.Show();
-            if (!result.IsCanceled) { bh.LbResult.Text = $"Aberturas: {result.FilePaths.Count}"; }
-
-            var minimal = bh.MinimalOpenDialog.Show();
-            if (!minimal.IsCanceled) { bh.LbResult.Text = $"Minimal: {minimal.FilePaths.Count}"; }
+            wa.TaskbarButtonVisibility(false);
+            bh.MainWindow.Visibility(false);
+            bh.SystemTray.Visibility(true);
         });
+        // Portón: única regla para la X de la principal y para Terminate()
+        bh.WindowsApplication.OnTerminating(args =>
+        {
+            var r = bh.ConfirmExit.Show();
+            if (r.IsCanceled || r.Choice is TaskDialogChoice.No)
+                args.Cancel = true;
+        });
+        // Epílogo — sin UI
+        bh.WindowsApplication.OnTerminated(() =>
+            System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));
+        bh.SystemTray.OnInputWithSpatialPosition<AlternativeTap1, OneTap>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.SystemTray.OnInputWithSpatialPosition<MainTap, TwoTap>(() =>
+        {
+            bh.SystemTray.Visibility(false);
+            bh.WindowsApplication.TaskbarButtonVisibility(true);
+            bh.MainWindow.Visibility(true);
+        });
+        bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => { bh.MySystemTrayMenu.Show(); });
+        bh.Mi1.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
+        {
+            bh.SystemTray.Visibility(false);
+            bh.WindowsApplication.TaskbarButtonVisibility(true);
+            bh.MainWindow.Visibility(true);
+        });
+        bh.Mi2.OnInputWithSpatialPosition<MainTap, OneTap>(() => bh.WindowsApplication.Terminate());
     })
     .Initialize();

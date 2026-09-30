@@ -28,7 +28,7 @@ WindowsApplication.Resources(...).Layout(...).Initialize();
 - Cuando se pone `.` después de `Behavior(...)`, el IntelliSense debe mostrar `Initialize`. Pero no elijas Behavior, para poder hacer el flujo de visualización.
 - Cuando se pone `.` después de `Initialize()`, el IntelliSense no debe recomendar nada.
 
-> **Pipeline `Initialize()`:** `Application.Initialize()` primero decide el apartamento (`0) UiApartment.RunStaOrCurrent(RunPipeline)`: si el hilo de entrada está en MTA — el default de .NET — ejecuta todo el pipeline en un `Thread` STA interno llamado `EWA-UI` y hace `Join()`; si ya es STA, corre en el hilo actual sin crear ni un hilo) y luego `RunPipeline()` ejecuta en orden: `1) UiDefaultsProvider.Set(new Win32UiDefaults())` → `2) InitCommonControlsEx(STANDARD_CLASSES)` → `3) ControlActivatorRegistry.EnsureInitialized()` → `4) new MasterRouter(registry)` → `5) foreach window: RegisterMain (CreateMainWindow + MaterializeContent + RegisterWindow + SetupSystemTrayIcon si hay `.SystemTray(...)`) o RegisterAlternative (rama `ISystemDialog`: `RegisterAlternativeDialog` — superficie sin HWND, impl COM `IFileOpenDialog`/`IFileSaveDialog` o `TaskDialogIndirect`, owner lazy `() => _mainHwnd` resuelto en `Show()`, no materializa contenido, `Name` obligatorio con throw, fallback `Name`/`Title` sueltos si no hay `ConfigureSurface`; rama `IMenu`: `MenuSurface` sin HWND + `EnsureMaterialized`; resto: CreateAlternativeWindow + MaterializeContent)` → `6) Behavior(registry + MainHwnd)` → `7) RaiseLaunched()` → `8) Procedures.RunMessageLoop()`. `UiDefaults` debe ir primero porque `GetDefaultFont`/`MeasureContent` lo leen con DPI scaling. `.Layout(...)`/`.Resources(...)` corren en el hilo de entrada (solo construyen el object graph, sin HWND ni COM); todo lo que crea HWND, menús, bandeja, behaviors y el message loop vive en `EWA-UI`.
+> **Pipeline `Initialize()`:** `Application.Initialize()` primero decide el apartamento (`0) UiApartment.RunStaOrCurrent(RunPipeline)`: si el hilo de entrada está en MTA — el default de .NET — ejecuta todo el pipeline en un `Thread` STA interno llamado `EWA-UI` y hace `Join()`; si ya es STA, corre en el hilo actual sin crear ni un hilo) y luego `RunPipeline()` ejecuta en orden: `1) UiDefaultsProvider.Set(new Win32UiDefaults())` → `2) InitCommonControlsEx(STANDARD_CLASSES)` → `3) ControlActivatorRegistry.EnsureInitialized()` → `4) new MasterRouter(registry)` → `5) foreach window: RegisterMain (CreateMainWindow + MaterializeContent + RegisterWindow + SetupSystemTrayIcon si hay `.SystemTray(...)`) o RegisterAlternative (rama `ISystemDialog`: `RegisterAlternativeDialog` — superficie sin HWND, impl COM `IFileOpenDialog`/`IFileSaveDialog` o `TaskDialogIndirect`, owner lazy `() => _mainHwnd` resuelto en `Show()`, no materializa contenido, `Name` obligatorio con throw, fallback `Name`/`Title` sueltos si no hay `ConfigureSurface`; rama `IMenu`: `MenuSurface` sin HWND + `EnsureMaterialized`; resto: CreateAlternativeWindow + MaterializeContent)` → `6) Behavior(registry + MainHwnd)` → `7) RaiseLaunched()` + gate `TerminationGate = () => RaiseTerminating()` → `8) Procedures.RunMessageLoop()` → `RaiseTerminated()` tras el loop (en `EWA-UI`, antes de que el hilo muera). `UiDefaults` debe ir primero porque `GetDefaultFont`/`MeasureContent` lo leen con DPI scaling. `.Layout(...)`/`.Resources(...)` corren en el hilo de entrada (solo construyen el object graph, sin HWND ni COM); todo lo que crea HWND, menús, bandeja, behaviors y el message loop vive en `EWA-UI`.
 
 # Flujo en **Resources**
 ```csharp
@@ -41,21 +41,7 @@ WindowsApplication
         );
         rd.Services(sr => sr.Singleton<IAppSettingsProvider, RegistrySettingsProvider>());
     })
-    .Layout(ly => ly
-        .Window(iw => iw
-            .Name("MainWindow")
-            .Title("Easy Win App")
-            .Dimensions(420, 280)
-            .Content(c => c
-                .Children(ch => ch
-                    .View<IButton>(btn => btn // IButton : IControl → requiere UseWinApi() o EAWIN002
-                        .Name("BtnIncrement")
-                        .Text("Click me")
-                    )
-                )
-            )
-        )
-    )
+    .Layout(ly => ly.Window())
     .Initialize();
 ```
 
@@ -355,7 +341,7 @@ WindowsApplication
 > Nota: Cuando usamos `OnInputWithSpatialPosition<TTrigger>` como se ve en el código anterior (Flujo en **Behavior**), es como decir `OnInputWithSpatialPosition<MainTap, OneTap>(...)` o sea que de forma predeterminada podemos decir que `OnInputWithSpatialPosition<MainTap>(...)` y `OnInputWithSpatialPosition(...)` es `OnInputWithSpatialPosition<MainTap, OneTap>(...)`.
 
 ## SystemTray y menús en **Behavior**
-> El generator emite accessors tipados: `IControl` → `ControlAccess.Get<T>`, `IBaseWindow` → `GetWindow<T>`, `IViewSurface` (menús/items/**diálogos**) → `GetSurface<T>`. `bh.SystemTray` es miembro real de `IBehaviorBuilder` (nombre reservado, lazy). Triggers tipados sin nombres de dispositivo: `OnInputWithSpatialPosition<TTrigger>` (+ overload con `TCount`: `OneTap…TenTap`) y `OnInputWithoutSpatialPosition<TTrigger>`. `bh.WindowsApplication.OnLaunched` se dispara tras Behavior; `TaskbarButtonVisibility(bool)` usa `ITaskbarList`.
+> El generator emite accessors tipados: `IControl` → `ControlAccess.Get<T>`, `IBaseWindow` → `GetWindow<T>`, `IViewSurface` (menús/items/**diálogos**) → `GetSurface<T>`. `bh.SystemTray` es miembro real de `IBehaviorBuilder` (nombre reservado, lazy). Triggers tipados sin nombres de dispositivo: `OnInputWithSpatialPosition<TTrigger>` (+ overload con `TCount`: `OneTap…TenTap`) y `OnInputWithoutSpatialPosition<TTrigger>`. `bh.WindowsApplication.OnLaunched` se dispara tras Behavior; `OnTerminating` (vetable, UI viva) es el portón único para la X de la principal y `Terminate()`; `OnTerminated` corre tras el message loop (sin UI); `TaskbarButtonVisibility(bool)` usa `ITaskbarList`.
 
 ```csharp
 WindowsApplication
@@ -410,7 +396,7 @@ WindowsApplication
         });
         bh.Mi2.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
         {
-            bh.MainWindow.Close();
+            bh.WindowsApplication.Terminate();
         });
         // Diálogos del sistema (accessors vía GetSurface<T> como menús)
         bh.BtnIncrement.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
@@ -432,6 +418,29 @@ WindowsApplication
         });
     })
     .Initialize();
+```
+
+## Lifecycle de la app
+
+Orden único: `OnLaunched → (app corriendo) → OnTerminating → OnTerminated`. Nunca dos veces, nunca fuera de orden. Todo en el hilo `EWA-UI`, cero async, `Show()` bloqueante.
+
+- **Superficie:** `IAppBehavior` expone `OnLaunched` (×2), `OnTerminating(Action<CancelEventArgs>)`, `OnTerminated(Action)`, `TaskbarButtonVisibility(bool)` y `Terminate()`. `IBaseWindow` solo tiene `Hwnd`, `Name`, `Show()`, `Hide()`, `Loaded`, `Activated`, `Deactivated` — el concepto "cerrar" (`Close()` + `Closing` + `Closed`) vive **solo** en `IAlternativeWindow`. La principal no se cierra: su destrucción **es** el ciclo de la app.
+- **Un solo portón:** la X de la principal y `Terminate()` (única puerta programática, `PostMessageW(MainHwnd, WM_CLOSE)`) pasan por `OnTerminating` con los mismos derechos de veto. Las secundarias no pasan por el portón: su `Closing` es local y nunca termina la app. Dentro de `OnTerminating` hay UI viva (se puede `Show()` un `ITaskDialog`); dentro de `OnTerminated` ya no hay UI.
+- **Consumo responsable:** en secundarias, `Visibility(false)` = ocultar (viva, re-Show instantáneo con el mismo HWND); `Close()` = destruir (vetable por `Closing` local, también en la llamada programática; el próximo `Show()` re-crea a demanda con HWND nuevo, contenido re-materializado y `Loaded` fresco).
+- **Mínimo:**
+```csharp
+.Behavior(bh =>
+{
+    bh.WindowsApplication.OnTerminating(args =>
+    {
+        var r = bh.ConfirmExit.Show();
+        if (r.IsCanceled || r.Choice == TaskDialogChoice.No)
+            args.Cancel = true;
+    });
+    bh.WindowsApplication.OnTerminated(() =>
+        System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));
+    bh.Mi2.OnInputWithSpatialPosition<MainTap, OneTap>(() => bh.WindowsApplication.Terminate());
+})
 ```
 
 ### Diálogos del sistema en **Behavior**

@@ -24,7 +24,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);
 
-    public nint Hwnd { get; }
+    public nint Hwnd { get; private set; }
     public string Name { get; }
     public nint OwnerHwnd { get; }
     private string _title;
@@ -96,6 +96,11 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     private List<ILayoutable>? _materializedChildren;
     private ContentModel? _contentModel;
     private bool _hasLoaded;
+    private bool _destroyed;
+
+    private WindowModel? _model;
+    private HandleRegistry? _registry;
+    private MasterRouter? _router;
 
     public event EventHandler? Loaded;
     public event EventHandler<CancelEventArgs>? Closing;
@@ -116,6 +121,10 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
 
     public void Show()
     {
+        if (_destroyed)
+            EnsureCreated();
+        if (Hwnd == 0)
+            return;
         Win32.ShowWindow(Hwnd, SW.SHOW);
         if (!_hasLoaded)
         {
@@ -123,12 +132,99 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
             Loaded?.Invoke(this, EventArgs.Empty);
         }
     }
-    public void Hide() => Win32.ShowWindow(Hwnd, SW.HIDE);
-    public void Close() => Win32.DestroyWindow(Hwnd);
+    public void Hide()
+    {
+        if (Hwnd == 0 || _destroyed)
+            return;
+        Win32.ShowWindow(Hwnd, SW.HIDE);
+    }
+
+    public void Close()
+    {
+        if (_destroyed || Hwnd == 0)
+            return;
+        if (RaiseClosing())
+            return;
+        Win32.DestroyWindow(Hwnd);
+        // WM_DESTROY → MarkDestroyed() completa la transición.
+    }
+
     public void Visibility(bool visible)
     {
         if (visible) Show();
         else Hide();
+    }
+
+    /// <summary>
+    /// Retiene el modelo y servicios para la re-creación a demanda.
+    /// Llamado por Application.RegisterAlternative.
+    /// </summary>
+    internal void BindForRecreation(WindowModel model, HandleRegistry registry, MasterRouter router)
+    {
+        _model = model;
+        _registry = registry;
+        _router = router;
+    }
+
+    internal void MarkDestroyed()
+    {
+        Hwnd = 0;
+        _destroyed = true;
+        _hasLoaded = false;
+        _materializedChildren = null;
+        _contentModel = null;
+    }
+
+    private void EnsureCreated()
+    {
+        if (!_destroyed)
+            return;
+        if (_model is null || _registry is null || _router is null)
+            throw new InvalidOperationException($"AlternativeWindow '{Name}' destruida sin modelo para re-crear.");
+        ResetControlsRecursive(_model.Content as ContentModel);
+        nint hwnd = Procedures.CreateAlternativeWindow(_router, OwnerHwnd, _title, _width, _height);
+        Hwnd = hwnd;
+        if (_model.Background.HasValue)
+        {
+            nint brush = Core.Win32.CreateSolidBrush(_model.Background.Value.ToCOLORREF());
+            _router.RegisterWindowBackgroundBrush(hwnd, brush);
+        }
+        _registry.RegisterWindow(this);
+        MaterializeContent(_model, _registry, _router);
+        if (_model.Position == WindowPositionOnScreen.Center)
+            CenterCurrent();
+        _destroyed = false;
+    }
+
+    private void CenterCurrent()
+    {
+        if (Hwnd == 0)
+            return;
+        nint monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (monitor == 0) monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (monitor == 0) return;
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!Core.Win32.GetMonitorInfoW(monitor, ref mi)) return;
+        Core.Win32.GetWindowRect(Hwnd, out RECT wr);
+        int winW = wr.Right - wr.Left;
+        int winH = wr.Bottom - wr.Top;
+        int x = mi.rcWork.Left + ((mi.rcWork.Right - mi.rcWork.Left - winW) / 2);
+        int y = mi.rcWork.Top + ((mi.rcWork.Bottom - mi.rcWork.Top - winH) / 2);
+        Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+    }
+
+    private static void ResetControlsRecursive(ContentModel? content)
+    {
+        if (content is null)
+            return;
+        foreach (var child in content.Children)
+        {
+            if (child is ViewModel vm)
+            {
+                vm.Control = null;
+                ResetControlsRecursive(vm.SubContent);
+            }
+        }
     }
 
     internal void RaiseLoaded()

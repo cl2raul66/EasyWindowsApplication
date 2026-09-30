@@ -95,6 +95,8 @@ internal sealed class Application :
                 RegisterMain(window);
         }
 
+        _router.MainHwnd = _mainHwnd;
+
         if (_pendingBehavior is not null)
         {
             BehaviorBuilder.Registry = _registry;
@@ -104,7 +106,11 @@ internal sealed class Application :
             BehaviorBuilder.RaiseLaunched();
         }
 
+        _router.TerminationGate = () => BehaviorBuilder.RaiseTerminating();
+
         Procedures.RunMessageLoop();
+
+        BehaviorBuilder.RaiseTerminated();
     }
 
     private void RegisterMain(WindowModel window)
@@ -182,6 +188,7 @@ internal sealed class Application :
         }
         var hwnd = Core.Windowing.Procedures.CreateAlternativeWindow(_router, 0, window.Title, window.Width, window.Height);
         var win = new Core.Windowing.AlternativeWindowImpl(hwnd, 0, window.Name, window.Title, window.Width, window.Height, window.Position);
+        win.BindForRecreation(window, _registry, _router);
         if (window.Background.HasValue)
         {
             var brush = Win32.CreateSolidBrush(window.Background.Value.ToCOLORREF());
