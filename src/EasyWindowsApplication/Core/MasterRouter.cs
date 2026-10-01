@@ -268,7 +268,8 @@ internal sealed class MasterRouter
             _registry.UnregisterWindowControls(hwnd);
             _registry.UnregisterWindowByHwnd(hwnd);
             HandleRegistry.UnregisterRouter(hwnd);
-            _windowBrushes.Remove(hwnd);
+            if (_windowBrushes.Remove(hwnd, out var deadBrush) && deadBrush != 0)
+                Win32.DeleteObject(deadBrush);
             _controlBrushes.Remove(hwnd);
             _layoutGroupBackgrounds.Remove(hwnd);
             _scrollOffsets.Remove(hwnd);

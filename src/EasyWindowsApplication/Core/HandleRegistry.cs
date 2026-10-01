@@ -164,4 +164,15 @@ internal sealed class HandleRegistry
         foreach (var kv in _hwndToControl)
             yield return kv.Key;
     }
+
+    /// <summary>
+    /// Instantánea de ventanas vivas (para teardown determinístico).
+    /// </summary>
+    internal List<IBaseWindow> LiveWindows()
+    {
+        var list = new List<IBaseWindow>(_hwndToWindow.Count);
+        foreach (var w in _hwndToWindow.Values)
+            list.Add(w);
+        return list;
+    }
 }

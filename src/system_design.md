@@ -426,7 +426,8 @@ Orden único: `OnLaunched → (app corriendo) → OnTerminating → OnTerminated
 
 - **Superficie:** `IAppBehavior` expone `OnLaunched` (×2), `OnTerminating(Action<CancelEventArgs>)`, `OnTerminated(Action)`, `TaskbarButtonVisibility(bool)` y `Terminate()`. `IBaseWindow` solo tiene `Hwnd`, `Name`, `Show()`, `Hide()`, `Loaded`, `Activated`, `Deactivated` — el concepto "cerrar" (`Close()` + `Closing` + `Closed`) vive **solo** en `IAlternativeWindow`. La principal no se cierra: su destrucción **es** el ciclo de la app.
 - **Un solo portón:** la X de la principal y `Terminate()` (única puerta programática, `PostMessageW(MainHwnd, WM_CLOSE)`) pasan por `OnTerminating` con los mismos derechos de veto. Las secundarias no pasan por el portón: su `Closing` es local y nunca termina la app. Dentro de `OnTerminating` hay UI viva (se puede `Show()` un `ITaskDialog`); dentro de `OnTerminated` ya no hay UI.
-- **Consumo responsable:** en secundarias, `Visibility(false)` = ocultar (viva, re-Show instantáneo con el mismo HWND); `Close()` = destruir (vetable por `Closing` local, también en la llamada programática; el próximo `Show()` re-crea a demanda con HWND nuevo, contenido re-materializado y `Loaded` fresco).
+- **Consumo responsable:** en secundarias, `Visibility(false)` = ocultar (viva, re-Show instantáneo con el mismo HWND); `Close()` = destruir (vetable por `Closing` local, también en la llamada programática; el próximo `Show()` re-crea a demanda con HWND nuevo pero **reutilizando las instancias** de controles — suscripciones del Behavior y estado runtime sobreviven; `Loaded` con ciclo fresco).
+- **Teardown:** al terminar la app (X no vetada o `Terminate()`), tras el message loop se destruyen las secundarias vivas (`WM_DESTROY` síncrono → su `Closed` + cleanup, sin veto de `Closing`) y luego corre `OnTerminated`.
 - **Mínimo:**
 ```csharp
 .Behavior(bh =>

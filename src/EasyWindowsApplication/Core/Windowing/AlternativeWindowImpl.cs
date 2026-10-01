@@ -181,7 +181,11 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
             return;
         if (_model is null || _registry is null || _router is null)
             throw new InvalidOperationException($"AlternativeWindow '{Name}' destruida sin modelo para re-crear.");
-        ResetControlsRecursive(_model.Content as ContentModel);
+        // Las instancias de controles se REUTILIZAN (no se resetea vm.Control):
+        // MaterializeChildren re-corre factory.CreateHandle sobre la misma
+        // instancia (re-asigna Hwnd + re-registra) y así sobreviven las
+        // suscripciones del Behavior (SurfaceInputHub) y el estado runtime.
+        // Solo se destruyó lo caro (los HWND).
         nint hwnd = Procedures.CreateAlternativeWindow(_router, OwnerHwnd, _title, _width, _height);
         Hwnd = hwnd;
         if (_model.Background.HasValue)
@@ -191,7 +195,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
         }
         _registry.RegisterWindow(this);
         MaterializeContent(_model, _registry, _router);
-        if (_model.Position == WindowPositionOnScreen.Center)
+        if (_positionMode == WindowPositionOnScreen.Center)
             CenterCurrent();
         _destroyed = false;
     }
@@ -211,20 +215,6 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
         int x = mi.rcWork.Left + ((mi.rcWork.Right - mi.rcWork.Left - winW) / 2);
         int y = mi.rcWork.Top + ((mi.rcWork.Bottom - mi.rcWork.Top - winH) / 2);
         Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
-    }
-
-    private static void ResetControlsRecursive(ContentModel? content)
-    {
-        if (content is null)
-            return;
-        foreach (var child in content.Children)
-        {
-            if (child is ViewModel vm)
-            {
-                vm.Control = null;
-                ResetControlsRecursive(vm.SubContent);
-            }
-        }
     }
 
     internal void RaiseLoaded()
@@ -317,6 +307,9 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
                 MaterializeChildren(sub, hwnd, registry, router, subLayoutables);
                 if (control is UserControl uc)
                 {
+                    // La instancia se reutiliza entre re-creaciones: limpiar la
+                    // agregación antes de re-añadir para no duplicar hijos.
+                    uc.Children.Clear();
                     foreach (var subChild in subLayoutables) uc.Children.Add(subChild);
                     uc.Spacing = sub.Spacing;
                 }
