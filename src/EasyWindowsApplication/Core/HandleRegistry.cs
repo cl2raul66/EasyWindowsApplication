@@ -87,17 +87,7 @@ internal sealed class HandleRegistry
             _hwndToWindow[window.Hwnd] = window;
     }
 
-    internal void UnregisterWindow(string name)
-    {
-        if (!string.IsNullOrEmpty(name))
-        {
-            if (_windowByName.TryGetValue(name, out var w))
-            {
-                _windowByName.Remove(name);
-                if (w.Hwnd != 0) _hwndToWindow.Remove(w.Hwnd);
-            }
-        }
-    }
+    internal void UnregisterWindowHwndOnly(nint hwnd) => _hwndToWindow.Remove(hwnd);
 
     internal void UnregisterWindowByHwnd(nint hwnd)
     {

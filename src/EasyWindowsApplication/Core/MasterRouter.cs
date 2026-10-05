@@ -266,7 +266,10 @@ internal sealed class MasterRouter
             // Limpieza determinística del registry (Fase 5: evita memory leak de controles)
             _registry.Unregister(hwnd);
             _registry.UnregisterWindowControls(hwnd);
-            _registry.UnregisterWindowByHwnd(hwnd);
+            if (win is AlternativeWindowImpl)
+                _registry.UnregisterWindowHwndOnly(hwnd);  // secundaria: conserva nombre para re-creación vía Show()
+            else
+                _registry.UnregisterWindowByHwnd(hwnd);    // principal: destrucción = fin de la app
             HandleRegistry.UnregisterRouter(hwnd);
             if (_windowBrushes.Remove(hwnd, out var deadBrush) && deadBrush != 0)
                 Win32.DeleteObject(deadBrush);

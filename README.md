@@ -17,10 +17,6 @@
 Crear una aplicación nativa nunca fue tan limpio. Todo se divide en 4 bloques lógicos: `Resources`, `Layout`, `Behavior` e `Initialize`.
 
 ```csharp
-using EasyWindowsApplication;
-using EasyWindowsApplication.Share;
-using EasyWindowsApplication.Win32ControlsModule.Frontend;
-
 int counter = 0;
 
 WindowsApplication
@@ -29,13 +25,11 @@ WindowsApplication
         .Window(iw => iw
             .Name("MainWindow")
             .Title("Mi App")
-            .Dimensions(800, 600)
-            .Position(WindowPositionOnScreen.Center)
             .Content(c => c
                 .Children(ch => ch
                     .View<IButton>(btn => btn
-                        .Name("BtnGuardar")
-                        .Text("Contador: 0")
+                        .Name("BtnIncrease")
+                        .Text("Value: 0")
                     )
                 )
             )
@@ -43,11 +37,10 @@ WindowsApplication
     )
     .Behavior(bh =>
     {
-        var btn = bh.BtnGuardar;   // tipado por Source Generator (View<T> wrapper)
-        btn.OnMainTap(() =>
+        btn.BtnIncrease.OnInputWithSpatialPositio(() =>
         {
             counter++;
-            btn.Text = $"Contador: {counter}";
+            btn.Text = $"Value: {counter}";
         });
     })
     .Initialize();
@@ -137,7 +130,6 @@ WindowsApplication
     .Resources(rd => rd
         .Setting(s => s
             .UseWinApi()
-            .AppConfigFile(c => c.Path("./appsettings.json").WithAutoSave())
         )
         .Services(s => s.Singleton<IMyDatabase, SqlDatabase>())
     )
@@ -153,17 +145,12 @@ WindowsApplication
 EasyWindowsApplication/src/
 ├── EasyWindowsApplication/              # Framework principal
 │   ├── Core/                            # Fases Fluent API, Resources, Behavior, MasterRouter (100% internal)
-│   │   ├── Constants.cs / Entities.cs / Win32.cs  # Interop Win32 central ([LibraryImport], MSG/POINT/WM/WS/…)
-│   │   ├── Procedures.cs                # RunMessageLoop (GetMessageW/Translate/Dispatch)
-│   │   ├── UiDefaults/                  # IDefaultUiValues + UiDefaultsProvider + FontSpec (DPI scaling)
-│   │   ├── Windowing/                   # WindowImpl, AlternativeWindowImpl, Procedures.CreateMainWindow/Alternative, Win32/Entities/Enums, UserControl
-│   │   └── LayoutEngine/                # ILayoutBuilder, Grid/Stack/Dock layouts, ViewBuilder, ContentBuilder, ILayoutStrategy
 │   ├── Common/                          # ControlActivatorRegistry + IControlActivator + INativeHandleFactory + Win32Helpers (HIWORD/LOWORD)
 │   ├── Share/                           # API pública usuario (IBaseWindow→IWindow/IAlternativeWindow/IView, IWindowConfig, IChildrenBuilder con 3 overloads View<T>, View<T> sealed class + ViewBase<TSelf>, Color/Thickness/LayoutLength/GridDefinitions)
-│   │   └── Infrastructure/              # Técnicos [EditorBrowsable(Never)]: ControlAccess (único tipo aquí)
 │   ├── Win32ControlsModule/             # Frontend: IButton/ILabel/… (30 interfaces) + Backend: Button/Label→Core.ControlBase + Win32UiDefaults/Win32NativeHandleFactory/ControlProcedures (GDI/User32)
 │   └── WindowsApplication.cs            # Punto de entrada Fluent API (devuelve Share/IApplicationLayoutPhase, static ctor → EnsureInitialized)
 ├── EasyWindowsApplication.Generators/   # Source Generators (EasyBehaviorGenerator EAWIN001/EAWIN002 + ControlActivatorGenerator)
+├── Sample/
 └── ProjectTemplates/
     ├── EasyWinApp/                      # Plantilla `dotnet new easywinapp`
     └── SimpleEasyWinApp/                # Plantilla `dotnet new simpleeasywinapp`
