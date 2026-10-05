@@ -13,80 +13,142 @@ WindowsApplication
     .Layout(static ly =>
     {
         ly.Window(iw => iw
-            .SystemTray(st =>
-            {
-                st.Tooltip("Click here for show main window");
-            })
             .Name("MainWindow")
-            .Title("Easy Win App")
-            .Dimensions(420, 280)
-            .Position(WindowPositionOnScreen.Center)
+            .Title("EWA - AlternativeWindow Galery")
+            .Dimensions(420, 406)
             .Content(c => c
+                .Spacing(8)
+                .Padding(8)
                 .Children(ch =>
                 {
-                    ch.View<ILabel>(lb => lb.Name("LbResult").Text("No hay resultados."));
-                    ch.View<IButton>(btn => btn
-                        .Name("BtnIncrement")
-                        .Text("Click me")
-                    );
+                    ch.View<ILabel>(lb => lb.Name("LbResult").Text("Press a button to test an AlternativeWindow."));
+                    ch.View<IButton>(b => b.Name("BtnAltWindow").Text("Secondary window(HWND)"));
+                    ch.View<IButton>(b => b.Name("BtnMenu").Text("Context menu (IMenu)"));
+                    ch.View<IButton>(b => b.Name("BtnTaskDialog").Text("TaskDialog — .Content() mode"));
+                    ch.View<IButton>(b => b.Name("BtnTaskDialogMin").Text("TaskDialog — .Text() mode"));
+                    ch.View<IButton>(b => b.Name("BtnOpenFile").Text("OpenFileDialog"));
+                    ch.View<IButton>(b => b.Name("BtnSaveFile").Text("SaveFileDialog"));
+                    ch.View<IButton>(b => b.Name("BtnSelectFolder").Text("SelectFolderDialog"));
                 })
             )
+        );
+        ly.AlternativeWindow(aw => aw
+            .Name("OtherWindow")
+            .Title("Secondary window (HWND)")
+            .Dimensions(340, 190)
+            .Position(WindowPositionOnScreen.Center)
+            .Background(Color.LightSkyBlue)
+            .Content(c => c.Children(ch =>
+            {
+                ch.View<ILabel>(lb => lb.Text("Close it and show it again: it recreates itself."));
+                ch.View<IButton>(b => b.Name("BtnOtherHide").Text("Hide"));
+                ch.View<IButton>(b => b.Name("BtnOtherClose").Text("Close"));
+            }))
         );
         ly.AlternativeWindow<IMenu>(m => m
-            .Name("MySystemTrayMenu")
-            .Content(c => c
-                .Children(ch =>
-                {
-                    ch.View<IMenuItem>(mi => mi.Name("Mi1").Text("Show main window"));
-                    ch.View<IMenuItemSeparator>();
-                    ch.View<IMenuItem>(mi => mi.Name("Mi2").Text("Exit"));
-                })
-            )
+            .Name("GalleryMenu")
+            .Content(c => c.Children(ch =>
+            {
+                ch.View<IMenuItem>(mi => mi.Name("MiHello").Text("To greet"));
+                ch.View<IMenuItemSeparator>();
+                ch.View<IMenuItem>(mi => mi.Name("MiExit").Text("Exit"));
+            }))
         );
         ly.AlternativeWindow<ITaskDialog>(td => td
-            .Name("ConfirmExit")
-            .Title("Salir")
+            .Name("TaskDialog")
+            .Title("Complete TaskDialog")
             .Content(c =>
             {
-                c.PrimaryText("¿Cerrar la aplicación?");
+                c.NotificationIcon(TaskDialogIcon.Information);
+                c.PrimaryText("Builder mode .Content()");
+                c.SecondaryText("Choices Yes/No, Default choice No.");
                 c.Choices(TaskDialogChoices.Yes | TaskDialogChoices.No);
                 c.DefaultChoice(TaskDialogChoice.No);
             })
         );
+        ly.AlternativeWindow<ITaskDialog>(td => td
+            .Name("TaskDialogMin")
+            .Title("Minimum TaskDialog")
+            .Text("Minimal mode .Text() — defaults: Ok, no icon.")
+        );
+        ly.AlternativeWindow<IOpenFileDialog>(ofd => ofd
+            .Name("OpenFileDialog")
+            .Title("Open image")
+            .Filters(f => f.Children(fc => fc
+                .FileFilter(PngFile)
+                .FileFilter(JpgFile)
+                .FileFilter(AllFile)))
+            .Content(c => c
+                .DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures))
+                .MultiSelect(true))
+        );
+        ly.AlternativeWindow<ISaveFileDialog>(sfd => sfd
+            .Name("SaveFileDialog")
+            .Title("Save text")
+            .Filters(f => f.Children(fc => fc.FileFilter(TxtFile)))
+            .Content(c => c
+                .DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments))
+                .DefaultFileName("exit")
+                .DefaultExtension(TxtFile))
+        );
+        ly.AlternativeWindow<ISelectFolderDialog>(sfd => sfd
+            .Name("SelectFolderDialog")
+            .Title("Select folder")
+            .Content(c => c
+                .DefaultDirectory(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+                .PersistLastDirectory(false))
+        );
     })
-    .Behavior(bh =>
+.Behavior(bh =>
+{    
+    bh.BtnAltWindow.OnInputWithSpatialPosition(() => bh.OtherWindow.Show());
+    bh.BtnMenu.OnInputWithSpatialPosition(() => bh.GalleryMenu.Show());
+
+    bh.BtnTaskDialog.OnInputWithSpatialPosition(() =>
     {
-        bh.WindowsApplication.OnLaunched(wa =>
-        {
-            wa.TaskbarButtonVisibility(false);
-            bh.MainWindow.Visibility(false);
-            bh.SystemTray.Visibility(true);
-        });
-        // Portón: única regla para la X de la principal y para Terminate()
-        bh.WindowsApplication.OnTerminating(args =>
-        {
-            var r = bh.ConfirmExit.Show();
-            if (r.IsCanceled || r.Choice is TaskDialogChoice.No)
-                args.Cancel = true;
-        });
-        // Epílogo — sin UI
-        bh.WindowsApplication.OnTerminated(() =>
-            System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));
-        bh.SystemTray.OnInputWithSpatialPosition<AlternativeTap1, OneTap>(() => { bh.MySystemTrayMenu.Show(); });
-        bh.SystemTray.OnInputWithSpatialPosition<MainTap, TwoTap>(() =>
-        {
-            bh.SystemTray.Visibility(false);
-            bh.WindowsApplication.TaskbarButtonVisibility(true);
-            bh.MainWindow.Visibility(true);
-        });
-        bh.SystemTray.OnInputWithoutSpatialPosition<KeyMenu>(() => { bh.MySystemTrayMenu.Show(); });
-        bh.SystemTray.OnInputWithoutSpatialPosition<Chord<KeyShift, KeyF10>>(() => { bh.MySystemTrayMenu.Show(); });
-        bh.Mi1.OnInputWithSpatialPosition<MainTap, OneTap>(() =>
-        {
-            bh.SystemTray.Visibility(false);
-            bh.WindowsApplication.TaskbarButtonVisibility(true);
-            bh.MainWindow.Visibility(true);
-        });
-        bh.Mi2.OnInputWithSpatialPosition<MainTap, OneTap>(() => bh.WindowsApplication.Terminate());
-    })
-    .Initialize();
+        var r = bh.TaskDialog.Show();
+        bh.LbResult.Text = r.IsCanceled ? "TaskDialog: cancelado." : $"TaskDialog: {r.Choice}.";
+    });
+    bh.BtnTaskDialogMin.OnInputWithSpatialPosition(() =>
+    {
+        var r = bh.TaskDialogMin.Show();
+        bh.LbResult.Text = r.IsCanceled ? "TaskDialog mín: cancelado." : $"TaskDialog mín: {r.Choice}.";
+    });
+    bh.BtnOpenFile.OnInputWithSpatialPosition(() =>
+    {
+        var r = bh.OpenFileDialog.Show();
+        bh.LbResult.Text = r.IsCanceled ? "OpenFile: cancelado."
+            : $"OpenFile: {r.FilePaths.Count} archivo(s) — {string.Join(", ", r.FilePaths)}";
+    });
+    bh.BtnSaveFile.OnInputWithSpatialPosition(() =>
+    {
+        var r = bh.SaveFileDialog.Show();
+        bh.LbResult.Text = r.IsCanceled ? "SaveFile: cancelado." : $"SaveFile: {r.FilePath}";
+    });
+    bh.BtnSelectFolder.OnInputWithSpatialPosition(() =>
+    {
+        var r = bh.SelectFolderDialog.Show();
+        bh.LbResult.Text = r.IsCanceled ? "SelectFolder: cancelado." : $"SelectFolder: {r.FolderPath}";
+    });
+    //bh.OtherWindow.Loaded(() =>
+    //{
+    //    bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).";
+    //});
+    //bh.OtherWindow.Closing(() =>
+    //{
+    //    bh.LbResult.Text = "OtherWindow: Closing...";
+    //});
+    //bh.OtherWindow.Closed(() =>
+    //{
+    //    bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.";
+    //});
+    //bh.OtherWindow.Loaded += (s, e) => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).";
+    //bh.OtherWindow.Closing += (s, e) => bh.LbResult.Text = "OtherWindow: Closing...";
+    //bh.OtherWindow.Closed += (s, e) => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.";
+    bh.BtnOtherHide.OnInputWithSpatialPosition(() => bh.OtherWindow.Visibility(false));
+    bh.BtnOtherClose.OnInputWithSpatialPosition(() => bh.OtherWindow.Close());
+    bh.MiHello.OnInputWithSpatialPosition(() => bh.LbResult.Text = "Menú: ¡Hola!");
+    bh.MiExit.OnInputWithSpatialPosition(() => bh.WindowsApplication.Terminate());
+    bh.WindowsApplication.OnTerminated(() => System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));    
+})
+.Initialize();

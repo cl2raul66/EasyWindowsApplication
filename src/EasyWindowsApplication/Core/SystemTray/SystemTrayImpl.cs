@@ -51,15 +51,18 @@ internal sealed class SystemTrayImpl : ISystemTray
     public void OnInputWithSpatialPosition<TTrigger>(Action handler)
         where TTrigger : ISpatialPositionTrigger
     {
-        _hub.AddSpatial(typeof(TTrigger), handler);
+        OnInputWithSpatialPosition<TTrigger, AnyTap>(handler);
     }
 
     public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
         where TTrigger : ISpatialPositionTrigger
-        where TCount : ITapCount
+        where TCount : ITapCountSpec
     {
-        _hub.AddCounted(typeof(TTrigger), typeof(TCount), handler);
+        _hub.AddSpatial(typeof(TTrigger), typeof(TCount), handler);
     }
+
+    public void OnInputWithSpatialPosition(Action handler)
+        => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
     public void OnInputWithoutSpatialPosition<TTrigger>(Action handler)
         where TTrigger : WithoutSpatialPositionTrigger

@@ -14,12 +14,15 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
 
     public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
-        => _hub.AddSpatial(typeof(TTrigger), handler);
+        => OnInputWithSpatialPosition<TTrigger, AnyTap>(handler);
 
     public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
         where TTrigger : ISpatialPositionTrigger
-        where TCount : ITapCount
-        => _hub.AddCounted(typeof(TTrigger), typeof(TCount), handler);
+        where TCount : ITapCountSpec
+        => _hub.AddSpatial(typeof(TTrigger), typeof(TCount), handler);
+
+    public void OnInputWithSpatialPosition(Action handler)
+        => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
     public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);

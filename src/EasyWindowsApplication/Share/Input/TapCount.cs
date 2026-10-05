@@ -1,6 +1,6 @@
 namespace EasyWindowsApplication.Share.Input;
 
-public interface ITapCount { }
+public interface ITapCount : ITapCountSpec { }
 
 public readonly struct OneTap : ITapCount { }
 
