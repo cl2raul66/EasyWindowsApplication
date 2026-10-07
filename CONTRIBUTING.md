@@ -291,16 +291,16 @@ Setup manual (una sola vez):
 - ✅ **Correcto (Behavior-first, métodos `OnX` con `Action`):**
   ```csharp
   bh.WindowsApplication.OnTerminated(() => ...);
-  bh.MainWindow.OnLoaded(() => ...);
+  bh.OtherWindow.OnLoaded(() => ...);
   bh.OtherWindow.OnClosing(e => e.Cancel = true); // veto disponible
   bh.MainWindow.OnResizing(args => ...);
   ```
 
-- ❌ **Incorrecto (eventos C# legacy):**
+- ❌ **Incorrecto (eventos C# legacy — sí existen, pero NO son el dialecto recomendado):**
   ```csharp
-  bh.WindowsApplication.Terminated += (s, e) => ...;
-  bh.MainWindow.Loaded += (s, e) => ...;
+  bh.OtherWindow.Loaded += (s, e) => ...;
   bh.OtherWindow.Closing += (s, e) => ...;
+  bh.OtherWindow.Closed += (s, e) => ...;
   ```
 
 **Rationale:** El dialecto `OnX(Action)` oculta `sender`/`EventArgs`, alinea con `IAppBehavior` (`OnLaunched/OnTerminating/OnTerminated`), y evita ambigüedad de overloads. Los eventos C# permanecen como **mecanismo interno** (usados por `RaiseX` en `WindowImpl`/`AlternativeWindowImpl`/`Application`), no como API pública para consumidores.

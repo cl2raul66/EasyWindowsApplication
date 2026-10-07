@@ -130,21 +130,6 @@ WindowsApplication
         var r = bh.SelectFolderDialog.Show();
         bh.LbResult.Text = r.IsCanceled ? "SelectFolder: cancelado." : $"SelectFolder: {r.FolderPath}";
     });
-    //bh.OtherWindow.Loaded(() =>
-    //{
-    //    bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).";
-    //});
-    //bh.OtherWindow.Closing(() =>
-    //{
-    //    bh.LbResult.Text = "OtherWindow: Closing...";
-    //});
-    //bh.OtherWindow.Closed(() =>
-    //{
-    //    bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.";
-    //});
-    //bh.OtherWindow.Loaded += (s, e) => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).";
-    //bh.OtherWindow.Closing += (s, e) => bh.LbResult.Text = "OtherWindow: Closing...";
-    //bh.OtherWindow.Closed += (s, e) => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.";
     bh.OtherWindow.OnLoaded(() => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).");
     bh.OtherWindow.OnClosing(e => bh.LbResult.Text = "OtherWindow: Closing..."); // e.Cancel available
     bh.OtherWindow.OnClosed(() => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.");

@@ -100,41 +100,12 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     public event EventHandler<WindowMovedEventArgs>? Moved;
 
     // Behavior-first lifecycle & geometry
-    public void OnLoaded(Action handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Loaded += (_, _) => handler();
-    }
-
-    public void OnActivated(Action handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Activated += (_, _) => handler();
-    }
-
-    public void OnDeactivated(Action handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Deactivated += (_, _) => handler();
-    }
-
-    public void OnResizing(Action<WindowResizingEventArgs> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Resizing += (_, e) => handler(e);
-    }
-
-    public void OnResized(Action<WindowResizedEventArgs> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Resized += (_, e) => handler(e);
-    }
-
-    public void OnMoved(Action<WindowMovedEventArgs> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Moved += (_, e) => handler(e);
-    }
+    public void OnLoaded(Action handler) => Loaded += (_, _) => handler();
+    public void OnActivated(Action handler) => Activated += (_, _) => handler();
+    public void OnDeactivated(Action handler) => Deactivated += (_, _) => handler();
+    public void OnResizing(Action<WindowResizingEventArgs> handler) => Resizing += (_, e) => handler(e);
+    public void OnResized(Action<WindowResizedEventArgs> handler) => Resized += (_, e) => handler(e);
+    public void OnMoved(Action<WindowMovedEventArgs> handler) => Moved += (_, e) => handler(e);
 
     internal WindowImpl(nint hwnd, string name, string title, float width, float height, WindowPositionOnScreen position)
     {
