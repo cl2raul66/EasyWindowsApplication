@@ -16,6 +16,11 @@ public interface IAlternativeWindow : IBaseWindow, IInputSurface
     /// </summary>
     void Close();
 
+    // Behavior-first lifecycle (with veto on Closing)
+    void OnClosing(Action<CancelEventArgs> handler);
+    void OnClosed(Action handler);
+
+    // LEGACY
     event EventHandler<CancelEventArgs>? Closing;
     event EventHandler? Closed;
 }

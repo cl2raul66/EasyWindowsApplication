@@ -22,12 +22,15 @@ public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayout
     public nint Hwnd { get; internal set; }
     public string Name { get; set; } = "";
 
-    // IBaseWindow lifecycle events (requeridos por IBaseWindow pero no usados en controles)
+    // IBaseWindow lifecycle events (requeridos por IBaseWindow vía IControl)
     public event EventHandler? Loaded { add { } remove { } }
-    public event EventHandler<Share.CancelEventArgs>? Closing { add { } remove { } }
-    public event EventHandler? Closed { add { } remove { } }
     public event EventHandler? Activated { add { } remove { } }
     public event EventHandler? Deactivated { add { } remove { } }
+
+    // Behavior-first lifecycle — no-op for controls (controls don't raise lifecycle)
+    public void OnLoaded(Action handler) { }
+    public void OnActivated(Action handler) { }
+    public void OnDeactivated(Action handler) { }
 
     private float _x, _y, _w, _h;
 

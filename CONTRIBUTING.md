@@ -281,3 +281,26 @@ Setup manual (una sola vez):
 ---
 
 *Este CONTRIBUTING.md es una plantilla. Sustituye los bloques `<!-- TODO -->`, `<!-- TODO: ... -->` y los enlaces de wiki cuando los documentes de Wiki y ADRs estén disponibles.*
+
+---
+
+## Dialecto Behavior-first para ciclo de vida/estado
+
+**Regla:** En `IBehaviorBuilder` (API `Behavior`) **no se usa `+=` ni `EventHandler`** para suscribirse a eventos de ciclo de vida/estado de ventanas ni de la aplicación.
+
+- ✅ **Correcto (Behavior-first, métodos `OnX` con `Action`):**
+  ```csharp
+  bh.WindowsApplication.OnTerminated(() => ...);
+  bh.MainWindow.OnLoaded(() => ...);
+  bh.OtherWindow.OnClosing(e => e.Cancel = true); // veto disponible
+  bh.MainWindow.OnResizing(args => ...);
+  ```
+
+- ❌ **Incorrecto (eventos C# legacy):**
+  ```csharp
+  bh.WindowsApplication.Terminated += (s, e) => ...;
+  bh.MainWindow.Loaded += (s, e) => ...;
+  bh.OtherWindow.Closing += (s, e) => ...;
+  ```
+
+**Rationale:** El dialecto `OnX(Action)` oculta `sender`/`EventArgs`, alinea con `IAppBehavior` (`OnLaunched/OnTerminating/OnTerminated`), y evita ambigüedad de overloads. Los eventos C# permanecen como **mecanismo interno** (usados por `RaiseX` en `WindowImpl`/`AlternativeWindowImpl`/`Application`), no como API pública para consumidores.

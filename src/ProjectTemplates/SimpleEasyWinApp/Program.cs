@@ -1,6 +1,7 @@
 ﻿using EasyWindowsApplication;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 
 int counter = 0;
 
@@ -23,7 +24,7 @@ WindowsApplication
         )
     )
     .Behavior(bh => bh
-        .BtnIncrement.OnMainTap(() =>
+        .BtnIncrement.OnInputWithSpatialPosition(() =>
         {
             counter++;
             bh.BtnIncrement.Text = $"Click: {counter}";

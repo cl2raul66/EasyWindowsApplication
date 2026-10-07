@@ -111,6 +111,13 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     public event EventHandler? Activated;
     public event EventHandler? Deactivated;
 
+    // Behavior-first lifecycle (inherited from IBaseWindow + IAlternativeWindow)
+    public void OnLoaded(Action handler) => Loaded += (_, _) => handler();
+    public void OnActivated(Action handler) => Activated += (_, _) => handler();
+    public void OnDeactivated(Action handler) => Deactivated += (_, _) => handler();
+    public void OnClosing(Action<CancelEventArgs> handler) => Closing += (_, e) => handler(e);
+    public void OnClosed(Action handler) => Closed += (_, _) => handler();
+
     internal AlternativeWindowImpl(nint hwnd, nint ownerHwnd, string name, string title, int width, int height, WindowPositionOnScreen position)
     {
         Hwnd = hwnd;

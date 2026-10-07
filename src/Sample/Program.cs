@@ -145,6 +145,9 @@ WindowsApplication
     //bh.OtherWindow.Loaded += (s, e) => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).";
     //bh.OtherWindow.Closing += (s, e) => bh.LbResult.Text = "OtherWindow: Closing...";
     //bh.OtherWindow.Closed += (s, e) => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.";
+    bh.OtherWindow.OnLoaded(() => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).");
+    bh.OtherWindow.OnClosing(e => bh.LbResult.Text = "OtherWindow: Closing..."); // e.Cancel available
+    bh.OtherWindow.OnClosed(() => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.");
     bh.BtnOtherHide.OnInputWithSpatialPosition(() => bh.OtherWindow.Visibility(false));
     bh.BtnOtherClose.OnInputWithSpatialPosition(() => bh.OtherWindow.Close());
     bh.MiHello.OnInputWithSpatialPosition(() => bh.LbResult.Text = "Menú: ¡Hola!");
