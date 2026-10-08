@@ -1,9 +1,6 @@
 ﻿using EasyWindowsApplication;
 using EasyWindowsApplication.Share;
-using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
-
-//WindowsApplication.Layout(ly => ly.Window()).Initialize();
 
 WindowsApplication
     .Resources(rd => rd.Setting(st =>
@@ -100,9 +97,9 @@ WindowsApplication
         );
     })
 .Behavior(bh =>
-{    
+{
     bh.BtnAltWindow.OnInputWithSpatialPosition(() => bh.OtherWindow.Show());
-    bh.BtnMenu.OnInputWithSpatialPosition(() => bh.GalleryMenu.Show());
+    bh.BtnMenu.OnInputWithSpatialPosition(() => bh.GalleryMenu.ShowAtCursor());
 
     bh.BtnTaskDialog.OnInputWithSpatialPosition(() =>
     {
@@ -131,12 +128,16 @@ WindowsApplication
         bh.LbResult.Text = r.IsCanceled ? "SelectFolder: cancelado." : $"SelectFolder: {r.FolderPath}";
     });
     bh.OtherWindow.OnLoaded(() => bh.LbResult.Text = "OtherWindow: Loaded (ciclo fresco).");
-    bh.OtherWindow.OnClosing(e => bh.LbResult.Text = "OtherWindow: Closing..."); // e.Cancel available
+    bh.OtherWindow.OnClosing(e =>
+    {
+        bh.LbResult.Text = "OtherWindow: Closing...";
+        System.Threading.Thread.Sleep(2000);
+    }); // e.Cancel available
     bh.OtherWindow.OnClosed(() => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.");
     bh.BtnOtherHide.OnInputWithSpatialPosition(() => bh.OtherWindow.Visibility(false));
     bh.BtnOtherClose.OnInputWithSpatialPosition(() => bh.OtherWindow.Close());
     bh.MiHello.OnInputWithSpatialPosition(() => bh.LbResult.Text = "Menú: ¡Hola!");
     bh.MiExit.OnInputWithSpatialPosition(() => bh.WindowsApplication.Terminate());
-    bh.WindowsApplication.OnTerminated(() => System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));    
+    bh.WindowsApplication.OnTerminated(() => System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));
 })
 .Initialize();

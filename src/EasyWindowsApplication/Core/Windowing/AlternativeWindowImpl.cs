@@ -197,6 +197,8 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
         // suscripciones del Behavior (SurfaceInputHub) y el estado runtime.
         // Solo se destruyó lo caro (los HWND).
         nint hwnd = Procedures.CreateAlternativeWindow(_router, OwnerHwnd, _title, _width, _height);
+        // DEFENSA: limpiar posible estado residual si el SO reutilizó el hwnd instantáneamente
+        _router.CleanupHwnd(hwnd);
         Hwnd = hwnd;
         if (_model.Background.HasValue)
         {

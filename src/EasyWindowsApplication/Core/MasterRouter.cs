@@ -79,6 +79,34 @@ internal sealed class MasterRouter
         _scrollOffsets[hwnd] = (x, y);
     }
 
+    /// <summary>
+    /// Limpieza exhaustiva de todo estado del router keyed por <paramref name="hwnd"/>.
+    /// Idempotente: seguro llamarlo más de una vez para el mismo hwnd.
+    /// Se invoca en WM_DESTROY y defensivamente en EnsureCreated (hwnd-reuse teórico del SO).
+    /// </summary>
+    internal void CleanupHwnd(nint hwnd)
+    {
+        if (_windowBrushes.Remove(hwnd, out var deadBrush) && deadBrush != 0)
+            Win32.DeleteObject(deadBrush);
+        _controlBrushes.Remove(hwnd);
+        _layoutGroupBackgrounds.Remove(hwnd);
+        _scrollOffsets.Remove(hwnd);
+        if (_handlers.Count > 0)
+        {
+            // Copia claves para evitar modificar durante enumeración
+            var toRemove = new List<(nint Hwnd, uint Msg)>();
+            foreach (var key in _handlers.Keys)
+                if (key.Hwnd == hwnd) toRemove.Add(key);
+            foreach (var key in toRemove) _handlers.Remove(key);
+        }
+
+        Debug.Assert(!_windowBrushes.ContainsKey(hwnd));
+        Debug.Assert(!_controlBrushes.ContainsKey(hwnd));
+        Debug.Assert(!_layoutGroupBackgrounds.ContainsKey(hwnd));
+        Debug.Assert(!_scrollOffsets.ContainsKey(hwnd));
+        Debug.Assert(!_handlers.Keys.Any(k => k.Hwnd == hwnd));
+    }
+
     internal void ClearScrollOffset(nint hwnd)
     {
         _scrollOffsets.Remove(hwnd);
@@ -271,23 +299,10 @@ internal sealed class MasterRouter
             else
                 _registry.UnregisterWindowByHwnd(hwnd);    // principal: destrucción = fin de la app
             HandleRegistry.UnregisterRouter(hwnd);
-            if (_windowBrushes.Remove(hwnd, out var deadBrush) && deadBrush != 0)
-                Win32.DeleteObject(deadBrush);
-            _controlBrushes.Remove(hwnd);
-            _layoutGroupBackgrounds.Remove(hwnd);
-            _scrollOffsets.Remove(hwnd);
+            CleanupHwnd(hwnd);
             // Marca la secundaria como destruida (Show() posterior re-crea).
             if (win is AlternativeWindowImpl awDestroyed)
                 awDestroyed.MarkDestroyed();
-            // Limpia handlers asociados a este hwnd (evita leak de delegates)
-            if (_handlers.Count > 0)
-            {
-                // Copia claves para evitar modificar durante enumeración
-                var toRemove = new List<(nint Hwnd, uint Msg)>();
-                foreach (var key in _handlers.Keys)
-                    if (key.Hwnd == hwnd) toRemove.Add(key);
-                foreach (var key in toRemove) _handlers.Remove(key);
-            }
             if (hwnd == _mainHwnd)
             {
                 Win32.PostQuitMessage(0);
