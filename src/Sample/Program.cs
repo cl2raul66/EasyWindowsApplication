@@ -99,7 +99,7 @@ WindowsApplication
 .Behavior(bh =>
 {
     bh.BtnAltWindow.OnInputWithSpatialPosition(() => bh.OtherWindow.Show());
-    bh.BtnMenu.OnInputWithSpatialPosition(() => bh.GalleryMenu.ShowAtCursor());
+    bh.BtnMenu.OnInputWithSpatialPosition(() => bh.GalleryMenu.Show());
 
     bh.BtnTaskDialog.OnInputWithSpatialPosition(() =>
     {
@@ -132,7 +132,7 @@ WindowsApplication
     {
         bh.LbResult.Text = "OtherWindow: Closing...";
         System.Threading.Thread.Sleep(2000);
-    }); // e.Cancel available
+    });
     bh.OtherWindow.OnClosed(() => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.");
     bh.BtnOtherHide.OnInputWithSpatialPosition(() => bh.OtherWindow.Visibility(false));
     bh.BtnOtherClose.OnInputWithSpatialPosition(() => bh.OtherWindow.Close());
