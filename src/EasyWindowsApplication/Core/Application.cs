@@ -111,13 +111,16 @@ internal sealed class Application :
         Procedures.RunMessageLoop();
 
         // Teardown determinístico: destruir las secundarias vivas antes del
-        // epílogo. DestroyWindow entrega WM_DESTROY síncronamente (sin pump):
-        // dispara su Closed + cleanup del router. Sin pasar por Closing —
-        // la app ya decidió terminar y ese veto ya no aplica.
+        // epílogo. DestroyWindow entrega WM_DESTROY síncronamente (sin pump).
+        // Closing/Closed suprimidos: teardown de app, no cierre de ventana —
+        // ningún callback de Behavior debe correr con la UI del usuario destruida.
         foreach (var live in _registry.LiveWindows())
         {
-            if (live is Windowing.AlternativeWindowImpl alt && alt.Hwnd != 0)
+            if (live is Windowing.AlternativeWindowImpl { Hwnd: not 0 } alt)
+            {
+                alt.MarkTearingDown();
                 Win32.DestroyWindow(alt.Hwnd);
+            }
         }
 
         // Teardown total: entradas restantes (secundarias detachadas, superficies) salen por Remove.

@@ -304,3 +304,13 @@ Setup manual (una sola vez):
   ```
 
 **Rationale:** El dialecto `OnX(Action)` oculta `sender`/`EventArgs`, alinea con `IAppBehavior` (`OnLaunched/OnTerminating/OnTerminated`), y evita ambigüedad de overloads. Los eventos C# permanecen como **mecanismo interno** (usados por `RaiseX` en `WindowImpl`/`AlternativeWindowImpl`/`Application`), no como API pública para consumidores.
+
+---
+
+## Teardown de app: sin callbacks de Behavior
+
+**Regla (#55):** Al cerrar la app (X de la principal / `Terminate()`), el framework ejecuta teardown determinístico: destruye las secundarias vivas **sin disparar `OnClosing` ni `OnClosed`**. Es un apagado de proceso, no un cierre de ventana: ningún callback de Behavior debe correr sobre UI ya parcialmente destruida (p.ej. acceder a controles de la principal desde `OnClosed` de una secundaria).
+
+- Durante el ciclo de vida normal: `OnClosing` (veto) y `OnClosed` funcionan en cada cierre de secundaria (`Close()` con app viva).
+- Para código de apagado de la app completa, use `bh.WindowsApplication.OnTerminated(...)` (no llega a través del pipeline de ventanas, corre fuera del loop principal).
+- Implementación: `AlternativeWindowImpl.MarkTearingDown()` (llamado por `Application.RunPipeline` epílogo pre-`DestroyWindow`) + guardas en `RaiseClosing`/`RaiseClosed`.

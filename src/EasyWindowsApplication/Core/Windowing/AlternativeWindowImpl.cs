@@ -100,6 +100,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     private ContentModel? _contentModel;
     private bool _hasLoaded;
     private bool _destroyed;
+    private bool _tearingDown;
 
     private WindowModel? _model;
     private HandleRegistry? _registry;
@@ -235,13 +236,24 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
         _hasLoaded = true;
         Loaded?.Invoke(this, EventArgs.Empty);
     }
+    /// <summary>
+    /// Marca que la app está terminando. Closing/Closed no se disparan (teardown de app,
+    /// no cierre de ventana). Solo debe llamarse desde Application.RunPipeline's epílogo.
+    /// </summary>
+    internal void MarkTearingDown() => _tearingDown = true;
+
     internal bool RaiseClosing()
     {
+        if (_tearingDown) return false; // app terminando: veto no aplica
         var args = new CancelEventArgs();
         Closing?.Invoke(this, args);
         return args.Cancel;
     }
-    internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
+    internal void RaiseClosed()
+    {
+        if (_tearingDown) return;       // app terminando: ningún callback de Behavior
+        Closed?.Invoke(this, EventArgs.Empty);
+    }
     internal void RaiseActivated() => Activated?.Invoke(this, EventArgs.Empty);
     internal void RaiseDeactivated() => Deactivated?.Invoke(this, EventArgs.Empty);
 

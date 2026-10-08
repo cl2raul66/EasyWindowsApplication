@@ -18,6 +18,12 @@ public interface IAlternativeWindow : IBaseWindow, IInputSurface
 
     // Behavior-first lifecycle (with veto on Closing)
     void OnClosing(Action<CancelEventArgs> handler);
+
+    /// <summary>
+    /// Registra un handler de "ventana cerrada". Se dispara en cada cierre del ciclo de vida
+    /// (<c>Close()</c> con app viva) pero <b>no durante el teardown de la app</b>.
+    /// Para código de apagado use <see cref="IAppBehavior.OnTerminated"/>.
+    /// </summary>
     void OnClosed(Action handler);
 
     // LEGACY
