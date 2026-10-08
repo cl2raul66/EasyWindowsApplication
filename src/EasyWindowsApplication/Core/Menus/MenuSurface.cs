@@ -123,8 +123,7 @@ internal sealed class MenuSurface : IMenu
 
     private MenuItemModel ToItemModel(IViewSurface surface, ContentModel? sub)
     {
-        if (Registry is not null && !string.IsNullOrEmpty(surface.Name))
-            Registry.RegisterSurface(surface.Name, surface);
+        Registry?.Attach(EntityKind.Surface, surface, hwnd: 0, surface.Name);
         if (surface is IMenuItemSeparator)
         {
             return new MenuItemModel

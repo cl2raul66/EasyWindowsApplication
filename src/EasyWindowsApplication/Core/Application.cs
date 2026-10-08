@@ -120,6 +120,9 @@ internal sealed class Application :
                 Win32.DestroyWindow(alt.Hwnd);
         }
 
+        // Teardown total: entradas restantes (secundarias detachadas, superficies) salen por Remove.
+        _registry.RemoveAll();
+
         BehaviorBuilder.RaiseTerminated();
     }
 
@@ -137,7 +140,7 @@ internal sealed class Application :
             _router.RegisterWindowBackgroundBrush(hwnd, brush);
         }
 
-        _registry.RegisterWindow(win);
+        _registry.Attach(EntityKind.Window, win, win.Hwnd, win.Name);
         // Fase 2: materializar contenido (creación de HWNDs hijos + layout batching sin flicker)
         win.MaterializeContent(window, _registry, _router);
         // Si Position == Center, centrar antes de mostrar (multi-monitor correcto)
@@ -160,7 +163,7 @@ internal sealed class Application :
             throw new InvalidOperationException("No hay icono disponible para el SystemTray.");
         if (!broker.AddIcon(hIcon))
             throw new InvalidOperationException("Shell_NotifyIconW(NIM_ADD) falló para el SystemTray.");
-        _registry.RegisterSurface(tray.Name, tray);
+        _registry.Attach(EntityKind.Surface, tray, hwnd: 0, tray.Name);
         _trayBroker = broker;
         WireMenuSurfaces();
         _router.RegisterHandler(mainHwnd, WM.DESTROY, (w, l) => { broker.Shutdown(); return 0; });
@@ -191,7 +194,7 @@ internal sealed class Application :
                 surface.Name = window.Name;
             surface.Registry = _registry;
             surface.EnsureMaterialized();
-            _registry.RegisterSurface(window.Name, surface);
+            _registry.Attach(EntityKind.Surface, surface, hwnd: 0, window.Name);
             _pendingMenuSurfaces.Add(surface);
             WireMenuSurfaces();
             return;
@@ -204,7 +207,7 @@ internal sealed class Application :
             var brush = Win32.CreateSolidBrush(window.Background.Value.ToCOLORREF());
             _router.RegisterWindowBackgroundBrush(hwnd, brush);
         }
-        _registry.RegisterWindow(win);
+        _registry.Attach(EntityKind.Window, win, win.Hwnd, win.Name);
         // Fase 2: materializar contenido para AlternativeWindow también
         win.MaterializeContent(window, _registry, _router);
         if (window.Position is WindowPositionOnScreen.Center)
@@ -259,6 +262,6 @@ internal sealed class Application :
 
         if (string.IsNullOrEmpty(surface.Name))
             throw new InvalidOperationException("Los diálogos del sistema requieren Name(...).");
-        _registry.RegisterSurface(surface.Name, surface);
+        _registry.Attach(EntityKind.Surface, surface, hwnd: 0, surface.Name);
     }
 }

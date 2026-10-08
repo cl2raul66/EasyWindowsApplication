@@ -291,14 +291,13 @@ internal sealed class MasterRouter
             if (win is AlternativeWindowImpl awClosed)
                 awClosed.RaiseClosed();
 
-            // Limpieza determinística del registry (Fase 5: evita memory leak de controles)
-            _registry.Unregister(hwnd);
-            _registry.UnregisterWindowControls(hwnd);
-            if (win is AlternativeWindowImpl)
-                _registry.UnregisterWindowHwndOnly(hwnd);  // secundaria: conserva nombre para re-creación vía Show()
-            else
-                _registry.UnregisterWindowByHwnd(hwnd);    // principal: destrucción = fin de la app
+            // Registry: política explícita.
+            //   Secundarias → DetachHandle (el nombre/identidad vive para el próximo Show()).
+            //   Principal   → Remove (destrucción = fin de la app).
+            _registry.DetachWindowByHwnd(hwnd,
+                win is AlternativeWindowImpl ? RegistryPolicy.DetachHandle : RegistryPolicy.Remove);
             HandleRegistry.UnregisterRouter(hwnd);
+            _registry.DebugAssertHwndUnregistered(hwnd); // DEBUG: router↔registry sync (B-2 #52)
             CleanupHwnd(hwnd);
             // Marca la secundaria como destruida (Show() posterior re-crea).
             if (win is AlternativeWindowImpl awDestroyed)
