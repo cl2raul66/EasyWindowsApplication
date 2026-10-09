@@ -144,15 +144,112 @@ internal sealed class Application :
         }
 
         _registry.Attach(EntityKind.Window, win, win.Hwnd, win.Name);
+        ApplyModelProps(win, window);
+        ApplyWindowPosition(win, window);
         // Fase 2: materializar contenido (creación de HWNDs hijos + layout batching sin flicker)
         win.MaterializeContent(window, _registry, _router);
         // Si Position == Center, centrar antes de mostrar (multi-monitor correcto)
-        if (window.Position == WindowPositionOnScreen.Center)
+        if (window.Position == WindowPositionOnScreen.Center && window.WindowPosition is null)
             win.Center();
+        // Estado inicial (Phase A — #47)
+        if (window.InitialWindowState != Share.WindowState.Normal)
+            win.State = window.InitialWindowState;
         win.Show();
         win.RaiseLoaded();
         if (window.SystemTrayConfigure is { } trayConfigure)
             SetupSystemTrayIcon(trayConfigure, hwnd);
+    }
+
+    /// <summary>
+    /// Aplica propiedades del modelo al impl (Phase C — #47).
+    /// Se usa tras la creación del HWND, antes de materializar contenido.
+    /// </summary>
+    private static void ApplyModelProps(Windowing.WindowImpl win, WindowModel model)
+    {
+        if (model.MinSize is { } ms) win.MinSize = ms;
+        if (model.MaxSize is { } mx) win.MaxSize = mx;
+        win.Resizable = model.Resizable;
+        win.CaptionButtons = model.CaptionButtons;
+        win.TopMost = model.TopMost;
+        win.Opacity = model.Opacity;
+        win.Backdrop = model.Backdrop;
+        win.ScreenCapture = model.ScreenCapture;
+    }
+
+    /// <summary>Posición unificada (Phase A — #47): coordenada / preset / snap.</summary>
+    private static void ApplyWindowPosition(Windowing.WindowImpl win, WindowModel model)
+    {
+        if (model.WindowPosition is null) return;
+        switch (model.WindowPosition)
+        {
+            case Share.PositionAt at:
+                Win32.SetWindowPos(win.Hwnd, 0, at.X, at.Y, 0, 0,
+                    SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+                break;
+            case Share.PositionPreset preset:
+                ApplyPositionPreset(win, preset.Preset);
+                break;
+            case Share.PositionSnap snap:
+                ApplyPositionSnap(win, snap.Region);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void ApplyPositionPreset(Windowing.WindowImpl win, Share.WindowPositionPreset preset)
+    {
+        nint mon = Win32.MonitorFromWindow(win.Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (mon == 0) mon = Win32.MonitorFromWindow(win.Hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (mon == 0) return;
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!Win32.GetMonitorInfoW(mon, ref mi)) return;
+        Win32.GetWindowRect(win.Hwnd, out RECT wr);
+        float w = wr.Right - wr.Left, h = wr.Bottom - wr.Top;
+        float workW = mi.rcWork.Right - mi.rcWork.Left;
+        float workH = mi.rcWork.Bottom - mi.rcWork.Top;
+        int x = preset switch
+        {
+            Share.WindowPositionPreset.Center => mi.rcWork.Left + (int)((workW - w) / 2),
+            Share.WindowPositionPreset.TopLeft or Share.WindowPositionPreset.Left or Share.WindowPositionPreset.BottomLeft => mi.rcWork.Left,
+            Share.WindowPositionPreset.TopRight or Share.WindowPositionPreset.Right or Share.WindowPositionPreset.BottomRight => mi.rcWork.Right - (int)w,
+            _ => mi.rcWork.Left + (int)((workW - w) / 2),
+        };
+        int y = preset switch
+        {
+            Share.WindowPositionPreset.Center => mi.rcWork.Top + (int)((workH - h) / 2),
+            Share.WindowPositionPreset.TopLeft or Share.WindowPositionPreset.Top or Share.WindowPositionPreset.TopRight => mi.rcWork.Top,
+            Share.WindowPositionPreset.BottomLeft or Share.WindowPositionPreset.Bottom or Share.WindowPositionPreset.BottomRight => mi.rcWork.Bottom - (int)h,
+            _ => mi.rcWork.Top + (int)((workH - h) / 2),
+        };
+        Win32.SetWindowPos(win.Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+    }
+
+    private static void ApplyPositionSnap(Windowing.WindowImpl win, Share.SnapRegion region)
+    {
+        nint mon = Win32.MonitorFromWindow(win.Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (mon == 0) mon = Win32.MonitorFromWindow(win.Hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (mon == 0) return;
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!Win32.GetMonitorInfoW(mon, ref mi)) return;
+        float workW = mi.rcWork.Right - mi.rcWork.Left;
+        float workH = mi.rcWork.Bottom - mi.rcWork.Top;
+        // Mitades con división entera determinista: Left/Top están atados, Right/Bottom absorben el resto.
+        float hw = workW / 2, hh = workH / 2;
+        (int X, int Y, int W, int H) rect = region switch
+        {
+            Share.SnapRegion.Left => (mi.rcWork.Left, mi.rcWork.Top, (int)hw, (int)workH),
+            Share.SnapRegion.Right => (mi.rcWork.Left + (int)hw, mi.rcWork.Top, (int)(workW - hw), (int)workH),
+            Share.SnapRegion.Top => (mi.rcWork.Left, mi.rcWork.Top, (int)workW, (int)hh),
+            Share.SnapRegion.Bottom => (mi.rcWork.Left, mi.rcWork.Top + (int)hh, (int)workW, (int)(workH - hh)),
+            Share.SnapRegion.TopLeft => (mi.rcWork.Left, mi.rcWork.Top, (int)hw, (int)hh),
+            Share.SnapRegion.TopRight => (mi.rcWork.Left + (int)hw, mi.rcWork.Top, (int)(workW - hw), (int)hh),
+            Share.SnapRegion.BottomLeft => (mi.rcWork.Left, mi.rcWork.Top + (int)hh, (int)hw, (int)(workH - hh)),
+            Share.SnapRegion.BottomRight => (mi.rcWork.Left + (int)hw, mi.rcWork.Top + (int)hh, (int)(workW - hw), (int)(workH - hh)),
+            _ => (mi.rcWork.Left, mi.rcWork.Top, (int)workW, (int)workH),
+        };
+        Win32.SetWindowPos(win.Hwnd, 0, rect.X, rect.Y, rect.W, rect.H,
+            SWP.NOZORDER | SWP.NOACTIVATE);
     }
 
     private void SetupSystemTrayIcon(Action<ISystemTray> configure, nint mainHwnd)
@@ -224,10 +321,10 @@ internal sealed class Application :
                 if (Win32.GetMonitorInfoW(monitor, ref mi))
                 {
                     Win32.GetWindowRect(hwnd, out RECT wr);
-                    int winW = wr.Right - wr.Left;
-                    int winH = wr.Bottom - wr.Top;
-                    int x = mi.rcWork.Left + ((mi.rcWork.Right - mi.rcWork.Left - winW) / 2);
-                    int y = mi.rcWork.Top + ((mi.rcWork.Bottom - mi.rcWork.Top - winH) / 2);
+                    float winW = wr.Right - wr.Left;
+                    float winH = wr.Bottom - wr.Top;
+                    int x = mi.rcWork.Left + (int)((mi.rcWork.Right - mi.rcWork.Left - winW) / 2);
+                    int y = mi.rcWork.Top + (int)((mi.rcWork.Bottom - mi.rcWork.Top - winH) / 2);
                     Win32.SetWindowPos(hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
                 }
             }

@@ -27,6 +27,8 @@
         internal const uint ACCEPTFILES = 0x00000010;
         internal const uint LAYOUTRTL = 0x00400000;
         internal const uint TOPMOST = 0x00000008;
+        internal const uint LAYERED = 0x00080000;
+        internal const uint RTLREADING = 0x00002000;
     }
     
     internal static class CS
@@ -95,6 +97,10 @@
         internal const uint SETTINGCHANGE = 0x001A;
         internal const uint DPICHANGED = 0x02E0;
         internal const uint CONTEXTMENU = 0x007B;
+        internal const uint GETMINMAXINFO = 0x0024;
+        internal const uint NCCALCSIZE = 0x0083;
+        internal const uint NCHITTEST = 0x0084;
+        internal const uint NCACTIVATE = 0x0086;
     }
 
     internal static class SPI
@@ -117,6 +123,40 @@
         internal const int INACTIVE = 0;
         internal const int ACTIVE = 1;
         internal const int CLICKACTIVE = 2;
+    }
+
+    internal static class SC
+    {
+        internal const uint MASK = 0xFFF0;
+        internal const uint MINIMIZE = 0xF020;
+        internal const uint MAXIMIZE = 0xF030;
+        internal const uint RESTORE = 0xF120;
+    }
+
+    /// <summary>DWMWINDOWATTRIBUTE para Win10 1809+ (SystemBackdropType).</summary>
+    internal static class DWMWA
+    {
+        internal const int SYSTEMBACKDROP_TYPE = 38;      // DWMWA_SYSTEMBACKDROP_TYPE
+    }
+
+    /// <summary>DWM_SYSTEMBACKDROP_TYPE valores.</summary>
+    internal static class DWMSBT
+    {
+        internal const int AUTO = 0;
+        internal const int NONE = 1;
+        internal const int MAINWINDOW = 2;          // Mica
+        internal const int TRANSIENTWINDOW = 3;     // Acrylic
+        internal const int TABBEDWINDOW = 4;        // Mica Alt
+    }
+
+    internal static class HT
+    {
+        internal const int CLIENT = 1;
+        internal const int CAPTION = 2;
+        internal const int SYSMENU = 4;
+        internal const int MINBUTTON = 8;
+        internal const int MAXBUTTON = 9;
+        internal const int CLOSE = 20;
     }
 
     internal static class MONITOR
@@ -225,6 +265,19 @@
         internal const uint NOCOPYBITS = 0x0100;
         internal const uint NOOWNERZORDER = 0x0200;
         internal const uint NOSENDCHANGING = 0x0400;
+    }
+
+    internal static class WDA
+    {
+        internal const uint NONE = 0x00000000;
+        internal const uint MONITOR = 0x00000001;
+        internal const uint EXCLUDEFROMCAPTURE = 0x00000011;
+    }
+
+    internal static class LWA
+    {
+        internal const uint COLORKEY = 0x00000001;
+        internal const uint ALPHA = 0x00000002;
     }
 
     internal static class MF

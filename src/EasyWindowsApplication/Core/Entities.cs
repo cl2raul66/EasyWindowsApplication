@@ -36,6 +36,15 @@ internal struct POINT
 }
 
 [StructLayout(LayoutKind.Sequential)]
+internal struct RECT
+{
+    public int Left;
+    public int Top;
+    public int Right;
+    public int Bottom;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 internal struct NMHDR
 {
     public nint hwndFrom;
@@ -111,6 +120,34 @@ internal struct MONITORINFO
     public RECT rcMonitor;
     public RECT rcWork;
     public uint dwFlags;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MARGINS
+{
+    public int cxLeftWidth;
+    public int cxRightWidth;
+    public int cyTopHeight;
+    public int cyBottomHeight;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MINMAXINFO
+{
+    public POINT ptReserved;
+    public POINT ptMaxSize;
+    public POINT ptMaxPosition;
+    public POINT ptMinTrackSize;
+    public POINT ptMaxTrackSize;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct CWPSTRUCT
+{
+    public nint lParam;
+    public nint wParam;
+    public uint message;
+    public nint hwnd;
 }
 
 [StructLayout(LayoutKind.Sequential)]

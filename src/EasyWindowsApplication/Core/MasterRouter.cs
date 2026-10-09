@@ -159,6 +159,26 @@ internal sealed class MasterRouter
         {
             _isResizing = true;
         }
+        else if (msg == WM.GETMINMAXINFO)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiMinMax)
+            {
+                unsafe
+                {
+                    var info = (MINMAXINFO*)lParam;
+                    wiMinMax.ApplyMinMaxInfo(ref *info);
+                }
+                return 0;
+            }
+        }
+        else if (msg == WM.SYSCOMMAND)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiSys)
+                wiSys.SyncStateFromSysCommand((uint)wParam & SC.MASK);
+            // No consumo el mensaje: dejarlo llegar a DefWindowProc para el efecto real.
+        }
         else if (msg == WM.EXITSIZEMOVE)
         {
             _isResizing = false;
@@ -166,8 +186,8 @@ internal sealed class MasterRouter
             if (win is not null)
             {
                 Win32.GetClientRect(hwnd, out RECT rc);
-                int w = rc.Right - rc.Left;
-                int h = rc.Bottom - rc.Top;
+                float w = rc.Right - rc.Left;
+                float h = rc.Bottom - rc.Top;
                 if (win is WindowImpl wi) wi.RaiseResized(w, h);
             }
         }

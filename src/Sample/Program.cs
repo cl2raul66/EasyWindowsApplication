@@ -11,8 +11,17 @@ WindowsApplication
     {
         ly.Window(iw => iw
             .Name("MainWindow")
-            .Title("EWA - AlternativeWindow Galery")
+            .Title("EWA - Phase A-D Demo")
             .Dimensions(420, 406)
+            .MinSize(360, 300)                          // Phase B: límite mínimo de resize
+            .MaxSize(800, 700)                          // Phase B: límite máximo de resize
+            .Position(new PositionSnap(SnapRegion.Right)) // Phase A: snap a la derecha de la pantalla
+            .Resizable(true)                             // Phase C: borde redimensionable
+            .CaptionButtons(CaptionButtons.All)          // Phase C: todos los caption buttons
+            .TopMost(false)                              // Phase C: no always-on-top
+            .Opacity(1.0)                                // Phase C: opaco
+            .SystemBackdrop(WindowBackdrop.None)         // Phase C: sin Mica/Acrylic (Win10 1809+)
+            .ScreenCapture(ScreenCaptureMode.Allow)      // Phase C: visible en capturas
             .Content(c => c
                 .Spacing(8)
                 .Padding(8)
@@ -26,6 +35,8 @@ WindowsApplication
                     ch.View<IButton>(b => b.Name("BtnOpenFile").Text("OpenFileDialog"));
                     ch.View<IButton>(b => b.Name("BtnSaveFile").Text("SaveFileDialog"));
                     ch.View<IButton>(b => b.Name("BtnSelectFolder").Text("SelectFolderDialog"));
+                    ch.View<IButton>(b => b.Name("BtnWinState").Text("Window: Min/Max/Restore/Fullscreen"));
+                    ch.View<IButton>(b => b.Name("BtnZOrder").Text("BringToFront + SendToBack demo"));
                 })
             )
         );
@@ -33,7 +44,6 @@ WindowsApplication
             .Name("OtherWindow")
             .Title("Secondary window (HWND)")
             .Dimensions(340, 190)
-            .Position(WindowPositionOnScreen.Center)
             .Background(Color.LightSkyBlue)
             .Content(c => c.Children(ch =>
             {
@@ -136,6 +146,28 @@ WindowsApplication
     bh.OtherWindow.OnClosed(() => bh.LbResult.Text = "OtherWindow: Closed — Show() la re-crea.");
     bh.BtnOtherHide.OnInputWithSpatialPosition(() => bh.OtherWindow.Visibility(false));
     bh.BtnOtherClose.OnInputWithSpatialPosition(() => bh.OtherWindow.Close());
+
+    // Phase C/D: ventana principal (State + Z-order)
+    bh.MainWindow.OnResized(a => bh.LbResult.Text = $"MainWindow: Resized {a.Width}×{a.Height} (accepted)");
+    bh.BtnWinState.OnInputWithSpatialPosition(() =>
+    {
+        IWindow win = bh.MainWindow;
+        // Demo: ciclo Normal → FullScreen → Maximize → Normal
+        switch (win.State)
+        {
+            case WindowState.Normal: win.State = WindowState.FullScreen; break;
+            case WindowState.FullScreen: win.ExitFullScreen(); break;
+            case WindowState.Maximized: win.Minimize(); break;
+            case WindowState.Minimized: win.Restore(); break;
+        }
+        bh.LbResult.Text = $"MainWindow: State = {win.State}";
+    });
+    bh.BtnZOrder.OnInputWithSpatialPosition(() =>
+    {
+        // Traer al frente, luego al fondo 1 segundo después (visible en la taskbar)
+        ((IWindow)bh.MainWindow).BringToFront();
+        bh.LbResult.Text = "MainWindow: BringToFront ejecutado (que la haga visible encima de otras apps)";
+    });
     bh.MiHello.OnInputWithSpatialPosition(() => bh.LbResult.Text = "Menú: ¡Hola!");
     bh.MiExit.OnInputWithSpatialPosition(() => bh.WindowsApplication.Terminate());
     bh.WindowsApplication.OnTerminated(() => System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));

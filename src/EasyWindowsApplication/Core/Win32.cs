@@ -108,6 +108,29 @@ internal static partial class Win32
     [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint GetModuleHandleW(nint lpModuleName);
 
+    // ── Window layering / DWM / display affinity (Phase C — #47) ──
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowDisplayAffinity(nint hWnd, uint dwAffinity);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsZoomed(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsIconic(nint hWnd);
+
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmSetWindowAttribute(nint hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmExtendFrameIntoClientArea(nint hwnd, ref MARGINS pMarInset);
+
     // ── GDI ──
     [LibraryImport("gdi32.dll")]
     internal static partial nint CreateSolidBrush(int color);
@@ -179,6 +202,12 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ScreenToClient(nint hWnd, ref POINT lpPoint);
+
+    // ── Pure helpers ──
+
+    /// <summary>Detector Win10 1809+ (para DwmSetWindowAttribute/DWMSBT).</summary>
+    internal static bool IsWindows10_1809OrLater()
+        => Environment.OSVersion.Version is { Major: >= 10, Build: >= 17763 };
 
     // ── ComCtl32 ──
     [LibraryImport("comctl32.dll", SetLastError = true)]

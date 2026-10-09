@@ -208,7 +208,7 @@ public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayout
         try { return ControlProcedures.GetDefaultFont(); } catch { return GetStockObject(17); }
     }
 
-    protected (int Width, int Height) MeasureText(string text)
+    protected (float Width, float Height) MeasureText(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
@@ -223,7 +223,7 @@ public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayout
         return (rect.Right - rect.Left, rect.Bottom - rect.Top);
     }
 
-    protected (int Width, int Height) MeasureTextV2(string text)
+    protected (float Width, float Height) MeasureTextV2(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
@@ -239,7 +239,7 @@ public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayout
         return (size.cx, size.cy);
     }
 
-    protected (int Width, int Height) MeasureTextByGlyphs(string text)
+    protected (float Width, float Height) MeasureTextByGlyphs(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
