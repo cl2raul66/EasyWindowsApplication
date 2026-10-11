@@ -313,6 +313,6 @@ public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayout
     public void OnInputWithSpatialPosition(Action handler)
         => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
-    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);
 }

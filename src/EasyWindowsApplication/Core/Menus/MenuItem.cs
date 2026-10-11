@@ -25,7 +25,7 @@ internal sealed class MenuItem : IMenuItem, IInputFeed
     public int GridColumnSpan { get; set; }
     public Color? BackgroundColor { get; set; }
 
-    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);
 
     public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger

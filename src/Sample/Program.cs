@@ -1,5 +1,6 @@
 ﻿using EasyWindowsApplication;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 WindowsApplication
@@ -11,17 +12,8 @@ WindowsApplication
     {
         ly.Window(iw => iw
             .Name("MainWindow")
-            .Title("EWA - Phase A-D Demo")
-            .Dimensions(420, 406)
-            .MinSize(360, 300)                          // Phase B: límite mínimo de resize
-            .MaxSize(800, 700)                          // Phase B: límite máximo de resize
-            .Position(new PositionSnap(SnapRegion.Right)) // Phase A: snap a la derecha de la pantalla
-            .Resizable(true)                             // Phase C: borde redimensionable
-            .CaptionButtons(CaptionButtons.All)          // Phase C: todos los caption buttons
-            .TopMost(false)                              // Phase C: no always-on-top
-            .Opacity(1.0)                                // Phase C: opaco
-            .SystemBackdrop(WindowBackdrop.None)         // Phase C: sin Mica/Acrylic (Win10 1809+)
-            .ScreenCapture(ScreenCaptureMode.Allow)      // Phase C: visible en capturas
+            .Title("EWA - Demo")
+            .Dimensions(525, 494)            
             .Content(c => c
                 .Spacing(8)
                 .Padding(8)
@@ -158,9 +150,9 @@ WindowsApplication
             case WindowState.Normal: win.State = WindowState.FullScreen; break;
             case WindowState.FullScreen: win.ExitFullScreen(); break;
             case WindowState.Maximized: win.Minimize(); break;
-            case WindowState.Minimized: win.Restore(); break;
+            case WindowState.Minimized: win.RestoreState(); break;
         }
-        bh.LbResult.Text = $"MainWindow: State = {win.State}";
+        bh.LbResult.Text = $"MainWindow: State = {win.State} | {win.MaxSize}";
     });
     bh.BtnZOrder.OnInputWithSpatialPosition(() =>
     {
@@ -171,5 +163,12 @@ WindowsApplication
     bh.MiHello.OnInputWithSpatialPosition(() => bh.LbResult.Text = "Menú: ¡Hola!");
     bh.MiExit.OnInputWithSpatialPosition(() => bh.WindowsApplication.Terminate());
     bh.WindowsApplication.OnTerminated(() => System.Diagnostics.Trace.WriteLine("[EWA] Terminated"));
+    bh.MainWindow.OnInputWithoutSpatialPosition<KeyMenu>(() =>
+    {
+        if (bh.MainWindow.State is WindowState.FullScreen)
+        {
+            bh.MainWindow.RestoreState();
+        }
+    });
 })
 .Initialize();

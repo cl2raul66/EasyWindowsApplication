@@ -151,6 +151,17 @@ internal struct CWPSTRUCT
 }
 
 [StructLayout(LayoutKind.Sequential)]
+internal struct APPBARDATA
+{
+    public uint cbSize;
+    public nint hWnd;
+    public uint uCallbackMessage;
+    public uint uEdge;
+    public RECT rc;
+    public int lParam;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 internal struct DRAWITEMSTRUCT
 {
     public uint CtlType;

@@ -174,10 +174,44 @@ internal sealed class MasterRouter
         }
         else if (msg == WM.SYSCOMMAND)
         {
+            uint sysCmd = (uint)wParam & SC.MASK;
             var win = _registry.GetWindowByHwnd(hwnd);
             if (win is WindowImpl wiSys)
-                wiSys.SyncStateFromSysCommand((uint)wParam & SC.MASK);
+                wiSys.SyncStateFromSysCommand(sysCmd);
+            if (sysCmd == SC.KEYMENU && win is IInputFeed feed)
+                feed.FeedTrigger(typeof(KeyMenu), 1);
             // No consumo el mensaje: dejarlo llegar a DefWindowProc para el efecto real.
+        }
+        else if (msg == WM.NCACTIVATE)
+        {
+            // C4/D6: en ventana con TitleBar.Simple siempre respondemos TRUE para pintar la caption activa.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiNc && wiNc.CustomTitleBarActive)
+                return 1; // evita flicker / parpadeo del caption por redraw
+        }
+        else if (msg == WM.NCHITTEST)
+        {
+            // D5: hit-test de caption custom — solo cuando hay custom title bar.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiHit && wiHit.CustomTitleBarActive)
+            {
+                POINT pt = new() { X = (short)Win32Helpers.LOWORD(lParam), Y = (short)Win32Helpers.HIWORD(lParam) };
+                Core.Win32.ScreenToClient(hwnd, ref pt);
+                // Drag area: toda la franja de caption custom, salvo areas de botones futuros.
+                if (wiHit.IsCustomTitleBarHit(pt.X, pt.Y))
+                    return HT.CAPTION;
+            }
+        }
+        else if (msg == WM.NCCALCSIZE)
+        {
+            // D5: para Custom title bar, eliminamos el frame no cliente por defecto.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiCust && wiCust.CustomTitleBarActive && wParam != 0)
+            {
+                // wParam=TRUE significa "calcular tamaño del cliente". Devolver 0 = conservar zona cliente tal cual
+                // (solo frame extendido por DwmExtendFrameIntoClientArea -1).
+                return 0;
+            }
         }
         else if (msg == WM.EXITSIZEMOVE)
         {
@@ -210,6 +244,12 @@ internal sealed class MasterRouter
                         if (win is WindowImpl wi) wi.RaiseResized(w, h);
                     }
                 }
+
+                // D3: detección FullScreen por estilo (sin CAPTION/THICKFRAME + tamaño >= monitor).
+                if (win is WindowImpl wiFs)
+                    wiFs.DetectFullScreenByStyle(
+                        (int)Win32Helpers.LOWORD(lParam),
+                        (int)Win32Helpers.HIWORD(lParam));
             }
         }
         else if (msg == WM.MOVE)

@@ -65,7 +65,7 @@ internal sealed class SystemTrayImpl : ISystemTray
         => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
     public void OnInputWithoutSpatialPosition<TTrigger>(Action handler)
-        where TTrigger : WithoutSpatialPositionTrigger
+        where TTrigger : IWithoutSpatialPositionTrigger
     {
         _hub.AddNonSpatial(typeof(TTrigger), handler);
     }

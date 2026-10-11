@@ -28,5 +28,5 @@ public interface IInputSurface
     void OnInputWithSpatialPosition(Action handler);
 
     void OnInputWithoutSpatialPosition<TTrigger>(Action handler)
-        where TTrigger : WithoutSpatialPositionTrigger;
+        where TTrigger : IWithoutSpatialPositionTrigger;
 }

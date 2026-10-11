@@ -24,7 +24,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
     public void OnInputWithSpatialPosition(Action handler)
         => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
-    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);
 
     public nint Hwnd { get; private set; }

@@ -23,7 +23,7 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     public void OnInputWithSpatialPosition(Action handler)
         => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
 
-    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : WithoutSpatialPositionTrigger
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
         => _hub.AddNonSpatial(typeof(TTrigger), handler);
 
     public nint Hwnd { get; }
@@ -150,7 +150,7 @@ internal sealed class WindowImpl : IWindow, IInputFeed
 
     public void Maximize() => Core.Win32.ShowWindow(Hwnd, SW.MAXIMIZE);
     public void Minimize() => Core.Win32.ShowWindow(Hwnd, SW.MINIMIZE);
-    public void Restore() => Core.Win32.ShowWindow(Hwnd, SW.RESTORE);
+    public void RestoreState() => Core.Win32.ShowWindow(Hwnd, SW.RESTORE);
     public void Focus() => Core.Win32.SetForegroundWindow(Hwnd);
 
     // ── Phase C — #47 ────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ internal sealed class WindowImpl : IWindow, IInputFeed
             _state = value;
             switch (value)
             {
-                case WindowState.Normal: Restore(); break;
+                case WindowState.Normal: RestoreState(); break;
                 case WindowState.Minimized: Minimize(); break;
                 case WindowState.Maximized: Maximize(); break;
                 case WindowState.FullScreen: EnterFullScreen(); break;
@@ -190,15 +190,12 @@ internal sealed class WindowImpl : IWindow, IInputFeed
         Core.Win32.GetWindowRect(Hwnd, out _fsOrigRect);
         int newStyle = _fsOrigStyle & ~(int)(WS.CAPTION | WS.THICKFRAME);
         Core.Win32.SetWindowLongW(Hwnd, GWL.STYLE, newStyle);
-        nint mon = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
-        if (mon != 0)
-        {
-            MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
-            if (Core.Win32.GetMonitorInfoW(mon, ref mi))
-                Core.Win32.SetWindowPos(Hwnd, 0, mi.rcMonitor.Left, mi.rcMonitor.Top,
-                    mi.rcMonitor.Right - mi.rcMonitor.Left, mi.rcMonitor.Bottom - mi.rcMonitor.Top,
-                    SWP.NOZORDER | SWP.NOACTIVATE | SWP.FRAMECHANGED);
-        }
+        // Bounds taskbar-aware (#56): rcWork si taskbar visible, rcMonitor si auto-hide.
+        RECT bounds = Core.Win32.ResolveFullScreenBounds(Hwnd);
+        if (bounds.Right > bounds.Left && bounds.Bottom > bounds.Top)
+            Core.Win32.SetWindowPos(Hwnd, 0, bounds.Left, bounds.Top,
+                bounds.Right - bounds.Left, bounds.Bottom - bounds.Top,
+                SWP.NOZORDER | SWP.NOACTIVATE | SWP.FRAMECHANGED);
         _state = WindowState.FullScreen;
     }
 
@@ -407,6 +404,56 @@ internal sealed class WindowImpl : IWindow, IInputFeed
             _ => _state,
         };
     }
+
+    /// <summary>Detección FullScreen por estilo (D3): sin CAPTION ni THICKFRAME + bounds == monitor.</summary>
+    internal void DetectFullScreenByStyle(int clientW, int clientH)
+    {
+        int style = Core.Win32.GetWindowLongW(Hwnd, GWL.STYLE);
+        bool borderless = (style & (int)(WS.CAPTION | WS.THICKFRAME)) == 0;
+        if (!borderless) return;
+        nint mon = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (mon == 0) return;
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!Core.Win32.GetMonitorInfoW(mon, ref mi)) return;
+        int monW = mi.rcMonitor.Right - mi.rcMonitor.Left;
+        int monH = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
+        if (clientW >= monW && clientH >= monH)
+        {
+            _isFullScreen = true;
+            _state = WindowState.FullScreen;
+        }
+    }
+
+    // ── TitleBar (C4/C5) — #47 ────────────────────────────────────────────────
+
+    private bool _customTitleBar;
+    internal bool CustomTitleBarActive => _customTitleBar;
+
+    /// <summary>Altura del área de caption custom en px lógicos (hit-test D5).</summary>
+    internal float CustomTitleBarHeight { get; set; } = 32f;
+
+    /// <summary>Aplica el modo TitleBar: Simple (solo título/icono nativo) o Custom (frame extendido + hit-test).</summary>
+    internal void ApplyTitleBar(TitleBarBuilder? builder)
+    {
+        if (builder is null) return;
+        _customTitleBar = builder.Mode == TitleBarMode.Custom;
+        if (builder.Mode == TitleBarMode.Simple)
+        {
+            string? tbTitle = builder.Title;
+            if (!string.IsNullOrEmpty(tbTitle)) Title = tbTitle;
+            if (builder.Icon != 0) Core.Win32.SendMessageW(Hwnd, (uint)0x0080 /*WM.SETICON*/, 0, builder.Icon);
+        }
+        else
+        {
+            // Custom: extender frame al client area para pintar nuestra propia title bar (#47 C5).
+            var margins = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
+            Core.Win32.DwmExtendFrameIntoClientArea(Hwnd, ref margins);
+        }
+    }
+
+    /// <summary>Hit-test custom caption (D5): si el punto está dentro del área del caption custom, devolvemos HTCAPTION.</summary>
+    internal bool IsCustomTitleBarHit(int clientX, int clientY)
+        => _customTitleBar && clientY >= 0 && clientY < CustomTitleBarHeight;
 
     internal void RaiseLoaded() => Loaded?.Invoke(this, EventArgs.Empty);
     internal void RaiseActivated() => Activated?.Invoke(this, EventArgs.Empty);

@@ -118,6 +118,19 @@
         internal const int MAXHIDE = 4;
     }
 
+    /// <summary>ABM_* — mensajes para AppBar/Shell (taskbar).</summary>
+    internal static class ABM
+    {
+        internal const uint GETSTATE = 0x00000004;
+    }
+
+    /// <summary>ABS_* — flags de estado devueltos por ABM_GETSTATE.</summary>
+    internal static class ABS
+    {
+        internal const uint AUTOHIDE = 0x00000001;
+        internal const uint ALWAYSONTOP = 0x00000002;
+    }
+
     internal static class WA
     {
         internal const int INACTIVE = 0;
@@ -131,6 +144,7 @@
         internal const uint MINIMIZE = 0xF020;
         internal const uint MAXIMIZE = 0xF030;
         internal const uint RESTORE = 0xF120;
+        internal const uint KEYMENU = 0xF100;
     }
 
     /// <summary>DWMWINDOWATTRIBUTE para Win10 1809+ (SystemBackdropType).</summary>

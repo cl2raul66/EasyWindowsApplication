@@ -20,7 +20,7 @@ public interface IWindow : IBaseWindow, IInputSurface
     void Center();
     void Maximize();
     void Minimize();
-    void Restore();
+    void RestoreState();
     void Focus();
     void Visibility(bool visible);
 

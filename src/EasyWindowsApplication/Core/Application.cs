@@ -174,6 +174,7 @@ internal sealed class Application :
         win.Opacity = model.Opacity;
         win.Backdrop = model.Backdrop;
         win.ScreenCapture = model.ScreenCapture;
+        win.ApplyTitleBar(model.TitleBar);
     }
 
     /// <summary>Posición unificada (Phase A — #47): coordenada / preset / snap.</summary>
