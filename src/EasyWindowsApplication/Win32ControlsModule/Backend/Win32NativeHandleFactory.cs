@@ -51,11 +51,8 @@ internal sealed class Win32NativeHandleFactory : INativeHandleFactory
             if (control is ControlBase cb)
                 cb.Hwnd = hwnd;
 
-            // Registrar en HandleRegistry (hwnd + name)
-            registry.Register(hwnd, control);
-            // Track parent->child para limpieza determinística en WM_DESTROY (Fase 5)
-            if (parentHwnd != 0)
-                registry.TrackChildWindow(parentHwnd, hwnd);
+            // Alta atómica: hwnd + name + parent-child (parent ya indexado antes de lookup)
+            registry.Attach(Core.EntityKind.Control, control, hwnd, control.Name, parentHwnd);
         }
 
         return hwnd;

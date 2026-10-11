@@ -1,4 +1,6 @@
-﻿namespace EasyWindowsApplication.Share;
+﻿using System.Globalization;
+
+namespace EasyWindowsApplication.Share;
 
 public interface IResourcesDictionary
 {
@@ -8,6 +10,7 @@ public interface IResourcesDictionary
 
 public interface ISettingsBuilder
 {
+    ISettingsBuilder Culture(CultureInfo cultureInfo);
     ISettingsBuilder UseWinApi();
     ISettingsBuilder AppConfigFile(Action<IAppConfigFileBuilder> configure);
 }

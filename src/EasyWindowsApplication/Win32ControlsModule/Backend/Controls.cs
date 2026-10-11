@@ -16,7 +16,6 @@ public sealed class Button : ControlBase, IButton
         }
     }
     public bool Enabled { get; set; } = true;
-    public void Click() => OnClick(() => { });
     public void SetStyle(uint style, bool redraw = true) { }
 
     protected override (float Width, float Height) MeasureContent(float availableWidth, float availableHeight)
@@ -24,7 +23,7 @@ public sealed class Button : ControlBase, IButton
         string text = GetWindowText();
         var (tw, th) = string.IsNullOrEmpty(text) ? (20, 24) : MeasureTextByGlyphs(text);
         var defaults = UiDefaultsProvider.Current.GetFor<IButton>();
-        if (defaults == null)
+        if (defaults is null)
             defaults = UiDefaultsProvider.Current.GetFor<Button>();
         float preferredH = defaults?.PreferredHeight ?? 24f;
         // DPI scaling: defaults are at 96 DPI, scale to current DPI if possible

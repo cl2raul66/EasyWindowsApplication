@@ -27,6 +27,8 @@
         internal const uint ACCEPTFILES = 0x00000010;
         internal const uint LAYOUTRTL = 0x00400000;
         internal const uint TOPMOST = 0x00000008;
+        internal const uint LAYERED = 0x00080000;
+        internal const uint RTLREADING = 0x00002000;
     }
     
     internal static class CS
@@ -94,6 +96,11 @@
         internal const uint EXITSIZEMOVE = 0x0232;
         internal const uint SETTINGCHANGE = 0x001A;
         internal const uint DPICHANGED = 0x02E0;
+        internal const uint CONTEXTMENU = 0x007B;
+        internal const uint GETMINMAXINFO = 0x0024;
+        internal const uint NCCALCSIZE = 0x0083;
+        internal const uint NCHITTEST = 0x0084;
+        internal const uint NCACTIVATE = 0x0086;
     }
 
     internal static class SPI
@@ -111,11 +118,78 @@
         internal const int MAXHIDE = 4;
     }
 
+    /// <summary>ABM_* — mensajes para AppBar/Shell (taskbar).</summary>
+    internal static class ABM
+    {
+        internal const uint GETSTATE = 0x00000004;
+    }
+
+    /// <summary>ABS_* — flags de estado devueltos por ABM_GETSTATE.</summary>
+    internal static class ABS
+    {
+        internal const uint AUTOHIDE = 0x00000001;
+        internal const uint ALWAYSONTOP = 0x00000002;
+    }
+
     internal static class WA
     {
         internal const int INACTIVE = 0;
         internal const int ACTIVE = 1;
         internal const int CLICKACTIVE = 2;
+    }
+
+    internal static class SC
+    {
+        internal const uint MASK = 0xFFF0;
+        internal const uint MINIMIZE = 0xF020;
+        internal const uint MAXIMIZE = 0xF030;
+        internal const uint RESTORE = 0xF120;
+        internal const uint KEYMENU = 0xF100;
+    }
+
+    /// <summary>DWMWINDOWATTRIBUTE para Win10 1809+ (SystemBackdropType).</summary>
+    internal static class DWMWA
+    {
+        internal const int SYSTEMBACKDROP_TYPE = 38;      // DWMWA_SYSTEMBACKDROP_TYPE
+    }
+
+    /// <summary>DWM_SYSTEMBACKDROP_TYPE valores.</summary>
+    internal static class DWMSBT
+    {
+        internal const int AUTO = 0;
+        internal const int NONE = 1;
+        internal const int MAINWINDOW = 2;          // Mica
+        internal const int TRANSIENTWINDOW = 3;     // Acrylic
+        internal const int TABBEDWINDOW = 4;        // Mica Alt
+    }
+
+    internal static class HT
+    {
+        internal const int ERROR = -2;
+        internal const int TRANSPARENT = -1;
+        internal const int NOWHERE = 0;
+        internal const int CLIENT = 1;
+        internal const int CAPTION = 2;
+        internal const int SYSMENU = 3;
+        internal const int GROWBOX = 4;
+        internal const int SIZE = 4;
+        internal const int MENU = 5;
+        internal const int HSCROLL = 6;
+        internal const int VSCROLL = 7;
+        internal const int MINBUTTON = 8;
+        internal const int MAXBUTTON = 9;
+        internal const int LEFT = 10;
+        internal const int RIGHT = 11;
+        internal const int TOP = 12;
+        internal const int TOPLEFT = 13;
+        internal const int TOPRIGHT = 14;
+        internal const int BOTTOM = 15;
+        internal const int BOTTOMLEFT = 16;
+        internal const int BOTTOMRIGHT = 17;
+        internal const int BORDER = 18;
+        internal const int OBJECT = 19;
+        internal const int CLOSE = 20;
+        internal const int HELP = 21;
     }
 
     internal static class MONITOR
@@ -224,4 +298,99 @@
         internal const uint NOCOPYBITS = 0x0100;
         internal const uint NOOWNERZORDER = 0x0200;
         internal const uint NOSENDCHANGING = 0x0400;
+    }
+
+    internal static class WDA
+    {
+        internal const uint NONE = 0x00000000;
+        internal const uint MONITOR = 0x00000001;
+        internal const uint EXCLUDEFROMCAPTURE = 0x00000011;
+    }
+
+    internal static class LWA
+    {
+        internal const uint COLORKEY = 0x00000001;
+        internal const uint ALPHA = 0x00000002;
+    }
+
+    internal static class MF
+    {
+        internal const uint STRING = 0x00000000;
+        internal const uint SEPARATOR = 0x00000800;
+        internal const uint POPUP = 0x00000010;
+        internal const uint GRAYED = 0x00000001;
+        internal const uint DISABLED = 0x00000002;
+        internal const uint CHECKED = 0x00000008;
+        internal const uint UNCHECKED = 0x00000000;
+        internal const uint BYCOMMAND = 0x00000000;
+        internal const uint BYPOSITION = 0x00000400;
+    }
+
+    internal static class TPM
+    {
+        internal const uint LEFTALIGN = 0x0000;
+        internal const uint CENTERALIGN = 0x0004;
+        internal const uint RIGHTALIGN = 0x0008;
+        internal const uint TOPALIGN = 0x0000;
+        internal const uint VCENTERALIGN = 0x0010;
+        internal const uint BOTTOMALIGN = 0x0020;
+        internal const uint NONOTIFY = 0x0080;
+        internal const uint RETURNCMD = 0x0100;
+    }
+
+    internal static class NIM
+    {
+        internal const uint ADD = 0x00000000;
+        internal const uint MODIFY = 0x00000001;
+        internal const uint DELETE = 0x00000002;
+        internal const uint SETFOCUS = 0x00000003;
+        internal const uint SETVERSION = 0x00000004;
+    }
+
+    internal static class NIF
+    {
+        internal const uint MESSAGE = 0x00000001;
+        internal const uint ICON = 0x00000002;
+        internal const uint TIP = 0x00000004;
+        internal const uint STATE = 0x00000008;
+        internal const uint INFO = 0x00000010;
+        internal const uint GUID = 0x00000020;
+        internal const uint SHOWTIP = 0x00000080;
+    }
+
+    internal static class NIIF
+    {
+        internal const uint NONE = 0x00000000;
+        internal const uint INFO = 0x00000001;
+        internal const uint WARNING = 0x00000002;
+        internal const uint ERROR = 0x00000003;
+        internal const uint USER = 0x00000004;
+        internal const uint NOSOUND = 0x00000010;
+        internal const uint LARGE_ICON = 0x00000020;
+        internal const uint RESPECT_QUIET_TIME = 0x00000080;
+    }
+
+    internal static class NIN
+    {
+        internal const uint SELECT = 0x0400;
+        internal const uint KEYSELECT = 0x0401;
+        internal const uint BALLOONSHOW = 0x0402;
+        internal const uint BALLOONHIDE = 0x0403;
+        internal const uint BALLOONTIMEOUT = 0x0404;
+        internal const uint BALLOONUSERCLICK = 0x0405;
+        internal const uint POPUPOPEN = 0x0406;
+        internal const uint POPUPCLOSE = 0x0407;
+    }
+
+    internal static class NOTIFYICON
+    {
+        internal const uint VERSION_4 = 4;
+    }
+
+    internal static class VK
+    {
+        internal const int SHIFT = 0x10;
+        internal const int CONTROL = 0x11;
+        internal const int MENU = 0x12;
+        internal const int APPS = 0x5D;
     }

@@ -1,5 +1,6 @@
 ﻿namespace EasyWindowsApplication.Core;
 
+using System.Globalization;
 using EasyWindowsApplication.Share;
 
 internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
@@ -23,6 +24,7 @@ internal sealed class ResourcesDictionaryImpl : IResourcesDictionary
 internal sealed class SettingsBuilderImpl : ISettingsBuilder
 {
     internal AppConfigFileConfig AppConfig { get; } = new();
+    internal CultureInfo? SelectedCulture { get; private set; }
 
     public ISettingsBuilder UseWinApi()
     {
@@ -32,6 +34,12 @@ internal sealed class SettingsBuilderImpl : ISettingsBuilder
     public ISettingsBuilder AppConfigFile(Action<IAppConfigFileBuilder> configure)
     {
         configure(new AppConfigFileBuilderImpl(AppConfig));
+        return this;
+    }
+
+    public ISettingsBuilder Culture(CultureInfo cultureInfo)
+    {
+        SelectedCulture = cultureInfo;
         return this;
     }
 }

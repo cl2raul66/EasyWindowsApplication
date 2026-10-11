@@ -1,7 +1,10 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EasyWindowsApplication.Common;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Core.Windowing;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Share;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
@@ -9,15 +12,27 @@ namespace EasyWindowsApplication.Core;
 
 internal sealed class MasterRouter
 {
-    private readonly Dictionary<(nint Hwnd, uint Msg), Win32MessageHandler> _handlers = new();
+    private readonly Dictionary<(nint Hwnd, uint Msg), Win32MessageHandler> _handlers = [];
     private readonly HandleRegistry _registry;
     private nint _mainHwnd;
     private bool _isResizing;
 
-    private readonly Dictionary<nint, nint> _windowBrushes = new();
-    private readonly Dictionary<nint, nint> _controlBrushes = new();
-    private readonly Dictionary<nint, List<(RECT Rect, int Color)>> _layoutGroupBackgrounds = new();
-    private readonly Dictionary<nint, (int X, int Y)> _scrollOffsets = new();
+    internal nint MainHwnd
+    {
+        get => _mainHwnd;
+        set => _mainHwnd = value;
+    }
+
+    /// <summary>
+    /// Portón de terminación: retorna true si la salida fue vetada
+    /// (OnTerminating con Cancel=true). Null = sin Behavior, cierre directo.
+    /// </summary>
+    internal Func<bool>? TerminationGate;
+
+    private readonly Dictionary<nint, nint> _windowBrushes = [];
+    private readonly Dictionary<nint, nint> _controlBrushes = [];
+    private readonly Dictionary<nint, List<(RECT Rect, int Color)>> _layoutGroupBackgrounds = [];
+    private readonly Dictionary<nint, (int X, int Y)> _scrollOffsets = [];
 
     internal MasterRouter(HandleRegistry registry)
     {
@@ -30,7 +45,7 @@ internal sealed class MasterRouter
         int colorRef = color.ToCOLORREF();
         if (!_layoutGroupBackgrounds.TryGetValue(hwnd, out var list))
         {
-            list = new List<(RECT, int)>();
+            list = [];
             _layoutGroupBackgrounds[hwnd] = list;
         }
         list.Add((rect, colorRef));
@@ -64,6 +79,34 @@ internal sealed class MasterRouter
         _scrollOffsets[hwnd] = (x, y);
     }
 
+    /// <summary>
+    /// Limpieza exhaustiva de todo estado del router keyed por <paramref name="hwnd"/>.
+    /// Idempotente: seguro llamarlo más de una vez para el mismo hwnd.
+    /// Se invoca en WM_DESTROY y defensivamente en EnsureCreated (hwnd-reuse teórico del SO).
+    /// </summary>
+    internal void CleanupHwnd(nint hwnd)
+    {
+        if (_windowBrushes.Remove(hwnd, out var deadBrush) && deadBrush != 0)
+            Win32.DeleteObject(deadBrush);
+        _controlBrushes.Remove(hwnd);
+        _layoutGroupBackgrounds.Remove(hwnd);
+        _scrollOffsets.Remove(hwnd);
+        if (_handlers.Count > 0)
+        {
+            // Copia claves para evitar modificar durante enumeración
+            var toRemove = new List<(nint Hwnd, uint Msg)>();
+            foreach (var key in _handlers.Keys)
+                if (key.Hwnd == hwnd) toRemove.Add(key);
+            foreach (var key in toRemove) _handlers.Remove(key);
+        }
+
+        Debug.Assert(!_windowBrushes.ContainsKey(hwnd));
+        Debug.Assert(!_controlBrushes.ContainsKey(hwnd));
+        Debug.Assert(!_layoutGroupBackgrounds.ContainsKey(hwnd));
+        Debug.Assert(!_scrollOffsets.ContainsKey(hwnd));
+        Debug.Assert(!_handlers.Keys.Any(k => k.Hwnd == hwnd));
+    }
+
     internal void ClearScrollOffset(nint hwnd)
     {
         _scrollOffsets.Remove(hwnd);
@@ -79,7 +122,11 @@ internal sealed class MasterRouter
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.Fail(ex.ToString());
+            // Tragar aquí protege la message loop (una excepción en un handler
+            // no tumba la app), pero Release no puede quedar en silencio:
+            // Debug.Fail solo existe en DEBUG, así que el Trace es el registro.
+            Trace.WriteLine($"[EWA] Excepción en WndProc hwnd=0x{hwnd:X16} msg=0x{msg:X8}:{Environment.NewLine}{ex}");
+            Debug.Fail(ex.ToString());
             return Win32.DefWindowProcW(hwnd, msg, wParam, lParam);
         }
     }
@@ -89,13 +136,22 @@ internal sealed class MasterRouter
         // ── Window lifecycle & resize routing (Fase 3) ──
         if (msg == WM.CLOSE)
         {
-            var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            // Portón de la app: la principal no tiene Closing local;
+            // su X pasa por OnTerminating (vetable, UI viva).
+            if (hwnd == _mainHwnd)
             {
-                bool cancel = false;
-                if (win is WindowImpl wi) cancel = wi.RaiseClosing();
-                else if (win is AlternativeWindowImpl aw) cancel = aw.RaiseClosing();
-                if (cancel) return 0;
+                if (TerminationGate?.Invoke() == true)
+                    return 0;
+                // No vetada (o sin Behavior): caer a DefWindowProc → WM_DESTROY.
+            }
+            else
+            {
+                var alt = _registry.GetWindowByHwnd(hwnd);
+                if (alt is AlternativeWindowImpl aw)
+                {
+                    if (aw.RaiseClosing())
+                        return 0;
+                }
             }
         }
 
@@ -103,22 +159,76 @@ internal sealed class MasterRouter
         {
             _isResizing = true;
         }
+        else if (msg == WM.GETMINMAXINFO)
+        {
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiMinMax)
+            {
+                unsafe
+                {
+                    var info = (MINMAXINFO*)lParam;
+                    wiMinMax.ApplyMinMaxInfo(ref *info);
+                }
+                return 0;
+            }
+        }
+        else if (msg == WM.SYSCOMMAND)
+        {
+            uint sysCmd = (uint)wParam & SC.MASK;
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiSys)
+                wiSys.SyncStateFromSysCommand(sysCmd);
+            if (sysCmd == SC.KEYMENU && win is IInputFeed feed)
+                feed.FeedTrigger(typeof(KeyMenu), 1);
+            // No consumo el mensaje: dejarlo llegar a DefWindowProc para el efecto real.
+        }
+        else if (msg == WM.NCACTIVATE)
+        {
+            // C4/D6: en ventana con TitleBar (Custom o Simple) respondemos TRUE para pintar la caption activa.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiNc && wiNc.TitleBarActive)
+                return 1; // evita flicker / parpadeo del caption por redraw
+        }
+        else if (msg == WM.NCHITTEST)
+        {
+            // D5: hit-test de caption custom — solo cuando hay custom title bar.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiHit && wiHit.CustomTitleBarActive)
+            {
+                POINT pt = new() { X = (short)Win32Helpers.LOWORD(lParam), Y = (short)Win32Helpers.HIWORD(lParam) };
+                Core.Win32.ScreenToClient(hwnd, ref pt);
+                // Drag area: toda la franja de caption custom, salvo areas de botones futuros.
+                if (wiHit.IsCustomTitleBarHit(pt.X, pt.Y))
+                    return HT.CAPTION;
+            }
+        }
+        else if (msg == WM.NCCALCSIZE)
+        {
+            // D5: para Custom title bar, eliminamos el frame no cliente por defecto.
+            var win = _registry.GetWindowByHwnd(hwnd);
+            if (win is WindowImpl wiCust && wiCust.CustomTitleBarActive && wParam != 0)
+            {
+                // wParam=TRUE significa "calcular tamaño del cliente". Devolver 0 = conservar zona cliente tal cual
+                // (solo frame extendido por DwmExtendFrameIntoClientArea -1).
+                return 0;
+            }
+        }
         else if (msg == WM.EXITSIZEMOVE)
         {
             _isResizing = false;
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 Win32.GetClientRect(hwnd, out RECT rc);
-                int w = rc.Right - rc.Left;
-                int h = rc.Bottom - rc.Top;
+                float w = rc.Right - rc.Left;
+                float h = rc.Bottom - rc.Top;
                 if (win is WindowImpl wi) wi.RaiseResized(w, h);
             }
         }
         else if (msg == WM.SIZE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int wParamType = (int)wParam;
                 if (wParamType != WMSIZE.MINIMIZED)
@@ -134,12 +244,18 @@ internal sealed class MasterRouter
                         if (win is WindowImpl wi) wi.RaiseResized(w, h);
                     }
                 }
+
+                // D3: detección FullScreen por estilo (sin CAPTION/THICKFRAME + tamaño >= monitor).
+                if (win is WindowImpl wiFs)
+                    wiFs.DetectFullScreenByStyle(
+                        (int)Win32Helpers.LOWORD(lParam),
+                        (int)Win32Helpers.HIWORD(lParam));
             }
         }
         else if (msg == WM.MOVE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int x = (int)(short)Win32Helpers.LOWORD(lParam);
                 int y = (int)(short)Win32Helpers.HIWORD(lParam);
@@ -149,7 +265,7 @@ internal sealed class MasterRouter
         else if (msg == WM.ACTIVATE)
         {
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
+            if (win is not null)
             {
                 int state = (int)Win32Helpers.LOWORD(wParam);
                 if (state == WA.INACTIVE)
@@ -229,32 +345,23 @@ internal sealed class MasterRouter
 
         if (msg == WM.DESTROY)
         {
-            // Disparar Closed antes de limpieza
+            // Disparar Closed solo en secundarias (la principal no tiene
+            // concepto "cerrar": su destrucción ES el ciclo de la app).
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win != null)
-            {
-                if (win is WindowImpl wi) wi.RaiseClosed();
-                else if (win is AlternativeWindowImpl aw) aw.RaiseClosed();
-            }
+            if (win is AlternativeWindowImpl awClosed)
+                awClosed.RaiseClosed();
 
-            // Limpieza determinística del registry (Fase 5: evita memory leak de controles)
-            _registry.Unregister(hwnd);
-            _registry.UnregisterWindowControls(hwnd);
-            _registry.UnregisterWindowByHwnd(hwnd);
+            // Registry: política explícita.
+            //   Secundarias → DetachHandle (el nombre/identidad vive para el próximo Show()).
+            //   Principal   → Remove (destrucción = fin de la app).
+            _registry.DetachWindowByHwnd(hwnd,
+                win is AlternativeWindowImpl ? RegistryPolicy.DetachHandle : RegistryPolicy.Remove);
             HandleRegistry.UnregisterRouter(hwnd);
-            _windowBrushes.Remove(hwnd);
-            _controlBrushes.Remove(hwnd);
-            _layoutGroupBackgrounds.Remove(hwnd);
-            _scrollOffsets.Remove(hwnd);
-            // Limpia handlers asociados a este hwnd (evita leak de delegates)
-            if (_handlers.Count > 0)
-            {
-                // Copia claves para evitar modificar durante enumeración
-                var toRemove = new List<(nint Hwnd, uint Msg)>();
-                foreach (var key in _handlers.Keys)
-                    if (key.Hwnd == hwnd) toRemove.Add(key);
-                foreach (var key in toRemove) _handlers.Remove(key);
-            }
+            _registry.DebugAssertHwndUnregistered(hwnd); // DEBUG: router↔registry sync (B-2 #52)
+            CleanupHwnd(hwnd);
+            // Marca la secundaria como destruida (Show() posterior re-crea).
+            if (win is AlternativeWindowImpl awDestroyed)
+                awDestroyed.MarkDestroyed();
             if (hwnd == _mainHwnd)
             {
                 Win32.PostQuitMessage(0);
@@ -305,10 +412,10 @@ internal sealed class MasterRouter
                 return ctrlBrush;
         }
 
-        // 1. Try registered raw handlers (lowest level)
-        if (hwnd == _mainHwnd && _handlers.TryGetValue((hwnd, msg), out var mainWindowHandler))
+        // 1. Try registered raw handlers (lowest level, any window incl. hidden broker windows)
+        if (_handlers.TryGetValue((hwnd, msg), out var windowHandler))
         {
-            var result = mainWindowHandler(wParam, lParam);
+            var result = windowHandler(wParam, lParam);
             if (result != 0) return result;
         }
 
@@ -336,8 +443,11 @@ internal sealed class MasterRouter
         {
             case WM.COMMAND:
                 nint code = Win32Helpers.HIWORD(wParam);
-                if ((code == BN.CLICKED || code == BN.DOUBLECLICKED) && control is IClickEventSource clickable)
-                    clickable.RaiseClickInternal();
+                if (control is IInputFeed feed)
+                {
+                    if (code == BN.CLICKED) feed.FeedTrigger(typeof(MainTap), 1);
+                    if (code == BN.DOUBLECLICKED) feed.FeedTrigger(typeof(MainTap), 2);
+                }
                 break;
         }
     }

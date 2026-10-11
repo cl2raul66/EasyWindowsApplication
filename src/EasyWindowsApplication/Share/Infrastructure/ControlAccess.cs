@@ -15,6 +15,11 @@ public static class ControlAccess
         T GetWindow<T>(string name) where T : IBaseWindow;
     }
 
+    internal interface ISurfaceServicesController
+    {
+        T GetSurface<T>(string name) where T : IViewSurface;
+    }
+
     internal static void SetController(IBehaviorServicesController? controller) => _controller = controller;
 
     public static T Get<T>(string name) where T : IControl
@@ -22,4 +27,7 @@ public static class ControlAccess
 
     public static T GetWindow<T>(string name) where T : IBaseWindow
         => _controller!.GetWindow<T>(name);
+
+    public static T GetSurface<T>(string name) where T : IViewSurface
+        => ((ISurfaceServicesController)_controller!).GetSurface<T>(name);
 }

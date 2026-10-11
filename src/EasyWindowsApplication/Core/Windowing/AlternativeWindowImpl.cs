@@ -1,14 +1,33 @@
 ﻿using EasyWindowsApplication.Common;
 using EasyWindowsApplication.Core;
 using EasyWindowsApplication.Core.LayoutEngine;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 
 namespace EasyWindowsApplication.Core.Windowing;
 
-internal sealed class AlternativeWindowImpl : IAlternativeWindow
+internal sealed class AlternativeWindowImpl : IAlternativeWindow, IInputFeed
 {
-    public nint Hwnd { get; }
+    private readonly SurfaceInputHub _hub = new();
+    void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
+
+    public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
+        => OnInputWithSpatialPosition<TTrigger, AnyTap>(handler);
+
+    public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
+        where TTrigger : ISpatialPositionTrigger
+        where TCount : ITapCountSpec
+        => _hub.AddSpatial(typeof(TTrigger), typeof(TCount), handler);
+
+    public void OnInputWithSpatialPosition(Action handler)
+        => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
+
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
+        => _hub.AddNonSpatial(typeof(TTrigger), handler);
+
+    public nint Hwnd { get; private set; }
     public string Name { get; }
     public nint OwnerHwnd { get; }
     private string _title;
@@ -18,7 +37,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         set
         {
             _title = value ?? "";
-            if (Hwnd != 0) EasyWindowsApplication.Core.Win32.SetWindowText(Hwnd, _title);
+            if (Hwnd != 0) Core.Win32.SetWindowText(Hwnd, _title);
         }
     }
     private int _width;
@@ -30,7 +49,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (_width == value) return;
             _width = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
     private int _height;
@@ -42,7 +61,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (_height == value) return;
             _height = value;
             if (Hwnd != 0)
-                EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
+                Core.Win32.SetWindowPos(Hwnd, 0, 0, 0, _width, _height, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOMOVE);
         }
     }
     private WindowPositionOnScreen _positionMode;
@@ -56,21 +75,21 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
             if (Hwnd != 0 && _positionMode == WindowPositionOnScreen.Center)
             {
                 // Reuse Center logic similar to WindowImpl
-                nint monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
-                if (monitor == 0) monitor = EasyWindowsApplication.Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
+                nint monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+                if (monitor == 0) monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
                 if (monitor != 0)
                 {
                     MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
-                    if (EasyWindowsApplication.Core.Win32.GetMonitorInfoW(monitor, ref mi))
+                    if (Core.Win32.GetMonitorInfoW(monitor, ref mi))
                     {
-                        EasyWindowsApplication.Core.Win32.GetWindowRect(Hwnd, out RECT wr);
+                        Core.Win32.GetWindowRect(Hwnd, out RECT wr);
                         int winW = wr.Right - wr.Left;
                         int winH = wr.Bottom - wr.Top;
                         int workW = mi.rcWork.Right - mi.rcWork.Left;
                         int workH = mi.rcWork.Bottom - mi.rcWork.Top;
                         int x = mi.rcWork.Left + (workW - winW) / 2;
                         int y = mi.rcWork.Top + (workH - winH) / 2;
-                        EasyWindowsApplication.Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+                        Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
                     }
                 }
             }
@@ -80,12 +99,25 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
     private List<ILayoutable>? _materializedChildren;
     private ContentModel? _contentModel;
     private bool _hasLoaded;
+    private bool _destroyed;
+    private bool _tearingDown;
+
+    private WindowModel? _model;
+    private HandleRegistry? _registry;
+    private MasterRouter? _router;
 
     public event EventHandler? Loaded;
     public event EventHandler<CancelEventArgs>? Closing;
     public event EventHandler? Closed;
     public event EventHandler? Activated;
     public event EventHandler? Deactivated;
+
+    // Behavior-first lifecycle (inherited from IBaseWindow + IAlternativeWindow)
+    public void OnLoaded(Action handler) => Loaded += (_, _) => handler();
+    public void OnActivated(Action handler) => Activated += (_, _) => handler();
+    public void OnDeactivated(Action handler) => Deactivated += (_, _) => handler();
+    public void OnClosing(Action<CancelEventArgs> handler) => Closing += (_, e) => handler(e);
+    public void OnClosed(Action handler) => Closed += (_, _) => handler();
 
     internal AlternativeWindowImpl(nint hwnd, nint ownerHwnd, string name, string title, int width, int height, WindowPositionOnScreen position)
     {
@@ -100,15 +132,103 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
 
     public void Show()
     {
-        EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.SHOW);
+        if (_destroyed)
+            EnsureCreated();
+        if (Hwnd == 0)
+            return;
+        Win32.ShowWindow(Hwnd, SW.SHOW);
         if (!_hasLoaded)
         {
             _hasLoaded = true;
             Loaded?.Invoke(this, EventArgs.Empty);
         }
     }
-    public void Hide() => EasyWindowsApplication.Core.Windowing.Win32.ShowWindow(Hwnd, SW.HIDE);
-    public void Close() => EasyWindowsApplication.Core.Windowing.Win32.DestroyWindow(Hwnd);
+    public void Hide()
+    {
+        if (Hwnd == 0 || _destroyed)
+            return;
+        Win32.ShowWindow(Hwnd, SW.HIDE);
+    }
+
+    public void Close()
+    {
+        if (_destroyed || Hwnd == 0)
+            return;
+        if (RaiseClosing())
+            return;
+        Win32.DestroyWindow(Hwnd);
+        // WM_DESTROY → MarkDestroyed() completa la transición.
+    }
+
+    public void Visibility(bool visible)
+    {
+        if (visible) Show();
+        else Hide();
+    }
+
+    /// <summary>
+    /// Retiene el modelo y servicios para la re-creación a demanda.
+    /// Llamado por Application.RegisterAlternative.
+    /// </summary>
+    internal void BindForRecreation(WindowModel model, HandleRegistry registry, MasterRouter router)
+    {
+        _model = model;
+        _registry = registry;
+        _router = router;
+    }
+
+    internal void MarkDestroyed()
+    {
+        Hwnd = 0;
+        _destroyed = true;
+        _hasLoaded = false;
+        _materializedChildren = null;
+        _contentModel = null;
+    }
+
+    private void EnsureCreated()
+    {
+        if (!_destroyed)
+            return;
+        if (_model is null || _registry is null || _router is null)
+            throw new InvalidOperationException($"AlternativeWindow '{Name}' destruida sin modelo para re-crear.");
+        // Las instancias de controles se REUTILIZAN (no se resetea vm.Control):
+        // MaterializeChildren re-corre factory.CreateHandle sobre la misma
+        // instancia (re-asigna Hwnd + re-registra) y así sobreviven las
+        // suscripciones del Behavior (SurfaceInputHub) y el estado runtime.
+        // Solo se destruyó lo caro (los HWND).
+        nint hwnd = Procedures.CreateAlternativeWindow(_router, OwnerHwnd, _title, _width, _height);
+        // DEFENSA: limpiar posible estado residual si el SO reutilizó el hwnd instantáneamente
+        _router.CleanupHwnd(hwnd);
+        Hwnd = hwnd;
+        if (_model.Background.HasValue)
+        {
+            nint brush = Core.Win32.CreateSolidBrush(_model.Background.Value.ToCOLORREF());
+            _router.RegisterWindowBackgroundBrush(hwnd, brush);
+        }
+        _registry.RegisterWindow(this);
+        MaterializeContent(_model, _registry, _router);
+        if (_positionMode == WindowPositionOnScreen.Center)
+            CenterCurrent();
+        _destroyed = false;
+    }
+
+    private void CenterCurrent()
+    {
+        if (Hwnd == 0)
+            return;
+        nint monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTONEAREST);
+        if (monitor == 0) monitor = Core.Win32.MonitorFromWindow(Hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (monitor == 0) return;
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!Core.Win32.GetMonitorInfoW(monitor, ref mi)) return;
+        Core.Win32.GetWindowRect(Hwnd, out RECT wr);
+        int winW = wr.Right - wr.Left;
+        int winH = wr.Bottom - wr.Top;
+        int x = mi.rcWork.Left + ((mi.rcWork.Right - mi.rcWork.Left - winW) / 2);
+        int y = mi.rcWork.Top + ((mi.rcWork.Bottom - mi.rcWork.Top - winH) / 2);
+        Core.Win32.SetWindowPos(Hwnd, 0, x, y, 0, 0, SWP.NOZORDER | SWP.NOACTIVATE | SWP.NOSIZE);
+    }
 
     internal void RaiseLoaded()
     {
@@ -116,13 +236,24 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         _hasLoaded = true;
         Loaded?.Invoke(this, EventArgs.Empty);
     }
+    /// <summary>
+    /// Marca que la app está terminando. Closing/Closed no se disparan (teardown de app,
+    /// no cierre de ventana). Solo debe llamarse desde Application.RunPipeline's epílogo.
+    /// </summary>
+    internal void MarkTearingDown() => _tearingDown = true;
+
     internal bool RaiseClosing()
     {
+        if (_tearingDown) return false; // app terminando: veto no aplica
         var args = new CancelEventArgs();
         Closing?.Invoke(this, args);
         return args.Cancel;
     }
-    internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
+    internal void RaiseClosed()
+    {
+        if (_tearingDown) return;       // app terminando: ningún callback de Behavior
+        Closed?.Invoke(this, EventArgs.Empty);
+    }
     internal void RaiseActivated() => Activated?.Invoke(this, EventArgs.Empty);
     internal void RaiseDeactivated() => Deactivated?.Invoke(this, EventArgs.Empty);
 
@@ -142,7 +273,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
         if (availW <= 0) availW = window.Width;
         if (availH <= 0) availH = window.Height;
 
-        var engine = new EasyWindowsApplication.Core.LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
+        var engine = new LayoutEngine.LayoutEngine(new VerticalStackLayoutStrategy());
         engine.Execute(layoutables, availW, availH, content.Spacing, content.Padding);
 
         _materializedChildren = layoutables;
@@ -168,7 +299,11 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
                 vm.Control = control;
             }
 
-            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(control, out var factory) || factory is null)
+            // Las superficies sin HWND (IMenu, IMenuItem) no se materializan aquí;
+            // las materializa MenuSurface (Fase 1/2).
+            if (control is not IControl nativeControl) continue;
+
+            if (!ControlActivatorRegistry.Shared.TryGetFactoryForControl(nativeControl, out var factory) || factory is null)
             {
                 if (vm.ControlType is not null && ControlActivatorRegistry.Shared.TryGetFactory(vm.ControlType) is { } fallback)
                     factory = fallback;
@@ -176,7 +311,7 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
                     throw new InvalidOperationException($"No handle factory registered for control '{control.GetType().Name}' (name='{control.Name}').");
             }
 
-            nint hwnd = factory.CreateHandle(parentHwnd, control, registry);
+            nint hwnd = factory.CreateHandle(parentHwnd, nativeControl, registry);
             if (hwnd == 0)
                 throw new InvalidOperationException($"CreateHandle failed for control '{control.Name}' ({control.GetType().Name})");
 
@@ -196,6 +331,9 @@ internal sealed class AlternativeWindowImpl : IAlternativeWindow
                 MaterializeChildren(sub, hwnd, registry, router, subLayoutables);
                 if (control is UserControl uc)
                 {
+                    // La instancia se reutiliza entre re-creaciones: limpiar la
+                    // agregación antes de re-añadir para no duplicar hijos.
+                    uc.Children.Clear();
                     foreach (var subChild in subLayoutables) uc.Children.Add(subChild);
                     uc.Spacing = sub.Spacing;
                 }

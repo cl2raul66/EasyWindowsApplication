@@ -1,6 +1,8 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IListView : IControl
+public interface IListView : IControl, IInputSurface
 {
     void AddColumn(string text, int width);
     int AddItem(string text);

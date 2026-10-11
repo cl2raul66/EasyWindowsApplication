@@ -14,15 +14,9 @@ public abstract class ViewBase<TSelf> : ControlBase where TSelf : ViewBase<TSelf
         base.OnMessage(msg, handler);
         return (TSelf)this;
     }
-
-    public new TSelf OnClick(Action handler)
-    {
-        base.OnClick(handler);
-        return (TSelf)this;
-    }
 }
 
-public sealed class View<T> where T : class, IControl
+public sealed class View<T> where T : class, IViewSurface
 {
     private readonly List<Action<T>> _configure = new();
     internal string? PendingName { get; private set; }
@@ -152,12 +146,6 @@ public sealed class View<T> where T : class, IControl
         return this;
     }
 
-    public View<T> OnClick(Action handler)
-    {
-        _configure.Add(c => c.OnClick(handler));
-        return this;
-    }
-
     public View<T> Text(string text)
     {
         _configure.Add(c => { if (c is IText t) t.Text = text; });
@@ -175,12 +163,12 @@ public sealed class View<T> where T : class, IControl
         foreach (var a in _configure) a(instance);
     }
 
-    internal Action<IControl> BuildConfigure()
+    internal Action<IViewSurface> BuildConfigure()
     {
         var snapshot = _configure.ToArray();
-        return control =>
+        return surface =>
         {
-            var typed = (T)control;
+            var typed = (T)surface;
             foreach (var a in snapshot) a(typed);
         };
     }

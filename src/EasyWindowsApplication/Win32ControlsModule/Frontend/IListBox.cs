@@ -1,6 +1,8 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IListBox : IControl
+public interface IListBox : IControl, IInputSurface
 {
     int SelectedIndex { get; set; }
     void AddItem(string text);

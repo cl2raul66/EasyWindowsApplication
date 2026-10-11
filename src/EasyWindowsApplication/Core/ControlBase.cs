@@ -2,7 +2,9 @@
 using System.Runtime.InteropServices;
 
 using EasyWindowsApplication.Core.LayoutEngine;
+using EasyWindowsApplication.Core.Surfaces;
 using EasyWindowsApplication.Share;
+using EasyWindowsApplication.Share.Input;
 using EasyWindowsApplication.Win32ControlsModule.Backend;
 using EasyWindowsApplication.Win32ControlsModule.Frontend;
 using static EasyWindowsApplication.Core.Win32;
@@ -10,37 +12,27 @@ using static EasyWindowsApplication.Core.Win32;
 namespace EasyWindowsApplication.Core;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, IDockable
+public abstract class ControlBase : IControl, IInputSurface, IInputFeed, ILayoutable, IDockable
 {
     internal ControlBase() { }
+
+    private readonly SurfaceInputHub _hub = new();
+    void IInputFeed.FeedTrigger(Type trigger, int count) => _hub.Fire(trigger, count);
 
     public nint Hwnd { get; internal set; }
     public string Name { get; set; } = "";
 
-    // IBaseWindow lifecycle events (requeridos por IBaseWindow pero no usados en controles)
+    // IBaseWindow lifecycle events (requeridos por IBaseWindow vía IControl)
     public event EventHandler? Loaded { add { } remove { } }
-    public event EventHandler<Share.CancelEventArgs>? Closing { add { } remove { } }
-    public event EventHandler? Closed { add { } remove { } }
     public event EventHandler? Activated { add { } remove { } }
     public event EventHandler? Deactivated { add { } remove { } }
 
+    // Behavior-first lifecycle — no-op for controls (controls don't raise lifecycle)
+    public void OnLoaded(Action handler) { }
+    public void OnActivated(Action handler) { }
+    public void OnDeactivated(Action handler) { }
+
     private float _x, _y, _w, _h;
-
-    internal event Action? InternalClick;
-
-    void IClickEventSource.RaiseClickInternal() => InternalClick?.Invoke();
-    void IClickEventSource.AddClickHandler(Action handler) => InternalClick += handler;
-
-    public event Action? Clicked
-    {
-        add => InternalClick += value;
-        remove => InternalClick -= value;
-    }
-
-    public void OnClick(Action handler)
-    {
-        InternalClick += handler;
-    }
 
     public nint OnMessage(uint msg, Win32MessageHandler handler)
     {
@@ -216,7 +208,7 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
         try { return ControlProcedures.GetDefaultFont(); } catch { return GetStockObject(17); }
     }
 
-    protected (int Width, int Height) MeasureText(string text)
+    protected (float Width, float Height) MeasureText(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
@@ -231,7 +223,7 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
         return (rect.Right - rect.Left, rect.Bottom - rect.Top);
     }
 
-    protected (int Width, int Height) MeasureTextV2(string text)
+    protected (float Width, float Height) MeasureTextV2(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
@@ -247,7 +239,7 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
         return (size.cx, size.cy);
     }
 
-    protected (int Width, int Height) MeasureTextByGlyphs(string text)
+    protected (float Width, float Height) MeasureTextByGlyphs(string text)
     {
         if (string.IsNullOrEmpty(text))
             return (20, 24);
@@ -309,4 +301,18 @@ public abstract class ControlBase : IControl, IClickEventSource, ILayoutable, ID
         }
         return 8;
     }
+
+    public void OnInputWithSpatialPosition<TTrigger>(Action handler) where TTrigger : ISpatialPositionTrigger
+        => OnInputWithSpatialPosition<TTrigger, AnyTap>(handler);
+
+    public void OnInputWithSpatialPosition<TTrigger, TCount>(Action handler)
+        where TTrigger : ISpatialPositionTrigger
+        where TCount : ITapCountSpec
+        => _hub.AddSpatial(typeof(TTrigger), typeof(TCount), handler);
+
+    public void OnInputWithSpatialPosition(Action handler)
+        => OnInputWithSpatialPosition<MainTap, OneTap>(handler);
+
+    public void OnInputWithoutSpatialPosition<TTrigger>(Action handler) where TTrigger : IWithoutSpatialPositionTrigger
+        => _hub.AddNonSpatial(typeof(TTrigger), handler);
 }

@@ -1,6 +1,8 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IEdit : IControl
+public interface IEdit : IControl, IInputSurface
 {
     string Text { get; set; }
     bool ReadOnly { get; set; }

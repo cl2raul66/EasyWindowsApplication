@@ -1,6 +1,8 @@
+using EasyWindowsApplication.Share;
+
 namespace EasyWindowsApplication.Win32ControlsModule.Frontend;
 
-public interface IComboBoxEx : IControl
+public interface IComboBoxEx : IControl, IInputSurface
 {
     string Text { get; set; }
     int SelectedIndex { get; set; }

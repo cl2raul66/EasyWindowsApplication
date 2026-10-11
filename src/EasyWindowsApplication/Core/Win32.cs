@@ -108,6 +108,33 @@ internal static partial class Win32
     [LibraryImport("kernel32.dll", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint GetModuleHandleW(nint lpModuleName);
 
+    // ── Window layering / DWM / display affinity (Phase C — #47) ──
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowDisplayAffinity(nint hWnd, uint dwAffinity);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsZoomed(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsIconic(nint hWnd);
+
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmSetWindowAttribute(nint hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmExtendFrameIntoClientArea(nint hwnd, ref MARGINS pMarInset);
+
+    /// <summary>Shell AppBar message (taskbar state). shell32.dll.</summary>
+    [LibraryImport("shell32.dll")]
+    internal static partial nint SHAppBarMessage(uint dwMessage, ref APPBARDATA pData);
+
     // ── GDI ──
     [LibraryImport("gdi32.dll")]
     internal static partial nint CreateSolidBrush(int color);
@@ -180,6 +207,37 @@ internal static partial class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ScreenToClient(nint hWnd, ref POINT lpPoint);
 
+    // ── Pure helpers ──
+
+    /// <summary>Detector Win10 1809+ (para DwmSetWindowAttribute/DWMSBT).</summary>
+    internal static bool IsWindows10_1809OrLater()
+        => Environment.OSVersion.Version is { Major: >= 10, Build: >= 17763 };
+
+    /// <summary>
+    /// Bounds de FullScreen taskbar-aware (#56):
+    /// <list type="bullet">
+    /// <item>taskbar visible (no auto-hide) → <c>rcWork</c> (respeta el espacio de taskbar/appbars de cualquier borde).</item>
+    /// <item>taskbar en auto-hide → <c>rcMonitor</c> (cubre todo; aparece por hover encima sin bloquear).</item>
+    /// </list>
+    /// Multi-monitor y otras appbars acopladas quedan cubiertas por delegación en <c>MONITORINFO.rcWork</c>.
+    /// </summary>
+    internal static RECT ResolveFullScreenBounds(nint hwnd)
+    {
+        nint mon = MonitorFromWindow(hwnd, MONITOR.DEFAULTTONEAREST);
+        if (mon == 0) mon = MonitorFromWindow(hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (mon == 0) return default;
+
+        MONITORINFO mi = new() { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfoW(mon, ref mi)) return mi.rcWork;
+
+        var abd = new APPBARDATA { cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<APPBARDATA>() };
+        nint st = SHAppBarMessage(ABM.GETSTATE, ref abd);
+        bool autoHide = ((ulong)st & ABS.AUTOHIDE) != 0;
+
+        // auto-hide: la taskbar no reclama espacio permanente → la ventana puede cubrirla.
+        return autoHide ? mi.rcMonitor : mi.rcWork;
+    }
+
     // ── ComCtl32 ──
     [LibraryImport("comctl32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -215,4 +273,60 @@ internal static partial class Win32
     [LibraryImport("user32.dll", EntryPoint = "SetWindowTextW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetWindowText(nint hWnd, string lpString);
+
+    // ── Window Messages ──
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial uint RegisterWindowMessageW(string lpString);
+
+    // ── Timers ──
+    [LibraryImport("user32.dll")]
+    internal static partial nuint SetTimer(nint hWnd, nuint nIDEvent, uint uElapse, nint lpTimerFunc);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool KillTimer(nint hWnd, nuint uIDEvent);
+
+    // ── Keyboard state ──
+    [LibraryImport("user32.dll")]
+    internal static partial short GetKeyState(int nVirtKey);
+
+    [LibraryImport("user32.dll")]
+    internal static partial uint GetDoubleClickTime();
+
+    // ── Menus (HMENU) ──
+    [LibraryImport("user32.dll")]
+    internal static partial nint CreatePopupMenu();
+
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool AppendMenuW(nint hMenu, uint uFlags, nuint uIDNewItem, string? lpNewItem);
+
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool InsertMenuW(nint hMenu, uint uPosition, uint uFlags, nuint uIDNewItem, string? lpNewItem);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int TrackPopupMenuEx(nint hMenu, uint uFlags, int x, int y, nint hwnd, nint lptpm);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DestroyMenu(nint hMenu);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int GetMenuItemCount(nint hMenu);
+
+    [LibraryImport("user32.dll")]
+    internal static partial uint GetMenuState(nint hMenu, uint uId, uint uFlags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetCursorPos(out POINT lpPoint);
+
+    // ── Shell NotifyIcon ──
+    [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool Shell_NotifyIconW(uint dwMessage, ref NOTIFYICONDATAW lpData);
+
+    [LibraryImport("shell32.dll")]
+    internal static partial int Shell_NotifyIconGetRect(ref NOTIFYICONIDENTIFIER identifier, out RECT iconLocation);
 }
