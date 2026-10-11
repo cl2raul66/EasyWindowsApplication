@@ -165,12 +165,31 @@
 
     internal static class HT
     {
+        internal const int ERROR = -2;
+        internal const int TRANSPARENT = -1;
+        internal const int NOWHERE = 0;
         internal const int CLIENT = 1;
         internal const int CAPTION = 2;
-        internal const int SYSMENU = 4;
+        internal const int SYSMENU = 3;
+        internal const int GROWBOX = 4;
+        internal const int SIZE = 4;
+        internal const int MENU = 5;
+        internal const int HSCROLL = 6;
+        internal const int VSCROLL = 7;
         internal const int MINBUTTON = 8;
         internal const int MAXBUTTON = 9;
+        internal const int LEFT = 10;
+        internal const int RIGHT = 11;
+        internal const int TOP = 12;
+        internal const int TOPLEFT = 13;
+        internal const int TOPRIGHT = 14;
+        internal const int BOTTOM = 15;
+        internal const int BOTTOMLEFT = 16;
+        internal const int BOTTOMRIGHT = 17;
+        internal const int BORDER = 18;
+        internal const int OBJECT = 19;
         internal const int CLOSE = 20;
+        internal const int HELP = 21;
     }
 
     internal static class MONITOR

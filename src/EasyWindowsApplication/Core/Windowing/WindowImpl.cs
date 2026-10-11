@@ -427,7 +427,9 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     // ── TitleBar (C4/C5) — #47 ────────────────────────────────────────────────
 
     private bool _customTitleBar;
+    private TitleBarMode _titleBarMode = TitleBarMode.Simple;
     internal bool CustomTitleBarActive => _customTitleBar;
+    internal bool TitleBarActive => _customTitleBar || _titleBarMode == TitleBarMode.Simple;
 
     /// <summary>Altura del área de caption custom en px lógicos (hit-test D5).</summary>
     internal float CustomTitleBarHeight { get; set; } = 32f;
@@ -436,6 +438,7 @@ internal sealed class WindowImpl : IWindow, IInputFeed
     internal void ApplyTitleBar(TitleBarBuilder? builder)
     {
         if (builder is null) return;
+        _titleBarMode = builder.Mode;
         _customTitleBar = builder.Mode == TitleBarMode.Custom;
         if (builder.Mode == TitleBarMode.Simple)
         {

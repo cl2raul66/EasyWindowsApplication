@@ -184,9 +184,9 @@ internal sealed class MasterRouter
         }
         else if (msg == WM.NCACTIVATE)
         {
-            // C4/D6: en ventana con TitleBar.Simple siempre respondemos TRUE para pintar la caption activa.
+            // C4/D6: en ventana con TitleBar (Custom o Simple) respondemos TRUE para pintar la caption activa.
             var win = _registry.GetWindowByHwnd(hwnd);
-            if (win is WindowImpl wiNc && wiNc.CustomTitleBarActive)
+            if (win is WindowImpl wiNc && wiNc.TitleBarActive)
                 return 1; // evita flicker / parpadeo del caption por redraw
         }
         else if (msg == WM.NCHITTEST)
