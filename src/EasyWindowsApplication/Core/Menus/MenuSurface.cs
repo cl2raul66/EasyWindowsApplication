@@ -17,6 +17,11 @@ internal sealed class MenuSurface : IMenu
 
     internal HandleRegistry? Registry { get; set; }
 
+    // Dueño de respaldo resuelto en Show(): diálogos usan el mismo patrón
+    // (DialogSurfaceBase.OwnerProvider) para no depender del orden de
+    // declaración en Layout. El tray lo sobrescribe vía SetOwner().
+    internal Func<nint> OwnerProvider { get; set; } = static () => 0;
+
     internal void SetOwner(nint hwnd) => _ownerHwnd = hwnd;
 
     internal void SetIconAnchor(nint trayHwnd, uint trayId)
@@ -55,6 +60,15 @@ internal sealed class MenuSurface : IMenu
 
     public void Show()
     {
+        // Inteligente (issue #53, sin cambiar IMenu): control disparador en
+        // curso → icono del tray → cursor. Las explícitas ShowAtCursor() /
+        // ShowAtIcon() no leen el contexto por contrato.
+        if (InputTriggerContext.TryGetFresh(out var triggerHwnd)
+            && TryAnchorToControl(triggerHwnd, out var pos, out var align, out var owner))
+        {
+            ShowAt(pos.X, pos.Y, align, owner);
+            return;
+        }
         if (_iconAnchor is not null)
         {
             var (x, y) = _iconAnchor();
@@ -153,9 +167,42 @@ internal sealed class MenuSurface : IMenu
         return model;
     }
 
-    private void ShowAt(int x, int y, uint align)
+    private void ShowAt(int x, int y, uint align) => ShowAt(x, y, align, ResolveOwner());
+
+    private void ShowAt(int x, int y, uint align, nint owner)
     {
         var model = EnsureMaterialized();
-        Win32MenuEngine.Show(_ownerHwnd, model, x, y, align);
+        Win32MenuEngine.Show(owner, model, x, y, align);
     }
+
+    /// <summary>
+    /// Ancla al rect del control disparador con flip según el área de trabajo
+    /// del monitor (igual que el ancla del icono del tray). El dueño es el
+    /// propio control para ese Show() puntual. Falla si el HWND ya no es válido.
+    /// </summary>
+    private static bool TryAnchorToControl(nint hwnd, out (int X, int Y) pos, out uint align, out nint owner)
+    {
+        pos = default;
+        align = TPM.LEFTALIGN | TPM.TOPALIGN;
+        owner = hwnd;
+        if (!Win32.GetWindowRect(hwnd, out RECT rc)) return false;
+        nint mon = Win32.MonitorFromWindow(hwnd, MONITOR.DEFAULTTONEAREST);
+        if (mon == 0) mon = Win32.MonitorFromWindow(hwnd, MONITOR.DEFAULTTOPRIMARY);
+        if (mon == 0)
+        {
+            pos = (rc.Left, rc.Bottom);
+            return true;
+        }
+        MONITORINFO mi = new() { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
+        if (!Win32.GetMonitorInfoW(mon, ref mi)) return false;
+        var work = mi.rcWork;
+        bool below = work.Bottom - rc.Bottom >= rc.Top - work.Top;
+        bool toRight = work.Right - rc.Left >= rc.Right - work.Left;
+        pos = below ? (rc.Left, rc.Bottom) : (rc.Left, rc.Top);
+        align = (toRight ? TPM.LEFTALIGN : TPM.RIGHTALIGN)
+            | (below ? TPM.TOPALIGN : TPM.BOTTOMALIGN);
+        return true;
+    }
+
+    private nint ResolveOwner() => _ownerHwnd != 0 ? _ownerHwnd : OwnerProvider();
 }

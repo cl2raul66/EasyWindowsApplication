@@ -293,6 +293,10 @@ internal sealed class Application :
             var surface = new Menus.MenuSurface(window.Content as ContentModel);
             if (!string.IsNullOrEmpty(window.Name))
                 surface.Name = window.Name;
+            // Dueño de respaldo sin tray: main HWND resuelto en Show() (lazy,
+            // igual que diálogos). WireMenuSurfaces() lo sobrescribe con el
+            // broker del tray si hay SystemTray declarado.
+            surface.OwnerProvider = () => _mainHwnd;
             surface.Registry = _registry;
             surface.EnsureMaterialized();
             _registry.Attach(EntityKind.Surface, surface, hwnd: 0, window.Name);
