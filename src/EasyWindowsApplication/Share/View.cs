@@ -18,7 +18,7 @@ public abstract class ViewBase<TSelf> : ControlBase where TSelf : ViewBase<TSelf
 
 public sealed class View<T> where T : class, IViewSurface
 {
-    private readonly List<Action<T>> _configure = new();
+    private readonly List<Action<T>> _configure = [];
     internal string? PendingName { get; private set; }
 
     public View() { }
