@@ -1,15 +1,5 @@
 namespace EasyWindowsApplication.Share;
 
-/// <summary>Modo de title bar de la ventana principal.</summary>
-public enum TitleBarMode
-{
-    /// <summary>Title bar nativa Win32 (WNDCLASSEX icon + SetWindowText).</summary>
-    Simple,
-
-    /// <summary>Custom title bar extendida sobre el client area (DwmExtendFrameIntoClientArea).</summary>
-    Custom,
-}
-
 /// <summary>Configuración de title bar.</summary>
 public interface ITitleBarConfig
 {

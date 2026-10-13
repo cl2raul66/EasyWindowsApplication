@@ -445,8 +445,18 @@ internal sealed class MasterRouter
                 nint code = Win32Helpers.HIWORD(wParam);
                 if (control is IInputFeed feed)
                 {
-                    if (code == BN.CLICKED) feed.FeedTrigger(typeof(MainTap), 1);
-                    if (code == BN.DOUBLECLICKED) feed.FeedTrigger(typeof(MainTap), 2);
+                    bool fires = code == BN.CLICKED || code == BN.DOUBLECLICKED;
+                    if (!fires) break;
+                    // Publica el HWND origen para MenuSurface.Show() (ancla al
+                    // control). Se limpia al salir: Show() solo lo ve dentro
+                    // del handler en curso. Issue #53, sin cambiar Action.
+                    InputTriggerContext.Publish(controlHwnd);
+                    try
+                    {
+                        if (code == BN.CLICKED) feed.FeedTrigger(typeof(MainTap), 1);
+                        if (code == BN.DOUBLECLICKED) feed.FeedTrigger(typeof(MainTap), 2);
+                    }
+                    finally { InputTriggerContext.Clear(); }
                 }
                 break;
         }

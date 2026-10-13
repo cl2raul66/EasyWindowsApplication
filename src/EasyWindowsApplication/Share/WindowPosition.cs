@@ -13,28 +13,3 @@ public sealed record PositionPreset(WindowPositionPreset Preset) : IWindowPositi
 
 /// <summary>Snap a borde de pantalla (o trackbar) estilo Aero Snap.</summary>
 public sealed record PositionSnap(SnapRegion Region) : IWindowPosition;
-
-public enum WindowPositionPreset
-{
-    Center,
-    TopLeft,
-    Top,
-    TopRight,
-    Left,
-    Right,
-    BottomLeft,
-    Bottom,
-    BottomRight,
-}
-
-public enum SnapRegion
-{
-    Left,
-    Right,
-    Top,
-    Bottom,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}

@@ -236,7 +236,12 @@ internal sealed class SystemTrayBroker
     private void Fire(Type trigger)
     {
         int count = _counter.Next(trigger, Environment.TickCount, Win32.GetDoubleClickTime());
-        _dispatch(trigger, count);
+        // El tray no es un control anclable: limpia cualquier contexto previo
+        // para que MenuSurface.Show() caiga al icono (iconAnchor), nunca a un
+        // botón de una ventana. Issue #53.
+        InputTriggerContext.Clear();
+        try { _dispatch(trigger, count); }
+        finally { InputTriggerContext.Clear(); }
     }
 
     private NOTIFYICONDATAW NewData(uint flags)

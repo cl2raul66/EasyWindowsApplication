@@ -17,12 +17,12 @@ WindowsApplication
             .SystemTray(st => st.Tooltip("EWA - Demo"))
         );
         ly.AlternativeWindow<IMenu>(m => m
-            .Name("GalleryMenu")
+            .Name("TrayMenu")
             .Content(c => c.Children(ch =>
             {
                 ch.View<IMenuItem>(mi => mi.Name("MiShowMainWin").Text("Go to main window"));
                 ch.View<IMenuItemSeparator>();
-                ch.View<IMenuItem>(mi => mi.Name("MiExit").Text("Exit"));
+                ch.View<IMenuItem>(mi => mi.Name("MiExit").Text("Salir"));
             }))
         );
     })

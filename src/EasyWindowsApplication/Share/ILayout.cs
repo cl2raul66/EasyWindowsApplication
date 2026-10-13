@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EasyWindowsApplication.Share;
+﻿namespace EasyWindowsApplication.Share;
 
 public interface ILayout
 {
