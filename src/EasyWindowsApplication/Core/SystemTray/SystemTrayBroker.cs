@@ -26,6 +26,7 @@ internal sealed class SystemTrayBroker
     private bool _disposed;
 
     private int _lastHoverTick;
+    private int _lastMainTapUpTick; // tick del último WM_LBUTTONUP consumido como MainTap
     private bool _holding;
     private readonly TapChainCounter _counter = new();
 
@@ -135,7 +136,13 @@ internal sealed class SystemTrayBroker
             case WM_RBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap1)); break;
             case WM_MBUTTONUP: if (IsCursorOverIcon()) Fire(typeof(AlternativeTap2)); break;
             case WM.CONTEXTMENU: OnContextMenuKey(); break;
-            case var m when m == NIN.SELECT || m == NIN.KEYSELECT: Fire(typeof(MainTap)); break;
+            // NIN.SELECT/KEYSELECT: en VERSION_4 Explorer lo envía junto a WM_LBUTTONUP
+            // en cada click de ratón. Deduplicar (issue #58): si hay un MainTap de ratón
+            // reciente dentro del tiempo de doble click, este mensaje es su eco.
+            case var m when m == NIN.SELECT || m == NIN.KEYSELECT:
+                if (unchecked(Environment.TickCount - _lastMainTapUpTick) > (int)Win32.GetDoubleClickTime())
+                    Fire(typeof(MainTap));
+                break;
             case var m when m == NIN.POPUPOPEN: OnHover(); break;
         }
         return 0;
@@ -213,6 +220,7 @@ internal sealed class SystemTrayBroker
         }
         else
         {
+            _lastMainTapUpTick = Environment.TickCount;
             Fire(typeof(MainTap));
         }
     }
